@@ -61,9 +61,12 @@ class ConnectorManager:
 
     def register(self, config: ConnectorConfig) -> str:
         check_url(config.base_url, None)
+        # The auth dict holds REFERENCES (env var names), never values:
+        # the value lives only in the process environment and is read per
+        # request by _auth_headers. Persist the name so the connector still
+        # resolves after a restart; redact_secrets below is defense in
+        # depth against any value that ever slips into the config.
         redacted = config.model_dump()
-        redacted["auth"] = {k: ("***" if k == "env" else v)
-                            for k, v in config.auth.items()}
         self._conn.execute(
             "INSERT INTO connectors (id, base_url, config, created_at)"
             " VALUES (?,?,?,?)"

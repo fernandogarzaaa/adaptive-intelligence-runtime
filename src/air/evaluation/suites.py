@@ -17,6 +17,34 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 from air.events.fabric import canonical, utcnow
+from air.experience.provenance import NON_EVIDENTIARY, Provenance
+
+
+def epistemic_refusal(conn, run_id: str) -> str | None:
+    """Epistemic separation gate (Invariant #12).
+
+    Returns a refusal reason if the run's evidence cannot ground a
+    verification verdict, else None. Simulation, forecast, hypothesis,
+    and counterfactual work may inform allocation and generate
+    hypotheses, but can NEVER become the basis of a SUPPORTED verdict:
+    simulation can generate evidence FOR a hypothesis, but cannot
+    itself become evidence that the hypothesis is true in reality.
+    """
+    kinds = {r[0] for r in conn.execute(
+        "SELECT epistemic_kind FROM agents WHERE root_run_id=?",
+        (run_id,)).fetchall()}
+    if kinds and all(Provenance(k) in NON_EVIDENTIARY for k in kinds):
+        return ("all evidence-producing agents are non-evidentiary"
+                f" ({sorted(kinds)}): simulation cannot verify reality")
+    exp = conn.execute(
+        "SELECT outcomes FROM experiences WHERE run_id=?"
+        " ORDER BY created_at DESC LIMIT 1", (run_id,)).fetchone()
+    if exp:
+        prov = (json.loads(exp[0] or "{}")).get("provenance")
+        if prov and Provenance(prov) in NON_EVIDENTIARY:
+            return (f"experience provenance is {prov}: not real-world"
+                    " evidence")
+    return None
 
 
 class Verdict(str, Enum):
@@ -163,6 +191,28 @@ class Evaluator:
         if exp_row:
             experience = {"outcomes": json.loads(exp_row[0] or "{}"),
                           "cost": exp_row[1]}
+        # Epistemic separation (Invariant #12): simulated / forecast /
+        # hypothetical / counterfactual evidence can never yield SUPPORTED.
+        # The refusal is itself recorded as a check, so the boundary is
+        # auditable rather than silent.
+        refusal = epistemic_refusal(self._conn, run_id)
+        if refusal:
+            result = EvaluationResult(
+                suite_id=suite.id, suite_version=suite.version,
+                subject={"kind": "run", "run_id": run_id},
+                evaluator=self.name, evaluator_version=self.version)
+            result.checks.append(CheckResult(
+                case_id="epistemic_separation", passed=False,
+                detail=f"refused: {refusal}",
+                evidence={"boundary": "evaluation_entry"}))
+            result.verdict = Verdict.INVALID
+            result.metrics = {"score": 0.0, "total": 1.0, "pass_rate": 0.0}
+            result.completed_at = utcnow()
+            result.evidence_hash = hashlib.sha256(
+                canonical(result.model_dump(exclude={"evidence_hash"}))
+                .encode()).hexdigest()
+            self._persist(result)
+            return result
         return self._run_suite(suite, {"kind": "run", "run_id": run_id},
                                event_dicts, experience)
 

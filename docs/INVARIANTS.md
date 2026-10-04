@@ -76,19 +76,10 @@ experience recorder, grounded in tool results, may write OBSERVED.
 
 ## 4. Epistemic separation
 
-**Simulation cannot be represented as observation.** Scripted or
-simulated agent behaviors (test harnesses, dry runs) are labeled at
-write time and can never produce OBSERVED memory, SUPPORTED
-evaluations, or SOUND assurances.
+**Simulation cannot be represented as observation.** Closed 2026-10-04;
+formalized as Invariant #12 below.
 
-- Boundary: behavior registry `src/air/agents/runtime.py`
-  (`register_behavior` is a documented test control, not a product
-  hook); evaluation `src/air/evaluation/`, assurance
-  `src/air/assurance/`.
-- adversarial: `[gap]` no test yet asserts that a harness-driven run
-  cannot yield a SUPPORTED evaluation. Required: run the full
-  evaluate/assure path over harness output and assert the verdict
-  reflects the evidence (or is explicitly marked synthetic).
+`[held]`
 
 ## 5. Scope
 
@@ -209,6 +200,55 @@ same boundary.
 
 ---
 
+## 12. Epistemic separation (formal)
+
+**SIMULATED, FORECAST, HYPOTHETICAL, and COUNTERFACTUAL provenance
+can never ground a verification verdict, an observation, or a
+capability claim.** They may inform allocation and generate
+hypotheses, but simulation can generate evidence *for* a hypothesis
+without ever *becoming* evidence that the hypothesis is true in
+reality.
+
+Enforcement lives at the data-model and evaluation boundaries, not
+merely inside the evaluator:
+
+- `src/air/experience/provenance.py`: `NON_EVIDENTIARY` frozenset;
+  the four kinds are first-class, not stringly-typed.
+- Agents carry a persisted `epistemic_kind` (migration `0011`,
+  default OBSERVED). The allocator marks simulator specs; spawn
+  heredity prevents laundering simulator output through an
+  OBSERVED child.
+- `src/air/evaluation/suites.py::epistemic_refusal`: the
+  evaluation entry point refuses all-simulator runs and
+  non-evidentiary experience with an auditable INVALID verdict
+  (never SUPPORTED).
+- `src/air/assurance/probes.py::_probe_epistemic_separation`:
+  SUPPORTED-on-simulated-evidence is a false accept; the system
+  verdict stays INVALID (never SOUND, never promotable).
+- `src/air/memory/store.py`: OBSERVED requires an `evidence_ref`
+  resolving to a real ledger event from a non-simulator agent;
+  fabricated refs and simulator-produced refs are refused loudly.
+- `src/air/experience/recorder.py`: all-simulator runs record
+  SIMULATED provenance (never silently OBSERVED); simulator tool
+  output is labeled per-action.
+- The promotion gate requires SUPPORTED; simulated evaluations
+  are INVALID, so simulation-only policy candidates are blocked
+  (`GateBlocked`).
+- Malicious `"verified": true` tool output stays inside the
+  gateway's untrusted framing and never reaches the ledger as fact.
+
+Tests: `tests/test_epistemic_separation.py` (11 tests) covering
+simulation/forecast -> SUPPORTED, simulation -> SOUND,
+hypothesis -> observed-fact write, counterfactual -> experience
+provenance, plus the five adversarial variants (wrapped as
+OBSERVED, evaluator-supplied simulation, malicious self-verified
+tool output, simulation-only capability claims, simulation-only
+policy evidence).
+
+`[held]` (2026-10-04)
+
+---
+
 ## Mapping summary
 
 | Invariant | unit | integration | adversarial | e2e | status |
@@ -216,7 +256,7 @@ same boundary.
 | 1 Authority | yes | yes | yes | yes | held |
 | 2 Promotion | yes | — | yes | yes | held |
 | 3 Evidence | yes | yes | partial | — | partial |
-| 4 Epistemic separation | — | — | — | — | gap |
+| 4 Epistemic separation | — | — | — | — | held |
 | 5 Scope | yes | yes | yes | yes | partial |
 | 6 Budget | yes | — | yes | yes | held |
 | 7 Provenance | — | yes | — | yes | held |
@@ -224,6 +264,7 @@ same boundary.
 | 9 Recovery | yes | yes | yes | — | held |
 | 10 Event semantics | yes | — | yes | — | held |
 | 11 Independence | — | — | yes | yes | partial |
+| 12 Epistemic separation (formal) | yes | yes | yes | — | held |
 
 Closing every `[gap]` and `[partial]` is the production-hardening
 program. No new features until this table reads `held` throughout.

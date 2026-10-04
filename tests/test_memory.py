@@ -26,14 +26,27 @@ def _store(tmp_path):
 
 
 def test_observed_requires_evidence_ref(tmp_path):
-    store, _ = _store(tmp_path)
+    store, db = _store(tmp_path)
     with pytest.raises(ValueError, match="evidence_ref"):
         store.store("ns", MemoryType.EPISODIC, {"x": 1},
                     provenance=Provenance.OBSERVED)
-    # With evidence it works.
+    # A fabricated evidence_ref is refused: OBSERVED must ground in a
+    # real ledger event (Invariant #12).
+    with pytest.raises(ValueError, match="does not resolve"):
+        store.store("ns", MemoryType.EPISODIC, {"x": 1},
+                    provenance=Provenance.OBSERVED,
+                    provenance_detail={"evidence_ref": "tool_call_123"})
+    # With real evidence it works.
+    db.conn.execute(
+        "INSERT INTO events (event_id, timestamp, run_id, agent_id, type,"
+        " payload, causation_id, correlation_id, schema_version, prev_hash,"
+        " hash) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        ("ev_real_1", "2026-10-04T00:00:00Z", None, None, "tool.completed",
+         "{}", None, None, 1, "0" * 64, "1" * 64))
+    db.conn.commit()
     mem = store.store("ns", MemoryType.EPISODIC, {"x": 1},
                       provenance=Provenance.OBSERVED,
-                      provenance_detail={"evidence_ref": "tool_call_123"})
+                      provenance_detail={"evidence_ref": "ev_real_1"})
     assert mem.provenance == Provenance.OBSERVED
 
 

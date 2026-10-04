@@ -171,6 +171,12 @@ class AssuranceEngine:
         else:
             self._assure_event_suite(result, suite)
 
+        # Probe: epistemic separation (Invariant #12). If the evaluated
+        # subject's evidence is simulated / forecast / hypothetical /
+        # counterfactual and the evaluator still returned SUPPORTED, the
+        # evaluator let simulation verify reality: false accept.
+        self._probe_epistemic_separation(result, subject, verdict)
+
         # Probe: correlated evaluator (evaluator authored/generated the subject).
         author = subject.get("author") or subject.get("generated_by")
         if author and author == evaluator:
@@ -240,6 +246,39 @@ class AssuranceEngine:
         self._probe_fixture(result, "policy_control_good",
                             [], suite, expect_pass=True,
                             experience=_policy_good_fixture())
+
+    def _probe_epistemic_separation(self, result: AssuranceResult,
+                                      subject: dict, verdict: str) -> None:
+        """Invariant #12 at the assurance boundary: simulated evidence
+        must never underpin a SUPPORTED verdict. If the evaluator did
+        that, it is exploitable; if it correctly refused, the probe
+        passes."""
+        from air.evaluation.suites import Verdict as EvalVerdict
+        from air.evaluation.suites import epistemic_refusal
+        run_ids: list[str] = []
+        if subject.get("kind") == "run" and subject.get("run_id"):
+            run_ids = [subject["run_id"]]
+        elif subject.get("task_runs"):
+            run_ids = list(subject["task_runs"])
+        refusals = {rid: epistemic_refusal(self._conn, rid)
+                    for rid in run_ids}
+        simulated = {rid: r for rid, r in refusals.items() if r}
+        if not simulated:
+            result.probes.append(ProbeResult(
+                probe="epistemic_separation", passed=True,
+                detail="subject evidence is real-world; nothing to refuse"))
+            return
+        if verdict == EvalVerdict.SUPPORTED.value:
+            result.probes.append(ProbeResult(
+                probe="epistemic_separation", passed=False,
+                detail=f"false accept: evaluator returned SUPPORTED on"
+                       f" non-evidentiary subject {simulated}",
+                false_accept=True))
+        else:
+            result.probes.append(ProbeResult(
+                probe="epistemic_separation", passed=True,
+                detail=f"correct: evaluator refused simulated subject"
+                       f" with {verdict}: {simulated}"))
 
     def _probe_fixture(self, result: AssuranceResult, name: str,
                        events: list[dict], suite: EvalSuite,

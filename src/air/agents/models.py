@@ -11,6 +11,7 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 from air.events.fabric import utcnow
+from air.experience.provenance import Provenance
 
 
 class AgentStatus(str, Enum):
@@ -66,6 +67,13 @@ class Agent(BaseModel):
     memory_scope: str = "task"
     belief_scope: str = "task"
     policy_scope: str = "task"
+    # Epistemic kind: whether this agent's effects count as real-world
+    # evidence (OBSERVED, the default) or as simulation / forecast /
+    # hypothesis / counterfactual. The evaluation, assurance, memory, and
+    # experience boundaries enforce epistemic separation from this field
+    # (Invariant #12). A simulator's tool results are measurements of a
+    # simulation, never observations of reality.
+    epistemic_kind: Provenance = Provenance.OBSERVED
     budget: Budget = Field(default_factory=Budget)
     status: AgentStatus = AgentStatus.CREATED
     status_reason: str | None = None

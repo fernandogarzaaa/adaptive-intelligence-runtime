@@ -18,10 +18,11 @@ from air.agents.spawn_policy import SpawnContext, decide
 from air.allocation.allocator import Strategy, allocate
 from air.config import AirConfig
 from air.events.fabric import Event, EventBus, EventStore, utcnow
+from air.experience.provenance import NON_EVIDENTIARY, Provenance
 from air.persistence.db import Database
 from air.providers.base import TaskRequirements
 from air.providers.registry import ProviderRegistry
-from air.security.policy import CapabilityClass
+from air.security.policy import CapabilityClass, redact_secrets
 
 # Behavior for deterministic (scripted) agents: real code execution used by
 # tests, experiments, and local-first runs without a model provider.
@@ -197,6 +198,7 @@ class AgentRuntime:
                            model: str | None = None,
                            provider: str | None = None,
                            memory_scope: str = "task",
+                           epistemic_kind: Provenance | str | None = None,
                            budget: Budget | None = None) -> Agent:
         parent = self.get_agent(parent_id) if parent_id else None
         generation = (parent.generation + 1) if parent else 0
@@ -207,6 +209,8 @@ class AgentRuntime:
             capabilities=capabilities or [], granted_capabilities=granted or [],
             tools=tools or [],
             memory_scope=memory_scope, budget=budget or Budget(),
+            epistemic_kind=(Provenance(epistemic_kind) if epistemic_kind
+                            else Provenance.OBSERVED),
             lineage=(parent.lineage + [parent.id]) if parent else [],
         )
         # Enforce run-level agent budget in code, and consume the slot so
@@ -314,6 +318,11 @@ class AgentRuntime:
             run_id, role, objective, parent_id=parent_id,
             specialization=specialization, capabilities=capabilities,
             tools=tools, model=model, memory_scope=memory_scope,
+            # Epistemic kind is hereditary (Invariant #12): a simulator's
+            # child is doing simulated work, even if the caller doesn't
+            # say so. Otherwise a simulator could launder its output
+            # through an OBSERVED child.
+            epistemic_kind=parent.epistemic_kind,
             budget=child_budget,
         )
         await self.emit("spawn.approved", run_id=run_id, agent_id=agent.id,
@@ -346,12 +355,15 @@ class AgentRuntime:
                                          "to": to_agent_id, "reason": "out of scope"})
                 raise PermissionError("message denied: agents are not in communication scope")
         msg_id = "msg_" + uuid.uuid4().hex[:12]
+        # Message bodies are persisted; redact secret-looking values at
+        # write time, the same boundary as memory writes and tool I/O.
+        clean_payload = json.loads(redact_secrets(json.dumps(payload)))
         self.db.conn.execute(
             """INSERT INTO agent_messages (id, run_id, from_agent_id, to_agent_id,
                                            channel, kind, payload, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (msg_id, run_id, from_agent_id, to_agent_id, channel, kind,
-             json.dumps(payload), utcnow()),
+             json.dumps(clean_payload), utcnow()),
         )
         self.db.conn.commit()
         await self.emit("agent.message", run_id=run_id, agent_id=from_agent_id,
@@ -392,6 +404,7 @@ class AgentRuntime:
                 capabilities=spec.get("capabilities", []),
                 granted=spec.get("granted", []),
                 tools=spec.get("tools", []), model=model, provider=provider,
+                epistemic_kind=spec.get("epistemic_kind", "OBSERVED"),
                 budget=Budget(token_limit=spec.get("token_budget", 8000),
                               cost_limit_usd=1.0, tool_call_limit=25),
             )
@@ -619,7 +632,8 @@ class AgentRuntime:
             " objective, model, provider, capabilities, granted_capabilities,"
             " tools, memory_scope,"
             " belief_scope, policy_scope, budget, status, status_reason, created_at,"
-            " terminated_at, lineage, capability_version, policy_version"
+            " terminated_at, lineage, capability_version, policy_version,"
+            " epistemic_kind"
             " FROM agents WHERE id=?", (agent_id,)).fetchone()
         if not row:
             return None
@@ -627,7 +641,8 @@ class AgentRuntime:
          model, provider, capabilities, granted_capabilities, tools,
          memory_scope, belief_scope,
          policy_scope, budget, status, status_reason, created_at, terminated_at,
-         lineage, capability_version, policy_version) = row
+         lineage, capability_version, policy_version,
+         epistemic_kind) = row
         return Agent(
             id=aid, parent_id=parent_id, root_run_id=root_run_id,
             generation=generation, role=role, specialization=specialization,
@@ -637,6 +652,7 @@ class AgentRuntime:
             tools=json.loads(tools or "[]"),
             memory_scope=memory_scope, belief_scope=belief_scope,
             policy_scope=policy_scope,
+            epistemic_kind=Provenance(epistemic_kind or "OBSERVED"),
             budget=Budget.model_validate(json.loads(budget or "{}")),
             status=AgentStatus(status), status_reason=status_reason,
             created_at=created_at, terminated_at=terminated_at,
@@ -654,7 +670,7 @@ class AgentRuntime:
                 " tools, memory_scope,"
                 " belief_scope, policy_scope, budget, status, status_reason,"
                 " created_at, terminated_at, lineage, capability_version,"
-                " policy_version")
+                " policy_version, epistemic_kind")
         vals = (agent.parent_id, agent.root_run_id, agent.generation,
                 agent.role, agent.specialization, agent.objective, agent.model,
                 agent.provider, json.dumps(agent.capabilities),
@@ -663,13 +679,14 @@ class AgentRuntime:
                 agent.policy_scope, agent.budget.model_dump_json(),
                 agent.status.value, agent.status_reason, agent.created_at,
                 agent.terminated_at, json.dumps(agent.lineage),
-                agent.capability_version, agent.policy_version)
+                agent.capability_version, agent.policy_version,
+                agent.epistemic_kind.value)
         cur = self.db.conn.execute(
-            f"UPDATE agents SET ({cols}) = ({','.join('?' * 22)}) WHERE id = ?",
+            f"UPDATE agents SET ({cols}) = ({','.join('?' * 23)}) WHERE id = ?",
             (*vals, agent.id))
         if cur.rowcount == 0:
             self.db.conn.execute(
-                f"INSERT INTO agents (id, {cols}) VALUES ({','.join('?' * 23)})",
+                f"INSERT INTO agents (id, {cols}) VALUES ({','.join('?' * 24)})",
                 (agent.id, *vals))
         if commit:
             self.db.conn.commit()

@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 from air import __version__
 from air.allocation.allocator import extract_features
 from air.events.fabric import Event, utcnow
-from air.experience.provenance import Provenance
+from air.experience.provenance import NON_EVIDENTIARY, Provenance
 
 
 class ExperienceRecord(BaseModel):
@@ -90,14 +90,21 @@ class ExperienceRecorder:
 
         agents = self._conn.execute(
             "SELECT id, parent_id, role, specialization, objective, model,"
-            " provider, capabilities, tools, status, status_reason, generation"
+            " provider, capabilities, tools, status, status_reason, generation,"
+            " epistemic_kind"
             " FROM agents WHERE root_run_id=? ORDER BY created_at",
             (run_id,)).fetchall()
         agent_rows, roles, models, providers, tools = [], set(), set(), set(), set()
         lineage = []
+        # Epistemic separation (Invariant #12): a run performed entirely
+        # by non-evidentiary agents (simulators, forecasters) is not an
+        # observation. Its experience retains that provenance so it can
+        # inform allocation without ever verifying reality.
+        agent_kinds = {}
         for r in agents:
             (aid, parent, role, spec, obj, model, provider, caps, tool_list,
-             st, reason, gen) = r
+             st, reason, gen, epistemic_kind) = r
+            agent_kinds[aid] = Provenance(epistemic_kind or "OBSERVED")
             agent_rows.append({"id": aid, "parent_id": parent, "role": role,
                                "specialization": spec, "objective": obj,
                                "model": model, "provider": provider,
@@ -120,27 +127,36 @@ class ExperienceRecorder:
         for typ, agent_id, payload_json, ts in events:
             payload = json.loads(payload_json)
             entry = {"type": typ, "agent_id": agent_id, "at": ts}
+            # A simulator's tool output is a measurement of the
+            # simulation, never an observation of reality. Label it so.
+            kind = agent_kinds.get(agent_id, Provenance.OBSERVED)
+            ev_prov = (kind.value if kind in NON_EVIDENTIARY
+                       else Provenance.OBSERVED.value)
             if typ.startswith("tool."):
                 actions.append({**entry, "detail": payload,
-                                "provenance": Provenance.OBSERVED.value})
+                                "provenance": ev_prov})
             elif typ == "agent.message" and payload.get("kind") == "result":
                 intermediate.append({**entry, "detail": payload,
-                                     "provenance": Provenance.DERIVED.value})
+                                     "provenance": ev_prov
+                                     if kind in NON_EVIDENTIARY
+                                     else Provenance.DERIVED.value})
             elif typ == "agent.message":
                 observations.append({**entry, "detail": payload,
                                      "provenance": Provenance.DERIVED.value})
             elif typ in ("agent.failed", "budget.exhausted", "policy.blocked"):
                 failures.append({**entry, "detail": payload,
-                                 "provenance": Provenance.OBSERVED.value})
+                                 "provenance": ev_prov})
 
         tool_calls = self._conn.execute(
             "SELECT tool_name, tool_version, capability, state, latency_ms,"
-            " policy_version, result_hash, verification_status, server_id"
+            " policy_version, result_hash, verification_status, server_id,"
+            " agent_id"
             " FROM tool_calls WHERE run_id=?",
             (run_id,)).fetchall()
         for (tool, tver, cap, st, lat, pver, rhash, vstat,
-             server_id) in tool_calls:
+             server_id, tc_agent_id) in tool_calls:
             tools.add(tool)
+            tc_kind = agent_kinds.get(tc_agent_id, Provenance.OBSERVED)
             actions.append({"type": "tool.call", "tool": tool,
                             "tool_version": tver, "capability": cap,
                             "status": st, "latency_ms": lat,
@@ -148,7 +164,9 @@ class ExperienceRecorder:
                             "result_hash": rhash,
                             "verification_status": vstat,
                             "server_id": server_id,
-                            "provenance": Provenance.OBSERVED.value})
+                            "provenance": (tc_kind.value
+                                           if tc_kind in NON_EVIDENTIARY
+                                           else Provenance.OBSERVED.value)})
 
         budget = self._conn.execute(
             "SELECT token_limit, time_limit_s, cost_limit, agent_limit"
@@ -192,6 +210,19 @@ class ExperienceRecorder:
             "seed": seed,
         }
 
+        # Record-level provenance (Invariant #12): if every agent that
+        # acted in this run is non-evidentiary, the experience is not an
+        # observation. It retains SIMULATED (or the dominant kind)
+        # provenance so it can inform allocation without ever verifying
+        # reality or training the learning engine as fact.
+        if agent_kinds and all(k in NON_EVIDENTIARY
+                               for k in agent_kinds.values()):
+            record_provenance = next(iter(agent_kinds.values()))
+        elif status in ("COMPLETED", "FAILED", "CANCELLED"):
+            record_provenance = Provenance.OBSERVED
+        else:
+            record_provenance = Provenance.DERIVED
+
         exp = ExperienceRecord(
             run_id=run_id, goal=goal,
             initial_state={"strategy": strategy, "plan": plan},
@@ -201,9 +232,7 @@ class ExperienceRecorder:
             outcomes={"status": status,
                       "final_result": json.loads(final_json) if final_json else None,
                       "error": error,
-                      "provenance": (Provenance.OBSERVED.value
-                                     if status in ("COMPLETED", "FAILED", "CANCELLED")
-                                     else Provenance.DERIVED.value)},
+                      "provenance": record_provenance.value},
             cost=cost or 0.0, latency_ms=latency_ms, failures=failures,
             verification={"strategy": verification_strategy,
                           "failures": failures, "verified": verified},
@@ -212,6 +241,7 @@ class ExperienceRecorder:
             policy_versions={"allocator": plan.get("allocator_version"),
                              "run_policy": policy_version},
             capability_versions=json.loads(cap_versions_json or "{}"),
+            provenance=record_provenance,
         )
         if self._store is None:
             self._insert_row(exp, dimensions, agent_rows, actions,

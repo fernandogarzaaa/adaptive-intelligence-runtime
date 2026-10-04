@@ -4,6 +4,7 @@ sockets, and every external byte is framed as untrusted on the way out."""
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 
 import httpx
@@ -47,8 +48,12 @@ async def _shell_exec(args: dict, ctx: ToolContext) -> dict:
     root = Path(ctx.workspace_root)
     cwd = assert_safe_path(args.get("cwd", "."), root)
     timeout = min(float(args.get("timeout_s", 30)), 300)
+    # The subprocess gets a scrubbed environment, not the process env:
+    # provider API keys and connector credentials live in os.environ,
+    # and no agent may read another surface's secrets through shell.exec.
+    # PATH is kept so argv resolution still works; nothing else is.
     proc = await asyncio.create_subprocess_exec(
-        *argv, cwd=str(cwd),
+        *argv, cwd=str(cwd), env={"PATH": os.environ.get("PATH", "/usr/bin:/bin")},
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
     try:
         out, err = await asyncio.wait_for(proc.communicate(), timeout)

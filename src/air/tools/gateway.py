@@ -345,7 +345,8 @@ class ExecutionGateway:
              call_id))
         self._conn.commit()
         await self._event("tool.denied", req,
-                          {"call_id": call_id, "reason": reason},
+                          {"call_id": call_id,
+                           "reason": redact_secrets(reason)},
                           run_id=run_id)
         return self._record(call_id)
 
@@ -358,7 +359,8 @@ class ExecutionGateway:
              call_id))
         self._conn.commit()
         await self._event("tool.failed", req,
-                          {"call_id": call_id, "error": error})
+                          {"call_id": call_id,
+                           "error": redact_secrets(error)})
         return self._record(call_id)
 
     def _persist_decision(self, call_id: str, req: ToolCallRequest,
@@ -410,7 +412,11 @@ class ExecutionGateway:
             " FROM tool_calls WHERE id=?", (call_id,)).fetchone()
         return ToolCallRecord(
             id=row[0], run_id=row[1], agent_id=row[2],
-            parent_agent_id=row[3], tool_name=row[4], tool_version=row[5],
+            parent_agent_id=row[3], tool_name=row[4],
+            # Denials before argument validation never reach
+            # _persist_decision, so tool_version is NULL: report unknown
+            # rather than crashing the denial path itself.
+            tool_version=row[5] or "unknown",
             server_id=row[6], capability=CapabilityClass(row[7]),
             capability_id=row[8], capability_version=row[9],
             state=ToolCallState(row[10]),

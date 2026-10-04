@@ -44,6 +44,11 @@ class AgentSpec(BaseModel):
     tools: list[str] = Field(default_factory=list)
     token_budget: int = 8000
     parent_role: str | None = None  # None => child of root
+    # Epistemic kind: "OBSERVED" (default; the agent's effects are
+    # real-world evidence) or one of the NON_EVIDENTIARY kinds for
+    # simulators / forecasters. The allocator sets this; the runtime,
+    # evaluation, assurance, memory, and experience boundaries enforce it.
+    epistemic_kind: str = "OBSERVED"
 
 
 class CognitivePlan(BaseModel):
@@ -210,7 +215,8 @@ def build_plan(goal: str, strategy: Strategy, f: GoalFeatures,
         verification = "simulation_then_verify"
         specs = [
             spec("specialist", f"Simulate candidate strategies for: {goal} (mark all outputs SIMULATED)",
-                 specialization="simulator", capabilities=["simulate_strategy"]),
+                 specialization="simulator", capabilities=["simulate_strategy"],
+                 epistemic_kind="SIMULATED"),
             spec("specialist", f"Execute the best simulated strategy for: {goal}",
                  capabilities=["write_code"] if f.code_task else ["act"]),
             spec("verifier", "Verify against real observations", capabilities=["verify_claims"]),

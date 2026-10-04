@@ -26,7 +26,7 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 from air.events.fabric import canonical, utcnow
-from air.experience.provenance import TRUST_CAP, Provenance
+from air.experience.provenance import NON_EVIDENTIARY, TRUST_CAP, Provenance
 from air.security.policy import redact_secrets
 
 
@@ -127,6 +127,30 @@ class MemoryStore:
             raise ValueError(
                 "provenance OBSERVED requires provenance_detail['evidence_ref']:"
                 " an LLM statement must never silently become an observed fact")
+        # Invariant 12 (epistemic separation): an OBSERVED claim must be
+        # grounded in a real ledger event produced by a non-simulated
+        # agent. A fabricated evidence_ref, or one pointing at a
+        # simulator's output, is refused loudly: simulation cannot be
+        # wrapped as observation.
+        if provenance == Provenance.OBSERVED:
+            ref = detail.get("evidence_ref")
+            ev = self._conn.execute(
+                "SELECT agent_id FROM events WHERE event_id=?",
+                (ref,)).fetchone()
+            if not ev:
+                raise ValueError(
+                    f"evidence_ref {ref!r} does not resolve to a ledger"
+                    " event: OBSERVED requires real evidence")
+            agent_id = ev[0]
+            if agent_id:
+                kind_row = self._conn.execute(
+                    "SELECT epistemic_kind FROM agents WHERE id=?",
+                    (agent_id,)).fetchone()
+                if kind_row and Provenance(kind_row[0]) in NON_EVIDENTIARY:
+                    raise ValueError(
+                        f"evidence_ref {ref!r} was produced by a"
+                        f" {kind_row[0]} agent: simulated output cannot be"
+                        " recorded as OBSERVED")
         # Invariant 2: validated knowledge only via evaluation.
         if MemoryType(type) in (MemoryType.EXPERIENCE, MemoryType.CAPABILITY) \
                 and not detail.get("validated_by"):

@@ -33,6 +33,18 @@ class Provenance(str, Enum):
 # Provenance levels the learning engine is allowed to train on.
 LEARNABLE = {Provenance.OBSERVED, Provenance.DERIVED}
 
+# Provenance kinds that can never ground a verification verdict, an
+# observation, or a capability claim. They may inform allocation and
+# generate hypotheses, but simulation can never become evidence that a
+# hypothesis is true in reality. Enforced at the evaluation, assurance,
+# memory, and experience boundaries (Invariant #12).
+NON_EVIDENTIARY = frozenset({
+    Provenance.SIMULATED,
+    Provenance.FORECAST,
+    Provenance.HYPOTHETICAL,
+    Provenance.COUNTERFACTUAL,
+})
+
 # Trust caps: no matter the stated confidence, these provenances cannot be
 # trusted beyond the cap. Applied at retrieval time, recorded in metadata.
 TRUST_CAP = {
