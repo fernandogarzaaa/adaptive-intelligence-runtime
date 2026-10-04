@@ -237,10 +237,28 @@ def build_plan(goal: str, strategy: Strategy, f: GoalFeatures,
 def allocate(goal: str, context: dict | None = None,
              token_budget: int = 32000, time_budget_s: int = 900,
              cost_budget_usd: float = 2.0, agent_budget: int = 4,
-             force_strategy: Strategy | None = None) -> CognitivePlan:
-    """Produce an inspectable CognitivePlan for a goal."""
+             force_strategy: Strategy | None = None,
+             capability_effects: list[dict] | None = None) -> CognitivePlan:
+    """Produce an inspectable CognitivePlan for a goal.
+
+    capability_effects: effects of PROMOTED capabilities (data, not code).
+    strategy_boost effects add to strategy scores; the boost and its source
+    are recorded on the plan for audit.
+    """
     f = extract_features(goal, context)
     scores = score_strategies(f, agent_budget)
+    applied: list[str] = []
+    for eff in capability_effects or []:
+        if eff.get("type") == "strategy_boost" and eff.get("strategy"):
+            try:
+                st = Strategy(eff["strategy"])
+            except ValueError:
+                continue
+            if st in scores:
+                boost = float(eff.get("value", 0.0))
+                scores[st] += boost
+                applied.append(f"capability boost {boost:+.2f} to"
+                               f" {st.value} ({eff.get('source', 'unknown')})")
     strategy = force_strategy or max(scores, key=lambda k: scores[k])
     plan = build_plan(goal, strategy, f, token_budget, time_budget_s,
                       cost_budget_usd, agent_budget)
@@ -252,5 +270,5 @@ def allocate(goal: str, context: dict | None = None,
         f"selected {strategy.value} with score {scores[strategy]:.3f}",
         f"runner-up: {sorted(scores, key=lambda k: scores[k], reverse=True)[1].value}"
         if len(scores) > 1 else "only candidate",
-    ]
+    ] + applied
     return plan

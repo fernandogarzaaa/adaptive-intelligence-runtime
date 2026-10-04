@@ -54,6 +54,9 @@ def reduce_events(events: list[dict]) -> dict:
         elif typ == "agent.started":
             if aid in state["agents"]:
                 state["agents"][aid]["status"] = "RUNNING"
+        elif typ == "agent.blocked":
+            if aid in state["agents"]:
+                state["agents"][aid]["status"] = "BLOCKED"
         elif typ == "agent.message":
             state["messages"] += 1
         elif typ == "agent.completed":

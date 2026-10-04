@@ -165,6 +165,14 @@ def create_app() -> FastAPI:
         from air.experience.recorder import ExperienceRecorder
         return ExperienceRecorder(get_runtime().db.conn).list(limit=limit)
 
+    @app.get("/experience/compare")
+    def compare_experiences(ids: str) -> dict:
+        """Compare experiences across structured dimensions: what changed
+        between successful and unsuccessful runs?"""
+        from air.experience.recorder import ExperienceRecorder
+        return ExperienceRecorder(get_runtime().db.conn).compare(
+            [i.strip() for i in ids.split(",") if i.strip()])
+
     @app.get("/experience/{exp_id}")
     def get_experience(exp_id: str) -> dict:
         from air.experience.recorder import ExperienceRecorder
@@ -173,32 +181,71 @@ def create_app() -> FastAPI:
             raise HTTPException(404, "experience not found")
         return exp
 
+    @app.post("/experience/{exp_id}/promote")
+    def promote_experience(exp_id: str, namespace: str = "global",
+                           knowledge: dict | None = None) -> dict:
+        """Validated learning bridge: experience -> evaluated knowledge.
+        Blocked unless the experience has SUPPORTED evaluation + SOUND
+        assurance. There is no run -> memory shortcut."""
+        from air.learning.bridge import BridgeBlocked, LearningBridge
+        try:
+            mem_id = LearningBridge(get_runtime().db.conn).promote_to_knowledge(
+                exp_id, namespace, knowledge or {})
+        except BridgeBlocked as e:
+            raise HTTPException(409, {"blocked": e.reasons})
+        return {"memory_id": mem_id}
+
     @app.get("/memory")
-    def list_memory(namespace: str, type: str | None = None,
-                    q: str | None = None, limit: int = 50) -> list[dict]:
+    def list_memory(namespace: str, scopes: str = "global",
+                    type: str | None = None, q: str | None = None,
+                    limit: int = 50) -> list[dict]:
+        """Scoped retrieval. Returns memories WITH evidence metadata
+        (why retrieved, trust, trust flags) so consumers know whether a
+        memory is trustworthy."""
         from air.memory.store import MemoryStore
         rt = get_runtime()
-        mems = MemoryStore(rt.db.conn).retrieve(namespace, type=type,
-                                                query=q, limit=limit)
-        return [m.model_dump() for m in mems]
+        scope_tuple = tuple(s.strip() for s in scopes.split(",") if s.strip())
+        results = MemoryStore(rt.db.conn).retrieve(
+            namespace, scopes=scope_tuple or ("global",), type=type,
+            query=q, limit=limit)
+        return [r.model_dump() for r in results]
 
     class MemoryRequest(BaseModel):
         namespace: str
         type: str = "episodic"
         content: dict
+        scope: str = "run"
+        provenance: str = "DERIVED"
+        provenance_detail: dict | None = None
         importance: float = 0.5
         confidence: float = 0.5
-        provenance: dict | None = None
-        visibility: str = "private"
+        source_run_id: str | None = None
+        source_agent_id: str | None = None
+        source_event_id: str | None = None
 
     @app.post("/memory")
     def create_memory(req: MemoryRequest) -> dict:
         from air.memory.store import MemoryStore
-        mem = MemoryStore(get_runtime().db.conn).store(
-            req.namespace, req.type, req.content,
-            importance=req.importance, confidence=req.confidence,
-            provenance=req.provenance or {}, visibility=req.visibility)
+        try:
+            mem = MemoryStore(get_runtime().db.conn).store(
+                req.namespace, req.type, req.content, scope=req.scope,
+                provenance=req.provenance,
+                provenance_detail=req.provenance_detail or {},
+                importance=req.importance, confidence=req.confidence,
+                source_run_id=req.source_run_id,
+                source_agent_id=req.source_agent_id,
+                source_event_id=req.source_event_id)
+        except ValueError as e:
+            raise HTTPException(422, str(e))
         return {"id": mem.id}
+
+    @app.get("/memory/{memory_id}/history")
+    def memory_history(memory_id: str) -> list[dict]:
+        from air.memory.store import MemoryStore
+        chain = MemoryStore(get_runtime().db.conn).history(memory_id)
+        if not chain:
+            raise HTTPException(404, "memory not found")
+        return [m.model_dump() for m in chain]
 
     @app.delete("/memory/{memory_id}")
     def delete_memory(memory_id: str) -> dict:
@@ -243,6 +290,141 @@ def create_app() -> FastAPI:
             " FROM capabilities ORDER BY updated_at DESC").fetchall()
         return [{"capability_id": r[0], "name": r[1], "version": r[2],
                  "validation_status": r[3], "confidence": r[4]} for r in rows]
+
+    @app.get("/capabilities/{capability_id}")
+    def get_capability(capability_id: str) -> dict:
+        from air.capabilities.store import CapabilityStore
+        cap = CapabilityStore(get_runtime().db.conn).get(capability_id)
+        if cap is None:
+            raise HTTPException(404, "capability not found")
+        return cap.model_dump()
+
+    class CapabilityRequest(BaseModel):
+        name: str
+        description: str
+        effect: dict | None = None
+        created_from: str | None = None
+
+    @app.post("/capabilities")
+    async def propose_capability(req: CapabilityRequest) -> dict:
+        from air.capabilities.models import CapabilityEffect
+        from air.capabilities.pipeline import CapabilityPipeline
+        rt = get_runtime()
+        pipeline = CapabilityPipeline(
+            rt.db.conn,
+            emit=lambda t, capability_id=None, payload=None: rt.emit(
+                t, agent_id=None, payload={"capability_id": capability_id,
+                                           **(payload or {})}))
+        effect = CapabilityEffect(**req.effect) if req.effect else None
+        cap = await pipeline.propose(req.name, req.description, effect=effect,
+                                     created_from=req.created_from)
+        return {"capability_id": cap.capability_id}
+
+    @app.post("/capabilities/{capability_id}/promote")
+    async def promote_capability(capability_id: str) -> dict:
+        from air.capabilities.pipeline import CapabilityPipeline, GateBlocked
+        rt = get_runtime()
+        pipeline = CapabilityPipeline(
+            rt.db.conn,
+            emit=lambda t, capability_id=None, payload=None: rt.emit(
+                t, payload={"capability_id": capability_id,
+                            **(payload or {})}))
+        try:
+            cap = await pipeline.promote(capability_id)
+        except GateBlocked as e:
+            raise HTTPException(409, {"blocked": e.reasons})
+        return {"capability_id": cap.capability_id,
+                "status": cap.validation_status.value}
+
+    @app.post("/capabilities/{capability_id}/rollback")
+    async def rollback_capability(capability_id: str) -> dict:
+        from air.capabilities.pipeline import CapabilityPipeline, GateBlocked
+        rt = get_runtime()
+        pipeline = CapabilityPipeline(
+            rt.db.conn,
+            emit=lambda t, capability_id=None, payload=None: rt.emit(
+                t, payload={"capability_id": capability_id,
+                            **(payload or {})}))
+        try:
+            cap = await pipeline.rollback(capability_id)
+        except GateBlocked as e:
+            raise HTTPException(409, {"blocked": e.reasons})
+        return {"capability_id": cap.capability_id,
+                "status": cap.validation_status.value}
+
+    class EvaluationRequest(BaseModel):
+        run_id: str
+        suite: dict | None = None  # {name, version, cases:[{id,name,check,params}]}
+
+    @app.post("/evaluations")
+    def run_evaluation(req: EvaluationRequest) -> dict:
+        from air.evaluation.suites import EvalCase, EvalSuite, Evaluator
+        rt = get_runtime()
+        if req.suite:
+            suite = EvalSuite(name=req.suite.get("name", "ad-hoc"),
+                              version=req.suite.get("version", "1.0.0"),
+                              cases=[EvalCase(**c)
+                                     for c in req.suite.get("cases", [])])
+        else:
+            suite = EvalSuite(name="default-grounding", cases=[
+                EvalCase(id="c1", name="execution evidence",
+                         check="event_evidence",
+                         params={"required": ["tool.completed"]}),
+                EvalCase(id="c2", name="no failures", check="no_failures",
+                         params={}),
+                EvalCase(id="c3", name="agents completed",
+                         check="agents_completed", params={"min_completed": 1}),
+            ])
+        evaluator = Evaluator(rt.db.conn)
+        evaluator.save_suite(suite)
+        result = evaluator.evaluate_run(req.run_id, suite)
+        return {"evaluation_id": result.id, "verdict": result.verdict.value,
+                "metrics": result.metrics}
+
+    @app.get("/evaluations/{evaluation_id}")
+    def get_evaluation(evaluation_id: str) -> dict:
+        rt = get_runtime()
+        row = rt.db.conn.execute(
+            "SELECT id, suite_id, subject, evaluator, evaluator_version,"
+            " metrics, verdict, evidence, started_at, completed_at"
+            " FROM evaluation_runs WHERE id=?", (evaluation_id,)).fetchone()
+        if not row:
+            raise HTTPException(404, "evaluation not found")
+        keys = ["id", "suite_id", "subject", "evaluator", "evaluator_version",
+                "metrics", "verdict", "evidence", "started_at", "completed_at"]
+        out = dict(zip(keys, row))
+        for k in ("subject", "metrics", "evidence"):
+            out[k] = json.loads(out[k]) if out[k] else None
+        return out
+
+    @app.post("/assurance")
+    def run_assurance(evaluation_id: str) -> dict:
+        from air.assurance.probes import AssuranceEngine
+        rt = get_runtime()
+        result = AssuranceEngine(rt.db.conn).assure(evaluation_id)
+        return {"assurance_id": result.id,
+                "evaluator_verdict": result.evaluator_verdict.value,
+                "system_verdict": result.system_verdict.value,
+                "false_accepts": result.false_accepts,
+                "false_rejects": result.false_rejects}
+
+    @app.get("/assurance/{assurance_id}")
+    def get_assurance(assurance_id: str) -> dict:
+        rt = get_runtime()
+        row = rt.db.conn.execute(
+            "SELECT id, target, probes, false_accepts, false_rejects, timeouts,"
+            " evaluator_verdict, system_verdict, evidence, started_at,"
+            " completed_at FROM assurance_runs WHERE id=?",
+            (assurance_id,)).fetchone()
+        if not row:
+            raise HTTPException(404, "assurance run not found")
+        keys = ["id", "target", "probes", "false_accepts", "false_rejects",
+                "timeouts", "evaluator_verdict", "system_verdict", "evidence",
+                "started_at", "completed_at"]
+        out = dict(zip(keys, row))
+        for k in ("target", "probes", "evidence"):
+            out[k] = json.loads(out[k]) if out[k] else None
+        return out
 
     @app.get("/metrics")
     def metrics() -> dict:

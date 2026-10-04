@@ -1,9 +1,21 @@
-"""Memory substrate: isolation, redaction, promotion, decay."""
+"""Memory v2: typed, scoped, provenance-aware, versionable.
+
+Invariants under test:
+- OBSERVED requires an evidence_ref (LLM output can never silently become fact)
+- EXPERIENCE/CAPABILITY memories require validated_by (no run->memory shortcut)
+- Retrieval returns evidence metadata (why + trust + flags)
+- Scopes are enforced: task memories never leak across namespaces
+- Updates are versioned, never silent overwrites
+"""
+
+import pytest
 
 from pathlib import Path
 
-from air.config import AirConfig
-from air.memory.store import MemoryStore, MemoryType, Visibility
+from air.experience.provenance import Provenance
+from air.memory.store import (
+    MemoryStatus, MemoryStore, MemoryType, Scope, trust_of,
+)
 from air.persistence.db import Database
 
 
@@ -13,21 +25,86 @@ def _store(tmp_path):
     return MemoryStore(db.conn), db
 
 
-def test_store_and_retrieve(tmp_path):
+def test_observed_requires_evidence_ref(tmp_path):
     store, _ = _store(tmp_path)
-    mem = store.store("global", MemoryType.SEMANTIC,
-                      {"fact": "spawning more agents is not always better"},
-                      importance=0.9, confidence=0.8)
-    assert mem.hash, "every memory must have a content hash"
-    got = store.get(mem.id)
-    assert got.content["fact"].startswith("spawning more")
-    results = store.retrieve("global", query="spawning")
+    with pytest.raises(ValueError, match="evidence_ref"):
+        store.store("ns", MemoryType.EPISODIC, {"x": 1},
+                    provenance=Provenance.OBSERVED)
+    # With evidence it works.
+    mem = store.store("ns", MemoryType.EPISODIC, {"x": 1},
+                      provenance=Provenance.OBSERVED,
+                      provenance_detail={"evidence_ref": "tool_call_123"})
+    assert mem.provenance == Provenance.OBSERVED
+
+
+def test_inferred_is_the_honest_default_for_llm_output(tmp_path):
+    store, _ = _store(tmp_path)
+    mem = store.store("ns", MemoryType.SEMANTIC,
+                      {"claim": "the model said this"},
+                      provenance=Provenance.INFERRED)
+    assert mem.provenance == Provenance.INFERRED
+    trust, flags = trust_of(mem)
+    assert trust <= 0.6
+    assert any("INFERRED" in f for f in flags)
+
+
+def test_validated_knowledge_requires_evaluation_ref(tmp_path):
+    store, _ = _store(tmp_path)
+    with pytest.raises(ValueError, match="validated_by"):
+        store.store("global", MemoryType.EXPERIENCE, {"x": 1},
+                    scope=Scope.GLOBAL)
+    mem = store.store("global", MemoryType.EXPERIENCE, {"x": 1},
+                      scope=Scope.GLOBAL,
+                      provenance_detail={"validated_by": ["eval_1"]})
+    assert mem.type == MemoryType.EXPERIENCE
+
+
+def test_retrieval_returns_evidence_metadata(tmp_path):
+    store, _ = _store(tmp_path)
+    store.store("ns", MemoryType.SEMANTIC, {"fact": "spawning is costly"},
+                scope=Scope.GLOBAL, importance=0.9,
+                provenance=Provenance.DERIVED)
+    store.store("ns", MemoryType.SEMANTIC, {"guess": "maybe faster"},
+                scope=Scope.GLOBAL, importance=0.9,
+                provenance=Provenance.SIMULATED, confidence=0.95)
+    results = store.retrieve("ns", query="spawning")
     assert len(results) == 1
+    r = results[0]
+    assert r.why_retrieved.startswith("query match")
+    assert 0.0 <= r.trust <= 1.0
+    # Simulated memory: trust capped at 0.3 despite 0.95 confidence.
+    sim = store.retrieve("ns", query="maybe")[0]
+    assert sim.trust <= 0.3
+    assert any("SIMULATED" in f for f in sim.trust_flags)
+
+
+def test_task_scope_never_leaks(tmp_path):
+    store, _ = _store(tmp_path)
+    store.store("run_aaa", MemoryType.EPISODIC, {"secret": "plan"},
+                scope=Scope.TASK)
+    # Default retrieval (global only) sees nothing.
+    assert store.retrieve("run_aaa") == []
+    assert store.retrieve("other_ns", scopes=("global", "task")) == []
+    # Explicit task scope + matching namespace sees it.
+    got = store.retrieve("run_aaa", scopes=("task",))
+    assert len(got) == 1
+    assert "scope=task" in got[0].why_retrieved
+
+
+def test_versioned_update_preserves_history(tmp_path):
+    store, _ = _store(tmp_path)
+    v1 = store.store("ns", MemoryType.SEMANTIC, {"v": 1}, scope=Scope.GLOBAL)
+    v2 = store.update(v1.id, {"v": 2})
+    assert v2.version == 2
+    assert v2.supersedes == v1.id
+    assert store.get(v1.id).status == MemoryStatus.SUPERSEDED
+    chain = store.history(v2.id)
+    assert [m.version for m in chain] == [2, 1]
 
 
 def test_secrets_redacted_before_persistence(tmp_path):
     store, db = _store(tmp_path)
-    mem = store.store("global", MemoryType.EPISODIC,
+    mem = store.store("ns", MemoryType.EPISODIC,
                       {"note": "api_key=sk-abcdef1234567890"})
     raw = db.conn.execute("SELECT content FROM memories WHERE id=?",
                           (mem.id,)).fetchone()[0]
@@ -35,45 +112,22 @@ def test_secrets_redacted_before_persistence(tmp_path):
     assert "REDACTED" in raw
 
 
-def test_task_scoped_memories_are_isolated(tmp_path):
+def test_forget_is_hard_delete(tmp_path):
     store, _ = _store(tmp_path)
-    store.store("run_aaa", MemoryType.EPISODIC, {"x": 1},
-                visibility=Visibility.TASK)
-    # Same-namespace retrieval without include_shared excludes task memories.
-    assert store.retrieve("run_aaa") == []
-    assert len(store.retrieve("run_aaa", include_shared=True)) == 1
-    # Other namespaces never see them.
-    assert store.retrieve("run_bbb", include_shared=True) == []
-
-
-def test_promote_copies_with_provenance(tmp_path):
-    store, _ = _store(tmp_path)
-    mem = store.store("run_aaa", MemoryType.PROCEDURAL, {"step": "verify first"},
-                      visibility=Visibility.TASK)
-    promoted = store.promote(mem.id, "global")
-    assert promoted.namespace == "global"
-    assert promoted.visibility == Visibility.SHARED
-    assert promoted.provenance["promoted_from"] == mem.id
-    # Original untouched.
-    assert store.get(mem.id).namespace == "run_aaa"
-
-
-def test_decay_reduces_importance(tmp_path):
-    store, db = _store(tmp_path)
-    mem = store.store("global", MemoryType.EPISODIC, {"x": 1}, importance=0.8)
-    # Age the memory 60 days with a 30-day half-life -> ~0.2.
-    db.conn.execute(
-        "UPDATE memories SET updated_at='2020-01-01T00:00:00+00:00' WHERE id=?",
-        (mem.id,))
-    db.conn.commit()
-    n = store.decay("global", half_life_days=30.0)
-    assert n == 1
-    assert store.get(mem.id).importance < 0.3
-
-
-def test_delete(tmp_path):
-    store, _ = _store(tmp_path)
-    mem = store.store("global", MemoryType.SEMANTIC, {"x": 1})
-    assert store.delete(mem.id) is True
+    mem = store.store("ns", MemoryType.SEMANTIC, {"x": 1},
+                      scope=Scope.GLOBAL)
+    assert store.forget(mem.id) is True
     assert store.get(mem.id) is None
-    assert store.delete(mem.id) is False
+
+
+def test_decay_only_touches_active_episodic(tmp_path):
+    store, db = _store(tmp_path)
+    mem = store.store("ns", MemoryType.EPISODIC, {"x": 1}, importance=0.8)
+    store.store("ns", MemoryType.SEMANTIC, {"y": 2}, importance=0.8,
+                scope=Scope.GLOBAL)
+    db.conn.execute(
+        "UPDATE memories SET updated_at='2020-01-01T00:00:00+00:00'")
+    db.conn.commit()
+    n = store.decay("ns", half_life_days=30.0)
+    assert n == 1  # only the episodic one
+    assert store.get(mem.id).importance < 0.3

@@ -97,7 +97,8 @@ def test_no_provider_no_behavior_blocks_honestly(tmp_path):
     async def main():
         rt = _rt(tmp_path)
         # No behaviors registered and no provider creds: agent must BLOCK
-        # with MODEL_PROVIDER_UNAVAILABLE, never fake output.
+        # with MODEL_PROVIDER_UNAVAILABLE, never fake output. The run stays
+        # open so the operator can configure a provider and resume.
         run_id = await rt.create_run("do something", strategy=Strategy.SINGLE_AGENT)
         await rt.start_run(run_id)
         for _ in range(200):
@@ -109,5 +110,7 @@ def test_no_provider_no_behavior_blocks_honestly(tmp_path):
             await asyncio.sleep(0.05)
         assert rows[0][0] == "BLOCKED"
         assert "MODEL_PROVIDER_UNAVAILABLE" in (rows[0][1] or "")
+        types = {e["type"] for e in rt.store.list(run_id=run_id)}
+        assert "agent.blocked" in types
 
     asyncio.run(main())

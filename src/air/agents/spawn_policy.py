@@ -48,6 +48,9 @@ class SpawnContext(BaseModel):
     token_price_per_1k: float = Field(ge=0.0, default=0.002)
     budget_tokens_remaining: int | None = None
     budget_agents_remaining: int | None = None
+    # Promoted capabilities may adjust the threshold via run context; the
+    # default is fixed and the override is recorded on the decision.
+    spawn_threshold: float = Field(ge=0.0, le=1.0, default=0.05)
     reason_hint: str | None = None
     evidence: list[str] = Field(default_factory=list)
 
@@ -116,11 +119,12 @@ def decide(ctx: SpawnContext) -> SpawnDecision:
         key=lambda kv: kv[1],
     )[0]
 
-    if net > 0.05:
+    if net > ctx.spawn_threshold:
         if ctx.reason_hint:
             reasons.append(ctx.reason_hint)
         reasons.append(f"dominant expected gain: {dominant}")
-        reasons.append(f"net utility {net:.3f} above spawn threshold")
+        reasons.append(f"net utility {net:.3f} above spawn threshold"
+                       f" {ctx.spawn_threshold}")
         if risk > 0.4:
             reasons.append(f"elevated risk {risk:.2f} accepted: gains justify it")
         return SpawnDecision(
@@ -137,7 +141,8 @@ def decide(ctx: SpawnContext) -> SpawnDecision:
         reasons.append("marginal expected utility below cost threshold")
     if risk > 0.5:
         reasons.append(f"risk {risk:.2f} too high relative to gain")
-    reasons.append(f"net utility {net:.3f} did not clear spawn threshold 0.05")
+    reasons.append(f"net utility {net:.3f} did not clear spawn threshold"
+                   f" {ctx.spawn_threshold}")
     return SpawnDecision(
         decision="DENY", role=ctx.role, reason="; ".join(reasons),
         expected_gain=gains["total"], estimated_cost=costs["total"], risk=risk,

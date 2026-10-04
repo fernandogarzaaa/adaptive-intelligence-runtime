@@ -67,6 +67,9 @@ class AgentRuntime:
                          cost_budget_usd: float | None = None,
                          agent_budget: int | None = None,
                          seed: int | None = None) -> str:
+        # Promoted capabilities change future allocation. Effects are data.
+        from air.capabilities.store import CapabilityStore
+        capability_effects = CapabilityStore(self.db.conn).active_effects()
         plan = allocate(
             goal, context,
             token_budget=token_budget or self.config.default_token_budget,
@@ -74,6 +77,7 @@ class AgentRuntime:
             cost_budget_usd=cost_budget_usd or self.config.default_cost_budget_usd,
             agent_budget=agent_budget if agent_budget is not None else self.config.default_agent_budget,
             force_strategy=strategy,
+            capability_effects=capability_effects,
         )
         run_id = "run_" + uuid.uuid4().hex[:12]
         now = utcnow()
@@ -92,7 +96,9 @@ class AgentRuntime:
              plan.time_budget_s, plan.cost_budget_usd, plan.agent_budget, now),
         )
         self.db.conn.commit()
-        self._run_configs[run_id] = {"plan": plan.model_dump(), "context": context or {}}
+        self._run_configs[run_id] = {"plan": plan.model_dump(),
+                                     "context": context or {},
+                                     "capability_effects": capability_effects}
         await self.emit("run.created", run_id=run_id,
                         payload={"goal": goal, "strategy": plan.strategy.value,
                                  "plan_id": plan.plan_id, "scores": plan.scores})
@@ -153,6 +159,13 @@ class AgentRuntime:
             raise ValueError(f"parent agent not found: {parent_id}")
         run_id = parent.root_run_id
         run_budget = self._run_budget(run_id)
+        # Promoted spawn_threshold capabilities adjust the spawn bar; the
+        # active threshold is recorded on the decision for audit.
+        threshold = 0.05
+        for eff in (self._run_configs.get(run_id) or {}).get(
+                "capability_effects", []):
+            if eff.get("type") == "spawn_threshold":
+                threshold = float(eff.get("value", threshold))
         ctx = SpawnContext(
             role=role, uncertainty=uncertainty,
             task_complexity=float((constraints or {}).get("complexity", 0.5)),
@@ -161,6 +174,7 @@ class AgentRuntime:
             if run_budget and run_budget["agent_limit"] else None,
             budget_tokens_remaining=(run_budget["token_limit"] - run_budget["consumed_tokens"])
             if run_budget and run_budget["token_limit"] else None,
+            spawn_threshold=threshold,
             reason_hint=reason_hint,
             evidence=[f"parent={parent_id}", f"role={role}"],
         )
@@ -302,25 +316,17 @@ class AgentRuntime:
             await self.emit("agent.started", run_id=agent.root_run_id, agent_id=agent.id)
             behavior = self._behaviors.get(agent.role)
             if behavior is None:
-                # No deterministic behavior and no model provider: honest block.
-                routed = self.providers.route(TaskRequirements())
-                if routed is None:
-                    self._set_status(agent, AgentStatus.BLOCKED,
-                                     "MODEL_PROVIDER_UNAVAILABLE: no model provider configured"
-                                     " and no scripted behavior registered for role"
-                                     f" '{agent.role}'")
-                    await self.emit("agent.failed", run_id=agent.root_run_id,
-                                    agent_id=agent.id,
-                                    payload={"reason": "MODEL_PROVIDER_UNAVAILABLE"})
-                    return
-                # LLM-backed execution lands in the next slice; for now the
-                # runtime refuses to fake it.
+                # No deterministic behavior and no model provider: honestly
+                # blocked. The run stays open; the operator can configure a
+                # provider (or register behavior) and resume, or cancel.
                 self._set_status(agent, AgentStatus.BLOCKED,
-                                 "MODEL_PROVIDER_UNAVAILABLE: LLM-backed agent execution"
-                                 " is not yet wired; configure a provider and retry")
-                await self.emit("agent.failed", run_id=agent.root_run_id,
+                                 "MODEL_PROVIDER_UNAVAILABLE: no model provider configured"
+                                 " and no scripted behavior registered for role"
+                                 f" '{agent.role}'")
+                await self.emit("agent.blocked", run_id=agent.root_run_id,
                                 agent_id=agent.id,
-                                payload={"reason": "MODEL_PROVIDER_UNAVAILABLE"})
+                                payload={"reason": "MODEL_PROVIDER_UNAVAILABLE",
+                                         "role": agent.role})
                 return
             result = await behavior(agent, self)
             self._consume(agent.root_run_id,
