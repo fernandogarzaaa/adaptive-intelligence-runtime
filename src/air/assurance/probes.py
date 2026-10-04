@@ -72,9 +72,28 @@ class AssuranceResult(BaseModel):
 # Adversarial fixtures: synthetic event histories with known ground truth.
 # ---------------------------------------------------------------------------
 def _good_events() -> list[dict]:
+    """Genuine evidence under the current grounding semantics.
+
+    A real (fixture) tool.completed with ok=true, a persisted result
+    whose recomputed hash matches the payload claim, a non-simulated
+    producer, and a claim that cites it with covering scope. Anything
+    less is not "genuine" anymore: presence of the event type alone
+    is not evidence (see air.evidence).
+    """
+    preimage = json.dumps({"ok": True, "output": {"bytes": 42},
+                           "framing": "untrusted"}, sort_keys=True)
+    digest = hashlib.sha256(preimage.encode()).hexdigest()
     return [
-        {"type": "tool.completed", "agent_id": "a1", "payload": {"tool": "t"}},
-        {"type": "agent.completed", "agent_id": "a1", "payload": {}},
+        {"type": "tool.completed", "agent_id": "a1",
+         "payload": {"tool": "fs.read", "call_id": "tc_good1",
+                     "ok": True, "result_hash": digest,
+                     "result_preimage": preimage,
+                     "args": {"path": "evidence.txt"}}},
+        {"type": "agent.completed", "agent_id": "a1",
+         "payload": {"result": {"ok": True, "outcomes": [
+             {"id": "o1", "description": "evidence read",
+              "artifacts": ["evidence.txt"], "effects": ["observe"],
+              "evidence_refs": ["ev_fixture_evt_0"]}]}}},
     ]
 
 
@@ -102,10 +121,85 @@ def _empty_events() -> list[dict]:
     return []
 
 
+def _fixture_ledger(events: list[dict]):
+    """Materialize fixture events into an in-memory ledger.
+
+    The evidence checks (event_evidence, outcome_grounding) verify
+    against ledger rows, never bare event dicts, so the fixture
+    runner gives them a real (throwaway) ledger. Fixture
+    tool.completed events carry ``result_preimage`` (test-only) so
+    the backing tool_calls row has a result whose recomputed hash
+    matches; attack fixtures simply omit tool execution, which is
+    precisely what makes them invalid. Returns (conn, run_id);
+    the caller closes the connection.
+    """
+    import sqlite3
+    conn = sqlite3.connect(":memory:")
+    conn.execute(
+        "CREATE TABLE events (event_id TEXT PRIMARY KEY, timestamp TEXT,"
+        " run_id TEXT, agent_id TEXT, type TEXT, payload TEXT,"
+        " causation_id TEXT, correlation_id TEXT)")
+    conn.execute(
+        "CREATE TABLE tool_calls (id TEXT PRIMARY KEY, run_id TEXT,"
+        " agent_id TEXT, tool_name TEXT, state TEXT, args_redacted TEXT,"
+        " result_redacted TEXT, result_hash TEXT)")
+    conn.execute(
+        "CREATE TABLE agents (id TEXT PRIMARY KEY, epistemic_kind TEXT)")
+    run_id = "fixture_run"
+    for i, e in enumerate(events):
+        event_id = f"fixture_evt_{i}"
+        payload = dict(e.get("payload") or {})
+        agent_id = e.get("agent_id") or "a1"
+        conn.execute(
+            "INSERT INTO events (event_id, timestamp, run_id, agent_id,"
+            " type, payload) VALUES (?,?,?,?,?,?)",
+            (event_id, utcnow(), run_id, agent_id, e["type"],
+             json.dumps(payload)))
+        conn.execute(
+            "INSERT OR IGNORE INTO agents (id, epistemic_kind)"
+            " VALUES (?, 'OBSERVED')", (agent_id,))
+        if e["type"] == "tool.completed" and payload.get("call_id"):
+            conn.execute(
+                "INSERT INTO tool_calls (id, run_id, agent_id, tool_name,"
+                " state, args_redacted, result_redacted, result_hash)"
+                " VALUES (?,?,?,?,?,?,?,?)",
+                (payload["call_id"], run_id, agent_id,
+                 payload.get("tool", "unknown"), "COMMITTED",
+                 json.dumps(payload.get("args", {})),
+                 payload.get("result_preimage"),
+                 payload.get("result_hash")))
+    conn.commit()
+    return conn, run_id
+
+
 def _run_checks(suite: EvalSuite, events: list[dict],
-                experience: dict | None = None) -> list[tuple[str, bool, str]]:
+                experience: dict | None = None,
+                ledger_conn=None,
+                ledger_run_id: str = "fixture_run",
+                ) -> list[tuple[str, bool, str]]:
     out = []
     for case in suite.cases:
+        if case.check in ("event_evidence", "outcome_grounding"):
+            # Ledger-bound checks: run the Evaluator's real validity /
+            # relevance logic against the fixture ledger. Without a
+            # ledger there is nothing to verify against: fail-closed.
+            if ledger_conn is None:
+                out.append((case.id, False,
+                            f"{case.check} requires a ledger connection"))
+                continue
+            from air.evaluation.suites import Evaluator
+            evaluator = Evaluator(ledger_conn)
+            try:
+                if case.check == "event_evidence":
+                    passed, detail = evaluator._check_event_evidence(
+                        ledger_run_id, case.params)
+                else:
+                    passed, detail = evaluator._check_outcome_grounding(
+                        ledger_run_id, case.params)
+            except Exception as e:  # noqa: BLE001
+                passed, detail = False, f"check raised {type(e).__name__}: {e}"
+            out.append((case.id, passed, detail))
+            continue
         fn = CHECKS.get(case.check)
         if fn is None:
             out.append((case.id, False, f"unknown check {case.check}"))
@@ -290,7 +384,13 @@ class AssuranceEngine:
         expect rejection; accepting is a false accept. For genuine fixtures we
         expect acceptance; rejecting is a false reject.
         """
-        checks = _run_checks(suite, events, experience)
+        fixture_conn, fixture_run_id = _fixture_ledger(events)
+        try:
+            checks = _run_checks(suite, events, experience,
+                                 ledger_conn=fixture_conn,
+                                 ledger_run_id=fixture_run_id)
+        finally:
+            fixture_conn.close()
         # The suite accepts the fixture if every check passes.
         accepted = bool(checks) and all(passed for _, passed, _ in checks)
         if expect_pass and not accepted:

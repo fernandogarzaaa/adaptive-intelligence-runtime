@@ -27,9 +27,13 @@ def _env(tmp_path):
 
 
 async def _honest(agent: Agent, rt: AgentRuntime) -> dict:
-    await rt.emit("tool.completed", run_id=agent.root_run_id,
-                  agent_id=agent.id, payload={"tool": "verify"})
-    return {"tokens": 50, "cost_usd": 0.0}
+    # Real execution evidence through the gateway: the evaluation
+    # grounding gate requires ok=true, a persisted result, and a valid
+    # result hash. A hand-emitted tool.completed event is not evidence
+    # (deliberate: the tightened SUPPORTED semantics forbid it).
+    rec = await rt.call_tool(agent.id, "fs.read",
+                             {"path": "bridge_probe.txt"})
+    return {"tokens": 50, "cost_usd": 0.0, "tool_state": str(rec.state)}
 
 
 async def _completed_run(rt, strategy=Strategy.SINGLE_AGENT, agent_budget=2):
@@ -64,6 +68,7 @@ def _evaluate_and_assure(db, run_id):
 def test_bridge_blocked_without_evaluation(tmp_path):
     async def main():
         rt, db = _env(tmp_path)
+        (tmp_path / "bridge_probe.txt").write_text("learning-bridge probe")
         rt.register_behavior("specialist", _honest)
         run_id = await _completed_run(rt)
         exp = ExperienceRecorder(db.conn).list()[0]
@@ -81,6 +86,7 @@ def test_bridge_blocked_without_evaluation(tmp_path):
 def test_bridge_promotes_validated_knowledge(tmp_path):
     async def main():
         rt, db = _env(tmp_path)
+        (tmp_path / "bridge_probe.txt").write_text("learning-bridge probe")
         rt.register_behavior("specialist", _honest)
         run_id = await _completed_run(rt)
         exp_id = ExperienceRecorder(db.conn).list()[0]["id"]
@@ -107,6 +113,7 @@ def test_bridge_promotes_validated_knowledge(tmp_path):
 def test_experience_compare_distinguishes_outcomes(tmp_path):
     async def main():
         rt, db = _env(tmp_path)
+        (tmp_path / "bridge_probe.txt").write_text("learning-bridge probe")
         rt.register_behavior("specialist", _honest)
         rt.register_behavior("researcher", _honest)
         rt.register_behavior("synthesizer", _honest)

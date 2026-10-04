@@ -229,15 +229,21 @@ def test_evaluator_rejects_simulated_evidence_even_if_suite_passes(tmp_path):
     but the evaluator must still refuse because the evidence is
     simulated."""
     rt, run_id = _run_simulation_sync(tmp_path)
-    # Sanity: the raw checks would pass (real events exist).
+    # Sanity: the raw hygiene checks pass on real events...
     from air.evaluation.suites import CHECKS
     events = [{"type": t, "agent_id": a, "payload": json.loads(p)}
               for t, a, p in rt.db.conn.execute(
                   "SELECT type, agent_id, payload FROM events WHERE run_id=?"
                   " ORDER BY rowid", (run_id,)).fetchall()]
-    for name in ("event_evidence", "no_failures", "agents_completed"):
+    for name in ("no_failures", "agents_completed"):
         passed, _ = CHECKS[name](events, None, {})
         assert passed, f"fixture setup broken: {name} should pass on raw events"
+    # ...but the evidence gate itself now refuses simulated evidence:
+    # validity requires a non-simulated producer (Invariant 12), so a
+    # hand-rolled presence check would be the wrong sanity here.
+    from air.evidence.validity import valid_evidence_for_run
+    assert valid_evidence_for_run(rt.db.conn, run_id) == [], \
+        "simulated tool executions must not be valid evidence"
     # The boundary refuses anyway.
     assert epistemic_refusal(rt.db.conn, run_id) is not None
     evaluator = Evaluator(rt.db.conn)

@@ -279,6 +279,67 @@ policy evidence).
 | 10 Event semantics | yes | — | yes | — | held |
 | 11 Independence | — | — | yes | yes | partial |
 | 12 Epistemic separation (formal) | yes | yes | yes | — | held |
+| 13 Evidence grounding | yes | yes | yes | — | held |
+
+---
+
+## 13. Evidence grounding
+
+**A successful tool execution is not, by itself, evidence of task
+success. It is only an eligible evidence source.** TOOL_SUCCESS and
+CLAIM_SUPPORTED are never conflated: the former is a property of a
+tool call, the latter a verdict about a claimed proposition, and the
+verdict requires strictly more.
+
+SUPPORTED means: *the available evidence establishes the claimed
+proposition within the declared verification scope.* Not "something
+happened that looks vaguely related." Not "the agent said it
+succeeded."
+
+Enforcement is three structural layers (`src/air/evidence/`):
+
+1. **Evidence Validity** — did this actually happen? A
+   `tool.completed` event counts as evidence only if it exists in
+   the evaluated run's ledger, `ok` is true, the `tool_calls` row
+   holds a persisted result, `sha256(result_redacted)` matches the
+   event's `result_hash` (recomputed, never trusted), and the
+   producer's `epistemic_kind` is evidentiary (Invariant 12: a
+   simulator's success is not real-world evidence). Necessary but
+   explicitly not sufficient.
+2. **Evidence Relevance** — does it establish the claim? Every
+   claimed outcome must cite ≥1 `evidence_ref`; every ref must
+   resolve to valid evidence; every asserted artifact/effect must be
+   covered by the cited evidence's `verification_scope`
+   (tool/targets/effect, derived mechanically from the call, never
+   by an LLM judge). Fail-closed: uncited claims, invalid evidence,
+   and scope mismatches are never grounded. Opaque tools (empty
+   targets) can never ground artifact claims.
+3. **Outcome Evaluation** — did the objective actually succeed?
+   The evaluator's `outcome_grounding` check requires every claimed
+   outcome grounded through layers 1+2 before SUPPORTED.
+
+Evidence is a deterministic projection of `tool.completed` ledger
+events (`evidence_id = ev_<source_event_id>`); no separate mutable
+evidence table. Claims declare outcomes in completion payloads
+(`result.outcomes` with `evidence_refs`, `artifacts`, `effects`);
+`claim_ref` is bound bidirectionally at evaluation time.
+
+Tests: `tests/test_evidence_grounding.py` (4: the quarterly-report
+attack in strong and weak variants, the ok=false case, the genuine
+`fs.write` positive control) and `tests/test_evaluator_adversarial.py`
+(6: cross-run citation, tampered hash, simulator evidence,
+double-citation, denied-tool citation, dangling ref).
+
+Known limitation, by design: no LLM relevance judge exists. A
+sophisticated attacker who fabricates coherent-but-false
+claim+artifact declarations (plausible nonsense written to the
+correctly-named file) produces evidence that is valid and relevant
+under this layer. Content-level truth is beyond structural
+grounding; semantic verification, when built, must sit behind the
+assurance machinery and be adversarially evaluated itself.
+
+`[held]` (2026-10-04; closes the AIR-SELF-AUDIT v1 reward-hacking
+finding, falsified by the v2 audit run)
 
 Closing every `[gap]` and `[partial]` is the production-hardening
 program. No new features until this table reads `held` throughout.

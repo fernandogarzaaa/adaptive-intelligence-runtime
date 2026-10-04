@@ -102,11 +102,18 @@ def test_sound_evaluator_passes_assurance(tmp_path):
     """Sanity: a strong suite (evidence required) is SOUND on honest runs."""
     async def main():
         rt, db, _ = _env(tmp_path)
+        (tmp_path / "assurance_probe.txt").write_text("assurance probe")
 
         async def honest(agent: Agent, rt: AgentRuntime) -> dict:
-            await rt.emit("tool.completed", run_id=agent.root_run_id,
-                          agent_id=agent.id, payload={"tool": "verify"})
-            return {"tokens": 10, "cost_usd": 0.0}
+            # Real execution evidence through the gateway: the
+            # evaluation grounding gate requires ok=true, a persisted
+            # result, and a valid result hash. A hand-emitted
+            # tool.completed event is not evidence (deliberate: the
+            # tightened SUPPORTED semantics forbid it).
+            rec = await rt.call_tool(agent.id, "fs.read",
+                                     {"path": "assurance_probe.txt"})
+            return {"tokens": 10, "cost_usd": 0.0,
+                    "tool_state": str(rec.state)}
 
         rt.register_behavior("specialist", honest)
         run_id = await rt.create_run("do the task",

@@ -5,6 +5,23 @@ Evaluation is separate from assurance. An evaluator measures a subject
 the persisted event log and evidence ledger — never against the subject's
 own claims about itself. Every evaluation records its provenance: suite,
 evaluator name + version, evidence hashes.
+
+SUPPORTED means: the available evidence establishes the claimed
+proposition within the declared verification scope. It never means
+"something happened that looks vaguely related", and it never means
+"the agent said it succeeded".
+
+TOOL_SUCCESS and CLAIM_SUPPORTED are distinct and must never be
+conflated: a successful tool execution is only an *eligible evidence
+source*, never by itself evidence of task success.
+
+Three layers (see air.evidence), in order: (1) Evidence Validity —
+did this actually happen? (2) Evidence Relevance — does it establish
+the claim? (3) Outcome Evaluation — did the objective actually
+succeed? A research-grade SUPPORTED verdict requires every claimed
+outcome grounded through layers 1 and 2 (the ``outcome_grounding``
+check). The ``event_evidence`` check enforces layer 1 only: necessary,
+explicitly not sufficient.
 """
 
 from __future__ import annotations
@@ -98,19 +115,11 @@ class EvaluationResult(BaseModel):
 # ---------------------------------------------------------------------------
 # Check registry. Checks are named, deterministic, auditable functions over
 # (events, experience, params). Registration is explicit; no arbitrary code.
+#
+# The two evidence checks (event_evidence, outcome_grounding) are NOT in
+# this registry: they need the ledger connection (tool_calls, agents),
+# not just the event list, so the Evaluator binds them explicitly.
 # ---------------------------------------------------------------------------
-def _check_event_evidence(events: list[dict], experience: dict | None,
-                          params: dict) -> tuple[bool, str]:
-    """Grounding gate: the run must contain real execution evidence, not just
-    an agent's claim of success."""
-    required = params.get("required", ["tool.completed"])
-    types = {e["type"] for e in events}
-    missing = [r for r in required if r not in types]
-    if missing:
-        return False, f"missing execution evidence: {missing}"
-    return True, f"evidence present: {sorted(types & set(required))}"
-
-
 def _check_no_failures(events: list[dict], experience: dict | None,
                        params: dict) -> tuple[bool, str]:
     bad = [e for e in events if e["type"] in
@@ -155,7 +164,6 @@ def _check_spawn_discipline(events: list[dict], experience: dict | None,
 
 
 CHECKS: dict[str, callable] = {
-    "event_evidence": _check_event_evidence,
     "no_failures": _check_no_failures,
     "agents_completed": _check_agents_completed,
     "cost_below": _check_cost_below,
@@ -170,13 +178,70 @@ def register_check(name: str, fn) -> None:
 
 
 class Evaluator:
-    """Runs a suite against a subject's persisted history."""
+    """Runs a suite against a subject's persisted history.
+
+    The evidence checks (``event_evidence``, ``outcome_grounding``)
+    are bound here rather than in the CHECKS registry because they
+    need the ledger connection: validity is verified against the
+    ``tool_calls`` and ``agents`` tables, never trusted from the
+    event payload alone.
+    """
 
     def __init__(self, conn, name: str = "air-default-evaluator",
                  version: str = "1.0.0") -> None:
         self._conn = conn
         self.name = name
         self.version = version
+
+    def _check_event_evidence(self, run_id: str,
+                              params: dict) -> tuple[bool, str]:
+        """Layer 1 (validity) gate: the run contains at least one VALID
+        evidence source.
+
+        Valid means: a tool.completed event with ok=true, a persisted
+        result whose recomputed hash matches, and a non-simulated
+        producer. Necessary but explicitly not sufficient for
+        SUPPORTED: validity says the execution genuinely happened,
+        nothing about whether it establishes any claim.
+        """
+        from air.evidence.validity import valid_evidence_for_run
+        valid = valid_evidence_for_run(self._conn, run_id)
+        if not valid:
+            return False, (
+                "no valid evidence: no tool.completed event with ok=true,"
+                " a persisted result, a matching result_hash, and a"
+                " non-simulated producer")
+        return True, (
+            f"{len(valid)} valid evidence source(s):"
+            f" {[e.evidence_id for e in valid]}")
+
+    def _check_outcome_grounding(self, run_id: str,
+                                 params: dict) -> tuple[bool, str]:
+        """Layers 1+2+3: every claimed outcome grounded.
+
+        SUPPORTED requires each claimed outcome to cite valid evidence
+        whose verification scope covers the claim's artifacts and
+        effects. Fail-closed: no claims, no citations, invalid
+        evidence, or scope mismatch all refuse grounding.
+        """
+        from air.evidence.grounding import ground_claims
+        claims = ground_claims(self._conn, run_id)
+        if not claims:
+            return False, (
+                "no claimed outcomes declared in the run: there is no"
+                " proposition for evidence to establish")
+        ungrounded = [c for c in claims if not c.grounded]
+        if ungrounded:
+            detail = "; ".join(
+                f"{c.claim_id}:"
+                f" {c.reasons[0] if c.reasons else 'not grounded'}"
+                for c in ungrounded)
+            return False, (
+                f"{len(ungrounded)}/{len(claims)} claimed outcomes"
+                f" ungrounded: {detail}")
+        return True, (
+            f"all {len(claims)} claimed outcomes grounded:"
+            f" {[(c.claim_id, c.evidence_ids) for c in claims]}")
 
     def evaluate_run(self, run_id: str, suite: EvalSuite) -> EvaluationResult:
         events = self._conn.execute(
@@ -228,6 +293,31 @@ class Evaluator:
             return result
         score, total = 0.0, 0.0
         for case in suite.cases:
+            if case.check in ("event_evidence", "outcome_grounding"):
+                # Evidence checks need the ledger connection and the run
+                # id; they are bound on the Evaluator, not in CHECKS.
+                if subject.get("kind") != "run" or not subject.get("run_id"):
+                    passed = False
+                    detail = (f"{case.check} requires a run subject")
+                    extra_evidence = {"check": case.check,
+                                      "params": case.params}
+                else:
+                    run_id = subject["run_id"]
+                    if case.check == "event_evidence":
+                        passed, detail = self._check_event_evidence(
+                            run_id, case.params)
+                    else:
+                        passed, detail = self._check_outcome_grounding(
+                            run_id, case.params)
+                    extra_evidence = {"check": case.check,
+                                      "params": case.params}
+                result.checks.append(CheckResult(
+                    case_id=case.id, passed=passed, detail=detail,
+                    evidence=extra_evidence))
+                total += case.weight
+                if passed:
+                    score += case.weight
+                continue
             fn = CHECKS.get(case.check)
             if fn is None:
                 result.checks.append(CheckResult(
