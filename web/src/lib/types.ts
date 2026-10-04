@@ -13,6 +13,7 @@ export interface StreamEvent {
   correlation_id: string | null;
   sequence: number | null;
   payload: Record<string, unknown>;
+  last_event_id?: string | null;
 }
 
 export interface Run {

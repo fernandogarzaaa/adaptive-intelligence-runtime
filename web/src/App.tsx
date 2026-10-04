@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Approvals, Models, Runs } from './lib/api';
 import { useApi } from './lib/query';
 import { eventStream, useStreamState } from './lib/ws';

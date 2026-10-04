@@ -8,7 +8,7 @@ import type {
   AgentMessage,
   AgentRow,
   Approval,
-  Assurance,
+  Assurance as AssuranceRecord,
   CapabilityDetail,
   CapabilityProvenance,
   CapabilitySummary,
@@ -18,7 +18,7 @@ import type {
   ExperienceSummary,
   GraphData,
   MemoryHit,
-  Metrics,
+  Metrics as MetricsData,
   ModelInfo,
   PolicyListItem,
   PolicyProvenance,
@@ -176,7 +176,7 @@ export const Assurance = {
   run: (evaluationId: string) =>
     api<{ assurance_id: string; evaluator_verdict: string; system_verdict: string; false_accepts: number; false_rejects: number }>(
       `/assurance${q({ evaluation_id: evaluationId })}`, { method: 'POST' }),
-  get: (id: string) => api<Assurance>(`/assurance/${id}`),
+  get: (id: string) => api<AssuranceRecord>(`/assurance/${id}`),
 };
 
 export const Policies = {
@@ -212,5 +212,5 @@ export const Models = {
 };
 
 export const Metrics = {
-  get: () => api<Metrics>('/metrics'),
+  get: () => api<MetricsData>('/metrics'),
 };
