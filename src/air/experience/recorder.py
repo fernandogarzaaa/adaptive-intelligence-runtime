@@ -126,12 +126,20 @@ class ExperienceRecorder:
                                  "provenance": Provenance.OBSERVED.value})
 
         tool_calls = self._conn.execute(
-            "SELECT tool, status, latency_ms FROM tool_calls WHERE run_id=?",
+            "SELECT tool_name, tool_version, capability, state, latency_ms,"
+            " policy_version, result_hash, verification_status, server_id"
+            " FROM tool_calls WHERE run_id=?",
             (run_id,)).fetchall()
-        for tool, st, lat in tool_calls:
+        for (tool, tver, cap, st, lat, pver, rhash, vstat,
+             server_id) in tool_calls:
             tools.add(tool)
-            actions.append({"type": "tool.call", "tool": tool, "status": st,
-                            "latency_ms": lat,
+            actions.append({"type": "tool.call", "tool": tool,
+                            "tool_version": tver, "capability": cap,
+                            "status": st, "latency_ms": lat,
+                            "policy_version": pver,
+                            "result_hash": rhash,
+                            "verification_status": vstat,
+                            "server_id": server_id,
                             "provenance": Provenance.OBSERVED.value})
 
         budget = self._conn.execute(

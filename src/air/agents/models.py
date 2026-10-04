@@ -59,6 +59,9 @@ class Agent(BaseModel):
     model: str | None = None
     provider: str | None = None
     capabilities: list[str] = Field(default_factory=list)
+    # Security grants: capability CLASS names (READ/WRITE/NETWORK/EXECUTE/
+    # DESTRUCTIVE/PRIVILEGED). Separate from skill-tag capabilities above.
+    granted_capabilities: list[str] = Field(default_factory=list)
     tools: list[str] = Field(default_factory=list)
     memory_scope: str = "task"
     belief_scope: str = "task"

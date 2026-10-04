@@ -46,6 +46,67 @@ class AgentRuntime:
         self._behaviors: dict[str, ScriptedBehavior] = {}
         self._tasks: dict[str, asyncio.Task] = {}
         self._run_configs: dict[str, dict] = {}
+        self._gateway = None  # lazy: ExecutionGateway
+
+    # ------------------------------------------------------------------- tools
+    def tool_gateway(self):
+        """The canonical tool execution gateway (lazy init)."""
+        if self._gateway is None:
+            from air.tools.builtin import build_default_registry
+            from air.tools.gateway import ExecutionGateway
+            self._gateway = ExecutionGateway(
+                self.db.conn, build_default_registry(),
+                str(self.config.data_dir),
+                emit=self.emit, get_agent=self.get_agent,
+                check_run_budget=self._check_run_budget_for_tools,
+                get_run=self._run_status_for_tools,
+                policy_version_of=self._run_policy_for_tools,
+                consume_tool_call=self._consume_tool_call_slot)
+        return self._gateway
+
+    def _run_status_for_tools(self, run_id: str) -> dict | None:
+        row = self.db.conn.execute(
+            "SELECT status FROM runs WHERE id=?", (run_id,)).fetchone()
+        return {"status": row[0]} if row else None
+
+    def _run_policy_for_tools(self, run_id: str) -> str | None:
+        row = self.db.conn.execute(
+            "SELECT policy_version FROM runs WHERE id=?",
+            (run_id,)).fetchone()
+        return row[0] if row else None
+
+    def _consume_tool_call_slot(self, run_id: str) -> dict:
+        """Reserve one tool-call budget unit in code. Raises BudgetExhausted."""
+        b = self._run_budget(run_id)
+        if b and b.get("tool_call_limit"):
+            if b["consumed_tool_calls"] >= b["tool_call_limit"]:
+                raise BudgetExhausted(
+                    f"tool call budget exhausted"
+                    f" ({b['consumed_tool_calls']}/{b['tool_call_limit']})")
+        self._consume(run_id, tool_calls=1)
+        b2 = self._run_budget(run_id) or {}
+        return {"consumed_tool_calls": b2.get("consumed_tool_calls"),
+                "tool_call_limit": b2.get("tool_call_limit")}
+
+    def _check_run_budget_for_tools(self, run_id: str) -> None:
+        b = self._run_budget(run_id)
+        if b and b["agent_limit"] and b["consumed_agents"] >= b["agent_limit"]:
+            raise BudgetExhausted("run budget exhausted")
+
+    async def call_tool(self, agent_id: str, tool_name: str,
+                        args: dict):
+        """Route an agent's tool call through the execution gateway.
+
+        Capability enforcement, approvals, budget, redaction, and
+        contamination framing all happen inside the gateway.
+        """
+        agent = self.get_agent(agent_id)
+        if agent is None:
+            raise ValueError(f"unknown agent: {agent_id}")
+        from air.tools.gateway import ToolCallRequest
+        return await self.tool_gateway().execute(ToolCallRequest(
+            tool_name=tool_name, args=args, agent_id=agent_id,
+            run_id=agent.root_run_id))
 
     # ------------------------------------------------------------------ events
     async def emit(self, type: str, run_id: str | None = None,
@@ -66,6 +127,7 @@ class AgentRuntime:
                          time_budget_s: int | None = None,
                          cost_budget_usd: float | None = None,
                          agent_budget: int | None = None,
+                         tool_call_budget: int | None = None,
                          seed: int | None = None) -> str:
         # Promoted capabilities change future allocation. Effects are data.
         from air.capabilities.store import CapabilityStore
@@ -99,10 +161,12 @@ class AgentRuntime:
         )
         self.db.conn.execute(
             """INSERT INTO budgets (id, run_id, scope, token_limit, time_limit_s,
-                                    cost_limit, agent_limit, status, updated_at)
-               VALUES (?, ?, 'run', ?, ?, ?, ?, 'ok', ?)""",
+                                    cost_limit, agent_limit, tool_call_limit,
+                                    status, updated_at)
+               VALUES (?, ?, 'run', ?, ?, ?, ?, ?, 'ok', ?)""",
             ("bud_" + uuid.uuid4().hex[:12], run_id, plan.token_budget,
-             plan.time_budget_s, plan.cost_budget_usd, plan.agent_budget, now),
+             plan.time_budget_s, plan.cost_budget_usd, plan.agent_budget,
+             tool_call_budget, now),
         )
         self.db.conn.commit()
         self._run_configs[run_id] = {"plan": plan.model_dump(),
@@ -122,6 +186,7 @@ class AgentRuntime:
                            parent_id: str | None = None,
                            specialization: str | None = None,
                            capabilities: list[str] | None = None,
+                           granted: list[str] | None = None,
                            tools: list[str] | None = None,
                            model: str | None = None,
                            provider: str | None = None,
@@ -133,7 +198,8 @@ class AgentRuntime:
             parent_id=parent_id, root_run_id=run_id, generation=generation,
             role=role, specialization=specialization, objective=objective,
             model=model or "scripted", provider=provider or "scripted",
-            capabilities=capabilities or [], tools=tools or [],
+            capabilities=capabilities or [], granted_capabilities=granted or [],
+            tools=tools or [],
             memory_scope=memory_scope, budget=budget or Budget(),
             lineage=(parent.lineage + [parent.id]) if parent else [],
         )
@@ -289,6 +355,7 @@ class AgentRuntime:
                 run_id, spec["role"], spec["objective"], parent_id=parent_id,
                 specialization=spec.get("specialization"),
                 capabilities=spec.get("capabilities", []),
+                granted=spec.get("granted", []),
                 tools=spec.get("tools", []), model=model, provider=provider,
                 budget=Budget(token_limit=spec.get("token_budget", 8000),
                               cost_limit_usd=1.0, tool_call_limit=25),
@@ -503,14 +570,16 @@ class AgentRuntime:
             return None
         row = self.db.conn.execute(
             "SELECT id, parent_id, root_run_id, generation, role, specialization,"
-            " objective, model, provider, capabilities, tools, memory_scope,"
+            " objective, model, provider, capabilities, granted_capabilities,"
+            " tools, memory_scope,"
             " belief_scope, policy_scope, budget, status, status_reason, created_at,"
             " terminated_at, lineage, capability_version, policy_version"
             " FROM agents WHERE id=?", (agent_id,)).fetchone()
         if not row:
             return None
         (aid, parent_id, root_run_id, generation, role, specialization, objective,
-         model, provider, capabilities, tools, memory_scope, belief_scope,
+         model, provider, capabilities, granted_capabilities, tools,
+         memory_scope, belief_scope,
          policy_scope, budget, status, status_reason, created_at, terminated_at,
          lineage, capability_version, policy_version) = row
         return Agent(
@@ -518,6 +587,7 @@ class AgentRuntime:
             generation=generation, role=role, specialization=specialization,
             objective=objective, model=model, provider=provider,
             capabilities=json.loads(capabilities or "[]"),
+            granted_capabilities=json.loads(granted_capabilities or "[]"),
             tools=json.loads(tools or "[]"),
             memory_scope=memory_scope, belief_scope=belief_scope,
             policy_scope=policy_scope,
@@ -532,24 +602,26 @@ class AgentRuntime:
         # NOTE: never INSERT OR REPLACE here. REPLACE deletes the row first,
         # which cascades into events.agent_id and silently wipes history.
         cols = ("parent_id, root_run_id, generation, role, specialization,"
-                " objective, model, provider, capabilities, tools, memory_scope,"
+                " objective, model, provider, capabilities, granted_capabilities,"
+                " tools, memory_scope,"
                 " belief_scope, policy_scope, budget, status, status_reason,"
                 " created_at, terminated_at, lineage, capability_version,"
                 " policy_version")
         vals = (agent.parent_id, agent.root_run_id, agent.generation,
                 agent.role, agent.specialization, agent.objective, agent.model,
                 agent.provider, json.dumps(agent.capabilities),
+                json.dumps(agent.granted_capabilities),
                 json.dumps(agent.tools), agent.memory_scope, agent.belief_scope,
                 agent.policy_scope, agent.budget.model_dump_json(),
                 agent.status.value, agent.status_reason, agent.created_at,
                 agent.terminated_at, json.dumps(agent.lineage),
                 agent.capability_version, agent.policy_version)
         cur = self.db.conn.execute(
-            f"UPDATE agents SET ({cols}) = ({','.join('?' * 21)}) WHERE id = ?",
+            f"UPDATE agents SET ({cols}) = ({','.join('?' * 22)}) WHERE id = ?",
             (*vals, agent.id))
         if cur.rowcount == 0:
             self.db.conn.execute(
-                f"INSERT INTO agents (id, {cols}) VALUES ({','.join('?' * 22)})",
+                f"INSERT INTO agents (id, {cols}) VALUES ({','.join('?' * 23)})",
                 (agent.id, *vals))
         self.db.conn.commit()
 

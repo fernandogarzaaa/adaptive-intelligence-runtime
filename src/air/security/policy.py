@@ -69,13 +69,24 @@ def assert_safe_path(path: str, root: Path) -> Path:
 
 
 def is_host_allowed(host: str, allowlist: set[str] | None) -> bool:
-    """SSRF protection: allowlisted hosts only, and never private/loopback IPs
-    unless explicitly allowlisted by exact hostname."""
-    if allowlist is not None and host not in allowlist:
+    """SSRF protection: explicit allowlist entries are trusted; otherwise
+    block private/loopback/link-local/multicast IP literals (v4 and v6)
+    and localhost names. Note: DNS rebinding (a hostname that resolves to
+    a private IP only at connect time) is a documented residual risk;
+    see SECURITY.md."""
+    if allowlist is not None:
+        # Explicit allowlist: membership is trust, absence is denial.
+        return host.strip().lower().rstrip(".") in {
+            h.strip().lower().rstrip(".") for h in allowlist}
+    h = host.strip().lower().rstrip(".")
+    if h in ("localhost", "localhost.localdomain") or h.endswith(".localhost"):
         return False
+    # IPv6 literals may arrive bracketed.
+    candidate = h[1:-1] if h.startswith("[") and h.endswith("]") else h
     try:
-        ip = ipaddress.ip_address(host)
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast:
+        ip = ipaddress.ip_address(candidate)
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_multicast or ip.is_unspecified or ip.is_reserved):
             return False
     except ValueError:
         pass  # hostname; allowlist already checked

@@ -38,6 +38,9 @@ class AgentSpec(BaseModel):
     objective: str
     model_tier: str = "standard"  # cheap | standard | strong | local
     capabilities: list[str] = Field(default_factory=list)
+    # Security grants (capability classes), decided by the allocator under
+    # the active policy. Least privilege by default.
+    granted: list[str] = Field(default_factory=list)
     tools: list[str] = Field(default_factory=list)
     token_budget: int = 8000
     parent_role: str | None = None  # None => child of root
@@ -154,7 +157,8 @@ def build_plan(goal: str, strategy: Strategy, f: GoalFeatures,
     if strategy == Strategy.DIRECT:
         topology = "none"
     elif strategy == Strategy.SINGLE_AGENT:
-        specs = [spec("specialist", goal, capabilities=["reason", "act"])]
+        specs = [spec("specialist", goal, capabilities=["reason", "act"],
+                      granted=["READ"])]
     elif strategy == Strategy.PARALLEL_AGENTS:
         n = min(3, agent_budget)
         topology = "parallel"
