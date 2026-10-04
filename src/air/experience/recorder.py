@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 
 from air import __version__
 from air.allocation.allocator import extract_features
-from air.events.fabric import utcnow
+from air.events.fabric import Event, utcnow
 from air.experience.provenance import Provenance
 
 
@@ -64,10 +64,18 @@ DIMENSION_KEYS = [
 
 
 class ExperienceRecorder:
-    def __init__(self, conn) -> None:
+    def __init__(self, conn, store=None) -> None:
         self._conn = conn
+        # Optional EventStore sharing the same connection. When provided,
+        # the experience row and its experience.created event commit
+        # atomically (see record_run).
+        self._store = store
 
-    def record_run(self, run_id: str) -> ExperienceRecord:
+    def record_run(self, run_id: str) -> tuple["ExperienceRecord", "Event | None"]:
+        """Record the experience. Returns ``(record, event)``; when a store
+        was provided, ``event`` is the persisted ``experience.created``
+        event (already in the ledger -- the caller only needs to publish
+        it), otherwise ``None``."""
         run = self._conn.execute(
             "SELECT goal, status, strategy, cognitive_plan, seed,"
             " policy_version, capability_versions, total_cost, total_tokens,"
@@ -205,6 +213,29 @@ class ExperienceRecorder:
                              "run_policy": policy_version},
             capability_versions=json.loads(cap_versions_json or "{}"),
         )
+        if self._store is None:
+            self._insert_row(exp, dimensions, agent_rows, actions,
+                             observations, failures, latency_ms, goal,
+                             plan, final_json, policy_version,
+                             cap_versions_json)
+            self._conn.commit()
+            return exp, None
+        event = Event(type="experience.created", run_id=run_id,
+                      payload={"experience_id": exp.id})
+        with self._store.atomic():
+            with self._conn:
+                self._insert_row(exp, dimensions, agent_rows, actions,
+                                 observations, failures, latency_ms, goal,
+                                 plan, final_json, policy_version,
+                                 cap_versions_json)
+                self._store.insert(event)
+        return exp, event
+
+    def _insert_row(self, exp, dimensions, agent_rows, actions, observations,
+                    failures, latency_ms, goal, plan, final_json,
+                    policy_version, cap_versions_json) -> None:
+        """INSERT the experience row without committing; the caller owns the
+        transaction."""
         self._conn.execute(
             """INSERT INTO experiences (id, run_id, goal, initial_state,
                cognitive_configuration, dimensions, agents, actions,
@@ -213,7 +244,7 @@ class ExperienceRecorder:
                runtime_version, environment_version, policy_versions,
                capability_versions, created_at)
                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (exp.id, run_id, goal, json.dumps(exp.initial_state),
+            (exp.id, exp.run_id, goal, json.dumps(exp.initial_state),
              json.dumps(exp.cognitive_configuration), json.dumps(dimensions),
              json.dumps(agent_rows), json.dumps(actions),
              json.dumps(observations), json.dumps(exp.outcomes), exp.cost,
@@ -223,8 +254,6 @@ class ExperienceRecorder:
              exp.environment_version, json.dumps(exp.policy_versions),
              json.dumps(exp.capability_versions), exp.created_at),
         )
-        self._conn.commit()
-        return exp
 
     def link_evaluation(self, experience_id: str, evaluation_id: str,
                         assurance_id: str | None = None) -> None:

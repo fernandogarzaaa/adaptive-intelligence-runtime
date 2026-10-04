@@ -9,13 +9,14 @@ Hash chain: entry_n.hash = sha256(canonical(event_n) || entry_{n-1}.hash).
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import sqlite3
 import threading
 import uuid
 from collections import defaultdict
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterator
 from datetime import datetime, timezone
 
 from pydantic import BaseModel, Field
@@ -70,8 +71,9 @@ class EventStore:
 
     GENESIS_HASH = "0" * 64
 
-    def __init__(self, conn: sqlite3.Connection) -> None:
+    def __init__(self, conn: sqlite3.Connection, bus=None) -> None:
         self._conn = conn
+        self._bus = bus
         # Threading lock, not asyncio: appends arrive from the main loop
         # (async handlers, background agent tasks) and from worker threads
         # (sync API handlers). The read-compute-insert sequence must be
@@ -82,34 +84,77 @@ class EventStore:
         row = self._conn.execute("SELECT hash FROM events ORDER BY rowid DESC LIMIT 1").fetchone()
         return row[0] if row else self.GENESIS_HASH
 
+    def _insert_body(self, event: Event) -> Event:
+        """Hash-chain and INSERT the event. No lock, no commit.
+
+        The caller must hold the chain lock (via ``with store.atomic():``)
+        and own the surrounding DB transaction.
+        """
+        prev = self._last_hash()
+        body = {
+            "event_id": event.event_id,
+            "timestamp": event.timestamp,
+            "run_id": event.run_id,
+            "agent_id": event.agent_id,
+            "type": event.type,
+            "payload": event.payload,
+            "causation_id": event.causation_id,
+            "correlation_id": event.correlation_id,
+            "schema_version": event.schema_version,
+        }
+        h = event_hash(canonical(body), prev)
+        self._conn.execute(
+            """INSERT INTO events
+               (event_id, timestamp, run_id, agent_id, type, payload,
+                causation_id, correlation_id, schema_version, prev_hash, hash)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                event.event_id, event.timestamp, event.run_id, event.agent_id,
+                event.type, json.dumps(event.payload), event.causation_id,
+                event.correlation_id, event.schema_version, prev, h,
+            ),
+        )
+        return event
+
+    def insert(self, event: Event) -> Event:
+        """Insert an event into the ledger WITHOUT committing.
+
+        The caller must hold the chain lock (``with store.atomic():``) and
+        must commit (or roll back) the surrounding transaction. This is how
+        a domain mutation and its event become atomically durable: a crash
+        before the commit leaves neither, a crash after leaves both. Never
+        call ``append`` inside an ``atomic()`` section (the lock is not
+        reentrant).
+        """
+        return self._insert_body(event)
+
+    @contextlib.contextmanager
+    def atomic(self) -> Iterator["EventStore"]:
+        """Hold the hash-chain lock for a multi-statement atomic section.
+
+        Usage::
+
+            with store.atomic():
+                with conn:          # the SAME connection the store wraps
+                    ...domain writes...
+                    store.insert(event)
+                # conn.__exit__ commits domain writes + event together
+            await store.publish(event)   # live fanout, after durability
+        """
+        with self._lock:
+            yield self
+
     async def append(self, event: Event) -> Event:
         with self._lock:
-            prev = self._last_hash()
-            body = {
-                "event_id": event.event_id,
-                "timestamp": event.timestamp,
-                "run_id": event.run_id,
-                "agent_id": event.agent_id,
-                "type": event.type,
-                "payload": event.payload,
-                "causation_id": event.causation_id,
-                "correlation_id": event.correlation_id,
-                "schema_version": event.schema_version,
-            }
-            h = event_hash(canonical(body), prev)
-            self._conn.execute(
-                """INSERT INTO events
-                   (event_id, timestamp, run_id, agent_id, type, payload,
-                    causation_id, correlation_id, schema_version, prev_hash, hash)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    event.event_id, event.timestamp, event.run_id, event.agent_id,
-                    event.type, json.dumps(event.payload), event.causation_id,
-                    event.correlation_id, event.schema_version, prev, h,
-                ),
-            )
+            ev = self._insert_body(event)
             self._conn.commit()
-            return event
+            return ev
+
+    async def publish(self, event: Event) -> None:
+        """Live fanout only: deliver an already-persisted event to in-process
+        subscribers. Never persists; call after the event is durable."""
+        if self._bus is not None:
+            await self._bus.publish(event)
 
     def verify_chain(self) -> tuple[bool, str | None]:
         """Returns (ok, first_bad_event_id). Recomputes every link."""

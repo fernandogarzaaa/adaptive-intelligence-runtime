@@ -19,7 +19,7 @@ import uuid
 
 from pydantic import BaseModel, Field
 
-from air.events.fabric import utcnow
+from air.events.fabric import Event, utcnow
 
 
 class PolicyVersion(BaseModel):
@@ -52,13 +52,42 @@ class GateBlocked(Exception):
 
 
 class PolicyStore:
-    def __init__(self, conn, emit=None) -> None:
+    def __init__(self, conn, emit=None, store=None) -> None:
         self._conn = conn
         self._emit = emit
+        # Optional EventStore sharing the same connection. When provided,
+        # each lifecycle commit point persists its domain writes and its
+        # event in ONE transaction (see _commit_event): a crash before the
+        # commit leaves the pre-transition state, a crash after leaves the
+        # post-transition state, never a contradictory hybrid.
+        self._store = store
 
     async def _event(self, type: str, payload: dict) -> None:
         if self._emit:
             await self._emit(type, payload=payload)
+
+    async def _commit_event(self, commit_fn, *events: tuple[str, dict]) -> None:
+        """Run ``commit_fn`` (domain writes, no commit) and persist the given
+        ``(type, payload)`` events atomically with those writes: one
+        transaction covers both. A crash before the commit leaves the
+        pre-transition state; a crash after leaves the post-transition state
+        plus its events. Bus fanout happens after durability, so a crash
+        there only skips live notification -- the ledger stays complete and
+        later subscribers replay it."""
+        if self._store is None:
+            commit_fn()
+            self._conn.commit()
+            for type, payload in events:
+                await self._event(type, payload)
+            return
+        ev_objs = [Event(type=t, payload=p or {}) for t, p in events]
+        with self._store.atomic():
+            with self._conn:
+                commit_fn()
+                for ev in ev_objs:
+                    self._store.insert(ev)
+        for ev in ev_objs:
+            await self._store.publish(ev)
 
     def ensure(self, name: str, initial_params: dict | None = None) -> str:
         """Create the policy with a v1 if it does not exist. Returns policy id.
@@ -159,12 +188,14 @@ class PolicyStore:
             constraints=constraints or {}, generated_by=generated_by,
             source_experiences=source_experiences or [],
             status="CANDIDATE")
-        self._persist_version(ver)
-        self._conn.commit()
-        await self._event("policy.proposed",
-                          {"policy": name, "version": nxt, "reason": reason,
-                           "generated_by": generated_by,
-                           "parent_version": parent})
+        def _do_propose() -> None:
+            self._persist_version(ver)
+
+        await self._commit_event(
+            _do_propose,
+            ("policy.proposed",
+             {"policy": name, "version": nxt, "reason": reason,
+              "generated_by": generated_by, "parent_version": parent}))
         return ver
 
     def _gate(self, ver: PolicyVersion) -> tuple[bool, list[str]]:
@@ -201,18 +232,26 @@ class PolicyStore:
         ok, reasons = self._gate(ver)
         if not ok:
             raise GateBlocked(reasons)
+        # Read the current version BEFORE the atomic section: current()
+        # opens its own transaction via ensure().
         old = self.current(name)
-        if old and old.version != version:
-            old.status = "DEPRECATED"
-            self._persist_version(old)
-        ver.status = "PROMOTED"
-        self._persist_version(ver)
-        self._conn.execute("UPDATE policies SET current_version=? WHERE id=?",
-                           (version, pid))
-        self._conn.commit()
-        await self._event("policy.promoted",
-                          {"policy": name, "version": version,
-                           "decided_by": decided_by})
+        old_version = old.version if old else None
+
+        def _do_promote() -> None:
+            if old_version is not None and old_version != version:
+                prev = self.get_version(pid, old_version)
+                if prev is not None:
+                    prev.status = "DEPRECATED"
+                    self._persist_version(prev)
+            ver.status = "PROMOTED"
+            self._persist_version(ver)
+            self._conn.execute("UPDATE policies SET current_version=? WHERE id=?",
+                               (version, pid))
+
+        await self._commit_event(
+            _do_promote,
+            ("policy.promoted",
+             {"policy": name, "version": version, "decided_by": decided_by}))
         return ver
 
     async def reject(self, name: str, version: str, reason: str) -> PolicyVersion:
@@ -222,11 +261,14 @@ class PolicyStore:
             raise ValueError(f"version {version} not found")
         ver.status = "REJECTED"
         ver.reason = ver.reason + f" | rejected: {reason}"
-        self._persist_version(ver)
-        self._conn.commit()
-        await self._event("policy.rejected",
-                          {"policy": name, "version": version,
-                           "reason": reason})
+
+        def _do_reject() -> None:
+            self._persist_version(ver)
+
+        await self._commit_event(
+            _do_reject,
+            ("policy.rejected",
+             {"policy": name, "version": version, "reason": reason}))
         return ver
 
     async def rollback(self, name: str,
@@ -248,19 +290,22 @@ class PolicyStore:
                                " roll back to"])
         rb_id = "rb_" + uuid.uuid4().hex[:12]
         now = utcnow()
-        self._conn.execute(
-            """INSERT INTO policy_rollbacks (id, policy_id, policy_name,
-               from_version, to_version, reason, evidence, requested_by,
-               status, requested_at)
-               VALUES (?,?,?,?,?,?,?,?, 'REQUESTED', ?)""",
-            (rb_id, pid, name, cur.version, cur.parent_version, reason,
-             json.dumps(evidence), requested_by, now))
-        self._conn.commit()
-        await self._event("policy.rollback_requested",
-                          {"policy": name, "rollback_id": rb_id,
-                           "from_version": cur.version,
-                           "to_version": cur.parent_version,
-                           "reason": reason, "requested_by": requested_by})
+
+        def _do_request() -> None:
+            self._conn.execute(
+                """INSERT INTO policy_rollbacks (id, policy_id, policy_name,
+                   from_version, to_version, reason, evidence, requested_by,
+                   status, requested_at)
+                   VALUES (?,?,?,?,?,?,?,?, 'REQUESTED', ?)""",
+                (rb_id, pid, name, cur.version, cur.parent_version, reason,
+                 json.dumps(evidence), requested_by, now))
+
+        await self._commit_event(
+            _do_request,
+            ("policy.rollback_requested",
+             {"policy": name, "rollback_id": rb_id,
+              "from_version": cur.version, "to_version": cur.parent_version,
+              "reason": reason, "requested_by": requested_by}))
         return {"id": rb_id, "policy": name, "from_version": cur.version,
                 "to_version": cur.parent_version, "status": "REQUESTED"}
 
@@ -294,30 +339,32 @@ class PolicyStore:
             "SELECT id FROM runs WHERE policy_version=?",
             (f"{name}@v{from_v}",)).fetchall()]
         failed.status = "DEPRECATED"
-        self._persist_version(failed)
         parent.status = "PROMOTED"
-        self._persist_version(parent)
-        self._conn.execute("UPDATE policies SET current_version=? WHERE id=?",
-                           (to_v, pid))
         now = utcnow()
-        self._conn.execute(
-            "UPDATE policy_rollbacks SET status='APPROVED', approved_by=?,"
-            " decided_at=?, affected_runs=? WHERE id=?",
-            (approved_by, now, json.dumps(affected), rollback_id))
-        self._conn.commit()
-        await self._event("policy.rollback_approved",
-                          {"policy": name, "rollback_id": rollback_id,
-                           "from_version": from_v, "to_version": to_v,
-                           "approved_by": approved_by,
-                           "affected_runs": affected})
-        await self._event("policy.activated",
-                          {"policy": name, "version": to_v,
-                           "previous_version": from_v,
-                           "reason": reason,
-                           "triggering_evidence": json.loads(evidence_json or "{}"),
-                           "actor": approved_by,
-                           "evaluation_refs": failed.evaluation,
-                           "assurance_refs": failed.assurance})
+
+        def _do_approve() -> None:
+            self._persist_version(failed)
+            self._persist_version(parent)
+            self._conn.execute("UPDATE policies SET current_version=? WHERE id=?",
+                               (to_v, pid))
+            self._conn.execute(
+                "UPDATE policy_rollbacks SET status='APPROVED', approved_by=?,"
+                " decided_at=?, affected_runs=? WHERE id=?",
+                (approved_by, now, json.dumps(affected), rollback_id))
+
+        await self._commit_event(
+            _do_approve,
+            ("policy.rollback_approved",
+             {"policy": name, "rollback_id": rollback_id,
+              "from_version": from_v, "to_version": to_v,
+              "approved_by": approved_by, "affected_runs": affected}),
+            ("policy.activated",
+             {"policy": name, "version": to_v, "previous_version": from_v,
+              "reason": reason,
+              "triggering_evidence": json.loads(evidence_json or "{}"),
+              "actor": approved_by,
+              "evaluation_refs": failed.evaluation,
+              "assurance_refs": failed.assurance}))
         return parent
 
     def provenance_chain(self, name: str) -> dict:

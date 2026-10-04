@@ -29,6 +29,13 @@ class ApprovalStore:
 
     def request(self, kind: str, subject: str, payload: dict,
                 requested_by: str) -> str:
+        """Insert the approval row WITHOUT committing.
+
+        The caller owns the transaction: the execution gateway commits the
+        approval row together with the tool call's transition to
+        APPROVAL_PENDING in one commit, so a crash can never leave an
+        approval row without its pending call (or vice versa).
+        """
         ap_id = "appr_" + uuid.uuid4().hex[:12]
         self._conn.execute(
             """INSERT INTO approvals (id, kind, subject, payload,
@@ -37,7 +44,6 @@ class ApprovalStore:
             (ap_id, kind, subject,
              redact_secrets(json.dumps(payload or {})),
              requested_by, utcnow()))
-        self._conn.commit()
         return ap_id
 
     def decide(self, approval_id: str, approved: bool,

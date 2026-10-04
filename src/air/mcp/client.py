@@ -65,7 +65,13 @@ class MCPError(Exception):
 class MCPClientManager:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
-        # server_id -> {"stack": AsyncExitStack, "session": ClientSession}
+        # server_id -> {"close_event": Event, "closed": Event,
+        #               "session": ClientSession}
+        # A dedicated supervisor task enters AND exits every SDK context
+        # (transport + session). AnyIO requires cancel scopes and task
+        # groups to be exited in the same task that entered them, so the
+        # whole connection lifecycle is bound to that one task; callers
+        # may use the session and request disconnect from any task.
         self._sessions: dict[str, dict] = {}
 
     # ------------------------------------------------------------ lifecycle
@@ -96,10 +102,47 @@ class MCPClientManager:
         return config.id
 
     async def connect(self, server_id: str):
-        """Open (or reuse) a session to the server."""
+        """Open (or reuse) a session to the server.
+
+        The session is owned by a dedicated supervisor task: all MCP SDK
+        context managers are entered and exited inside that task, so
+        disconnect() is safe to call from any task.
+        """
         if server_id in self._sessions:
             return self._sessions[server_id]["session"]
         config = self._config(server_id)
+        loop = asyncio.get_running_loop()
+        ready: asyncio.Future = loop.create_future()
+        close_event = asyncio.Event()
+        closed = asyncio.Event()
+        loop.create_task(
+            self._supervise(server_id, config, ready, close_event, closed),
+            name=f"mcp-supervisor-{server_id}")
+        try:
+            session = await ready
+        except BaseException:
+            # Setup failed, or the caller went away (cancelled): make
+            # sure the supervisor tears down before propagating.
+            close_event.set()
+            await closed.wait()
+            raise
+        self._sessions[server_id] = {
+            "close_event": close_event, "closed": closed,
+            "session": session}
+        self._conn.execute(
+            "UPDATE mcp_servers SET status='CONNECTED', last_error=NULL"
+            " WHERE id=?", (server_id,))
+        self._conn.commit()
+        return session
+
+    async def _supervise(self, server_id: str, config: MCPServerConfig,
+                         ready: asyncio.Future,
+                         close_event: asyncio.Event,
+                         closed: asyncio.Event) -> None:
+        """Own the connection lifecycle in ONE task: enter the transport
+        and session contexts here, hold them open until disconnect() is
+        requested, then exit them here. Exiting in a different task
+        raises RuntimeError from AnyIO's cancel scopes."""
         from mcp import ClientSession
         stack = contextlib.AsyncExitStack()
         try:
@@ -125,20 +168,32 @@ class MCPClientManager:
                 ClientSession(read, write))
             await asyncio.wait_for(session.initialize(),
                                    timeout=config.timeout_s)
-        except Exception:
-            await stack.aclose()
-            raise
-        self._sessions[server_id] = {"stack": stack, "session": session}
-        self._conn.execute(
-            "UPDATE mcp_servers SET status='CONNECTED', last_error=NULL"
-            " WHERE id=?", (server_id,))
-        self._conn.commit()
-        return session
+        except Exception as e:  # noqa: BLE001 - setup can fail many ways
+            if not ready.done():
+                ready.set_exception(e)
+            with contextlib.suppress(Exception):
+                await stack.aclose()
+            closed.set()
+            return
+        if not ready.done():
+            ready.set_result(session)
+        try:
+            await close_event.wait()
+        finally:
+            # Same task that entered the contexts exits them.
+            with contextlib.suppress(Exception):
+                await stack.aclose()
+            closed.set()
 
     async def disconnect(self, server_id: str) -> None:
+        """Signal the supervisor task to tear the connection down and
+        wait for it. Safe from any task, including after a server crash:
+        teardown never touches the (possibly dead) server process
+        directly beyond what the SDK's own context exit does."""
         handle = self._sessions.pop(server_id, None)
         if handle:
-            await handle["stack"].aclose()
+            handle["close_event"].set()
+            await handle["closed"].wait()
         self._conn.execute(
             "UPDATE mcp_servers SET status='REGISTERED' WHERE id=?",
             (server_id,))

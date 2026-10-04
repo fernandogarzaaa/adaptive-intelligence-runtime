@@ -26,9 +26,9 @@ POLICY_NAME = "cognitive-allocation"
 
 
 class LearningEngine:
-    def __init__(self, conn, emit=None) -> None:
+    def __init__(self, conn, emit=None, store=None) -> None:
         self._conn = conn
-        self._policies = PolicyStore(conn, emit=emit)
+        self._policies = PolicyStore(conn, emit=emit, store=store)
         self._emit = emit
 
     def analyze(self) -> dict:

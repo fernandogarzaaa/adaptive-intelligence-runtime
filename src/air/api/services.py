@@ -535,7 +535,8 @@ class PolicyService:
         rt = self._runtime()
         return PolicyStore(self._conn,
                            emit=lambda t, payload=None: rt.emit(
-                               t, payload=payload))
+                               t, payload=payload),
+                           store=rt.store)
 
     def list(self) -> list[dict]:
         store = self._store()
@@ -911,7 +912,8 @@ class LearningService:
         rt = self._runtime()
         engine = LearningEngine(
             self._conn,
-            emit=lambda t, payload=None: rt.emit(t, payload=payload))
+            emit=lambda t, payload=None: rt.emit(t, payload=payload),
+            store=rt.store)
         proposal = await engine.propose_policy_update()
         if proposal is None:
             return {"proposed": False,

@@ -29,9 +29,19 @@ def _empty_state() -> dict:
 
 
 def reduce_events(events: list[dict]) -> dict:
-    """Pure reducer: list of event dicts -> world state dict."""
+    """Pure reducer: list of event dicts -> world state dict.
+
+    Unknown schema_versions are rejected loudly: applying v1 semantics
+    to a future version's payload would silently corrupt state.
+    """
+    from air.events.fabric import SCHEMA_VERSION
     state = _empty_state()
     for e in events:
+        sv = e.get("schema_version", SCHEMA_VERSION)
+        if sv != SCHEMA_VERSION:
+            raise ValueError(
+                f"cannot reduce event {e.get('event_id')}: unknown "
+                f"schema_version {sv} (reducer knows {SCHEMA_VERSION})")
         typ = e["type"]
         p = e.get("payload", {})
         aid = e.get("agent_id")

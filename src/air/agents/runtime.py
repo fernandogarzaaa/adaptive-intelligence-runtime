@@ -41,12 +41,18 @@ class AgentRuntime:
         self.config = config
         self.db = db
         self.bus = EventBus()
-        self.store = EventStore(db.conn)
+        self.store = EventStore(db.conn, bus=self.bus)
         self.providers = providers or ProviderRegistry(config)
         self._behaviors: dict[str, ScriptedBehavior] = {}
         self._tasks: dict[str, asyncio.Task] = {}
         self._run_configs: dict[str, dict] = {}
         self._gateway = None  # lazy: ExecutionGateway
+        # Crash recovery: reconcile states that cannot survive a restart
+        # (tool calls stuck mid-execution, agents stuck in-flight). Atomic
+        # with its recovery events; idempotent. No subscribers exist yet,
+        # so the events live in the ledger for later replay.
+        from air.persistence.recovery import reconcile
+        self._recovery = reconcile(db.conn, self.store)
 
     # ------------------------------------------------------------------- tools
     def tool_gateway(self):
@@ -204,20 +210,27 @@ class AgentRuntime:
             lineage=(parent.lineage + [parent.id]) if parent else [],
         )
         # Enforce run-level agent budget in code, and consume the slot so
-        # repeated create_agent calls cannot bypass the budget.
-        self._check_agent_slot(run_id)
-        self._persist_agent(agent)
-        self._consume(run_id, agents=1)
-        if parent_id:
-            self.db.conn.execute(
-                "INSERT INTO agent_lineage (child_id, parent_id, relation, created_at)"
-                " VALUES (?, ?, 'spawned', ?)",
-                (agent.id, parent_id, utcnow()),
-            )
-            self.db.conn.commit()
-        await self.emit("agent.created", run_id=run_id, agent_id=agent.id,
-                        payload={"role": role, "parent_id": parent_id,
-                                 "generation": generation, "objective": objective})
+        # repeated create_agent calls cannot bypass the budget. The agent
+        # row, the budget consumption, the lineage row, and the
+        # agent.created event commit atomically: a crash before the commit
+        # leaves no agent row and no consumed slot; a crash after leaves all
+        # of them. Never an agent row without its creation event.
+        event = Event(type="agent.created", run_id=run_id, agent_id=agent.id,
+                      payload={"role": role, "parent_id": parent_id,
+                               "generation": generation, "objective": objective})
+        with self.store.atomic():
+            with self.db.conn:
+                self._check_agent_slot(run_id)
+                self._persist_agent(agent, commit=False)
+                self._consume(run_id, agents=1, commit=False)
+                if parent_id:
+                    self.db.conn.execute(
+                        "INSERT INTO agent_lineage (child_id, parent_id, relation, created_at)"
+                        " VALUES (?, ?, 'spawned', ?)",
+                        (agent.id, parent_id, utcnow()),
+                    )
+                self.store.insert(event)
+        await self.store.publish(event)
         return agent
 
     async def spawn_agent(self, parent_id: str, objective: str, role: str,
@@ -306,6 +319,10 @@ class AgentRuntime:
         await self.emit("spawn.approved", run_id=run_id, agent_id=agent.id,
                         payload={"decision_id": decision.decision_id,
                                  "parent_id": parent_id, "role": role})
+        # An approved spawn must actually run: start_run launches its
+        # agents, and a mid-run spawn is no different. Without this the
+        # agent sits in CREATED forever.
+        self._launch(agent)
         return agent, decision
 
     # --------------------------------------------------------------- messaging
@@ -461,18 +478,25 @@ class AgentRuntime:
 
     async def _complete_run(self, run_id: str, summary: dict) -> None:
         now = utcnow()
-        self.db.conn.execute(
-            "UPDATE runs SET status='COMPLETED', completed_at=?, final_result=? WHERE id=?",
-            (now, json.dumps(summary), run_id))
-        self.db.conn.commit()
-        await self.emit("run.completed", run_id=run_id, payload=summary)
+        # The COMPLETED flip and its event commit atomically: never a
+        # completed run without its completion event.
+        run_event = Event(type="run.completed", run_id=run_id, payload=summary)
+        with self.store.atomic():
+            with self.db.conn:
+                self.db.conn.execute(
+                    "UPDATE runs SET status='COMPLETED', completed_at=?,"
+                    " final_result=? WHERE id=?",
+                    (now, json.dumps(summary), run_id))
+                self.store.insert(run_event)
+        await self.store.publish(run_event)
         # Every completed run generates an experience record from its event
         # history. Never from agent self-report.
         try:
             from air.experience.recorder import ExperienceRecorder
-            exp = ExperienceRecorder(self.db.conn).record_run(run_id)
-            await self.emit("experience.created", run_id=run_id,
-                            payload={"experience_id": exp.id})
+            exp, exp_event = ExperienceRecorder(
+                self.db.conn, store=self.store).record_run(run_id)
+            if exp_event is not None:
+                await self.store.publish(exp_event)
         except Exception as e:  # noqa: BLE001 - experience must not break runs
             await self.emit("experience.failed", run_id=run_id,
                             payload={"error": f"{type(e).__name__}: {e}"})
@@ -543,7 +567,10 @@ class AgentRuntime:
                 f"agent budget exhausted ({b['consumed_agents']}/{b['agent_limit']})")
 
     def _consume(self, run_id: str, tokens: int = 0, cost: float = 0.0,
-                 tool_calls: int = 0, agents: int = 0) -> None:
+                 tool_calls: int = 0, agents: int = 0,
+                 commit: bool = True) -> None:
+        """Consume budget units. ``commit=False`` joins the caller's
+        transaction instead (used by atomic commit points)."""
         b = self._run_budget(run_id)
         if b is None:
             return
@@ -569,7 +596,8 @@ class AgentRuntime:
                consumed_tool_calls=?, consumed_agents=?, status=?, updated_at=?
                WHERE run_id=? AND scope='run'""",
             (nt, nc, ntc, na, status, utcnow(), run_id))
-        self.db.conn.commit()
+        if commit:
+            self.db.conn.commit()
         if status == "warning":
             # Fire-and-forget is not possible here (sync); the warning is
             # recorded in the budgets row which the API/websocket surfaces.
@@ -616,7 +644,9 @@ class AgentRuntime:
             capability_version=capability_version, policy_version=policy_version,
         )
 
-    def _persist_agent(self, agent: Agent) -> None:
+    def _persist_agent(self, agent: Agent, commit: bool = True) -> None:
+        """Write the agent row. ``commit=False`` joins the caller's
+        transaction instead (used by atomic commit points)."""
         # NOTE: never INSERT OR REPLACE here. REPLACE deletes the row first,
         # which cascades into events.agent_id and silently wipes history.
         cols = ("parent_id, root_run_id, generation, role, specialization,"
@@ -641,7 +671,8 @@ class AgentRuntime:
             self.db.conn.execute(
                 f"INSERT INTO agents (id, {cols}) VALUES ({','.join('?' * 23)})",
                 (agent.id, *vals))
-        self.db.conn.commit()
+        if commit:
+            self.db.conn.commit()
 
     def _set_status(self, agent: Agent, status: AgentStatus,
                     reason: str | None = None) -> None:

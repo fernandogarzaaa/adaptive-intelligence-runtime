@@ -48,6 +48,11 @@ class ToolCallState(str, Enum):
     DENIED = "DENIED"
     FAILED = "FAILED"
     APPROVAL_PENDING = "APPROVAL_PENDING"
+    # Terminal, set only by crash recovery: the handler died mid-execution
+    # and no live code will ever complete the call. The consumed budget unit
+    # stays consumed (it was spent on a genuine attempt); the call is never
+    # re-dispatched, so there is no double-spend.
+    INTERRUPTED = "INTERRUPTED"
 
 
 class ToolCallRequest(BaseModel):
@@ -115,8 +120,11 @@ class ExecutionGateway:
 
     # ------------------------------------------------------------ execution
     async def execute(self, req: ToolCallRequest) -> ToolCallRecord:
-        async with self._lock:
-            return await self._execute_inner(req)
+        # The gateway lock is held ONLY by _reserve() (the atomic
+        # budget-reservation step). Validation, authorization, and handler
+        # execution run concurrently; they touch no shared mutable state
+        # that needs serializing beyond the reservation.
+        return await self._execute_inner(req)
 
     async def _execute_inner(self, req: ToolCallRequest) -> ToolCallRecord:
         call_id = "tc_" + uuid.uuid4().hex[:12]
@@ -183,13 +191,40 @@ class ExecutionGateway:
                     ap_id,
                     f"tool {req.tool_name} requires operator approval")
 
-            return await self._dispatch(call_id, req, entry, decision)
+            return await self._reserve_then_dispatch(
+                call_id, req, entry, decision)
         except ApprovalRequired:
             raise
         except PolicyDenied as e:
             return await self._deny(call_id, req, str(e))
         except Exception as e:  # noqa: BLE001
             return await self._fail(call_id, req, f"{type(e).__name__}: {e}")
+
+    async def _reserve_then_dispatch(self, call_id: str,
+                                     req: ToolCallRequest, entry,
+                                     decision=None) -> ToolCallRecord:
+        await self._reserve(call_id, req)
+        return await self._dispatch(call_id, req, entry, decision)
+
+    async def _reserve(self, call_id: str, req: ToolCallRequest) -> None:
+        """Atomically reserve one budget unit for the call. ONLY this
+        step holds the gateway lock: the check-and-consume must not
+        interleave with another call's reservation, or concurrent
+        execution could consume more budget than reserved (invariant 6).
+        Everything else — validation, authorization, handler execution —
+        runs without the lock."""
+        async with self._lock:
+            reservation = None
+            if self._consume_tool_call is not None:
+                reservation = self._consume_tool_call(req.run_id)
+            elif self._check_run_budget is not None:
+                self._check_run_budget(req.run_id)
+            self._conn.execute(
+                "UPDATE tool_calls SET state=?, budget_reservation=?,"
+                " started_at=? WHERE id=?",
+                (ToolCallState.RESERVED.value,
+                 json.dumps(reservation or {}), utcnow(), call_id))
+            self._conn.commit()
 
     async def resume(self, approval_id: str) -> ToolCallRecord:
         """Continue a call paused at APPROVAL_PENDING after approval."""
@@ -201,17 +236,21 @@ class ExecutionGateway:
         pending = self._pending.pop(approval_id, None)
         if pending is None:
             # Restart (or unknown id): fail closed, never guess the args.
+            # The failure event must carry the persisted call's real
+            # run/agent ids: the event ledger enforces those foreign keys.
             row = self._conn.execute(
-                "SELECT id FROM tool_calls WHERE approval_id=? AND state=?",
+                "SELECT id, run_id, agent_id FROM tool_calls"
+                " WHERE approval_id=? AND state=?",
                 (approval_id,
                  ToolCallState.APPROVAL_PENDING.value)).fetchone()
             if row:
-                await self._fail(row[0], ToolCallRequest(
-                    tool_name="unknown", args={}, agent_id="unknown",
-                    run_id="unknown"),
+                call_id, run_id, agent_id = row
+                await self._fail(call_id, ToolCallRequest(
+                    tool_name="unknown", args={},
+                    agent_id=agent_id, run_id=run_id),
                     "approval granted after restart: original call context"
                     " is gone; resubmit the call")
-                return self._record(row[0])
+                return self._record(call_id)
             raise KeyError(f"no pending tool call for {approval_id}")
         call_id, req, entry = pending
         # Re-resolve: a grant revoked between approval and execution must
@@ -230,25 +269,13 @@ class ExecutionGateway:
         await self._event("tool.approved", req,
                           {"call_id": call_id,
                            "approval_id": approval_id})
-        async with self._lock:
-            return await self._dispatch(call_id, req, entry, fresh)
+        return await self._reserve_then_dispatch(call_id, req, entry, fresh)
 
     # -------------------------------------------------------------- internals
     async def _dispatch(self, call_id: str, req: ToolCallRequest,
                         entry, decision=None) -> ToolCallRecord:
-        # Reserve budget: the run's tool-call budget is checked and consumed
-        # here, in code, before the handler runs.
-        reservation = None
-        if self._consume_tool_call is not None:
-            reservation = self._consume_tool_call(req.run_id)
-        elif self._check_run_budget is not None:
-            self._check_run_budget(req.run_id)
-        self._conn.execute(
-            "UPDATE tool_calls SET state=?, budget_reservation=?,"
-            " started_at=? WHERE id=?",
-            (ToolCallState.RESERVED.value,
-             json.dumps(reservation or {}), utcnow(), call_id))
-        self._conn.commit()
+        # Budget was reserved by _reserve() before this runs. Handler
+        # execution itself never holds the gateway lock.
         self._set_state(call_id, ToolCallState.DISPATCHED)
         await self._event("tool.dispatched", req, {"call_id": call_id})
         ctx = ToolContext(run_id=req.run_id, agent_id=req.agent_id,

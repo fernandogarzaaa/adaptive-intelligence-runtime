@@ -49,3 +49,53 @@ def test_token_overconsumption_raises(tmp_path):
             rt._consume(run_id, tokens=10_000)
 
     asyncio.run(main())
+
+
+def test_concurrent_tool_calls_never_exceed_budget(tmp_path):
+    """Invariant 6: concurrent execution cannot consume more budget than
+    reserved. 50 parallel slow tool calls against a tool_call_budget of
+    10: exactly 10 COMMIT, 40 FAIL on budget exhaustion, and
+    consumed_tool_calls stays exactly 10. Wall time also proves handler
+    execution is no longer serialized by the gateway lock (only the
+    atomic reservation step holds it)."""
+    import asyncio
+    import time
+
+    from air.security.policy import CapabilityClass
+    from air.tools.gateway import ToolCallState
+    from air.tools.registry import ToolDefinition
+
+    rt = _rt(tmp_path)
+
+    async def main():
+        run_id = await rt.create_run("budget stress", tool_call_budget=10)
+
+        async def _slow(args, ctx):
+            await asyncio.sleep(0.3)
+            return {"ok": True}
+
+        rt.tool_gateway()._registry.register(
+            ToolDefinition(name="test.slow",
+                           description="slow test tool",
+                           input_schema={"type": "object"},
+                           capability=CapabilityClass.READ), _slow)
+        agent = await rt.create_agent(run_id, "worker", "stress",
+                                      granted=["READ"])
+        start = time.monotonic()
+        results = await asyncio.gather(*[
+            rt.call_tool(agent.id, "test.slow", {}) for _ in range(50)
+        ])
+        elapsed = time.monotonic() - start
+        committed = [r for r in results if r.state == "COMMITTED"]
+        failed = [r for r in results if r.state == "FAILED"]
+        assert len(committed) == 10, len(committed)
+        assert len(failed) == 40, len(failed)
+        assert all("budget exhausted" in (r.error or "") for r in failed), \
+            [r.error for r in failed[:3]]
+        budget = rt._run_budget(run_id)
+        assert budget["consumed_tool_calls"] == 10, budget
+        # Serialized execution would take >= 10 * 0.3s for the winners
+        # alone. Concurrent execution finishes far sooner.
+        assert elapsed < 2.5, elapsed
+
+    asyncio.run(main())

@@ -123,6 +123,19 @@ class _ThreadSafeConnection:
         finally:
             self._lock.release()
 
+    def commit(self) -> None:
+        """Commit the current transaction. Explicit (not via __getattr__)
+        so crash-consistency tests can patch this seam to simulate a
+        process crash before the commit point."""
+        with self._lock:
+            self._conn.commit()
+
+    def rollback(self) -> None:
+        """Roll back the current transaction: what a process crash does to
+        uncommitted work."""
+        with self._lock:
+            self._conn.rollback()
+
 
 class Database:
     def __init__(self, path: Path) -> None:

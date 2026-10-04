@@ -93,6 +93,32 @@ def test_spawn_and_message_roundtrip(tmp_path):
     asyncio.run(main())
 
 
+def test_approved_spawn_is_launched_not_dormant(tmp_path):
+    """Regression: spawn_agent must launch the approved agent. A spawned
+    agent stuck in CREATED forever is a broken spawn (the console's
+    "spawn child" hit this)."""
+    async def main():
+        rt = _rt(tmp_path)
+        rt.register_behavior("researcher", _researcher)
+        run_id = await rt.create_run("test", strategy=Strategy.SINGLE_AGENT)
+        parent = await rt.create_agent(run_id, "planner", "plan")
+        child, decision = await rt.spawn_agent(
+            parent.id, "research things", "researcher", uncertainty=0.9,
+            reason_hint="launch check")
+        assert decision.decision == "SPAWN"
+        assert child is not None
+        for _ in range(200):
+            row = rt.db.conn.execute(
+                "SELECT status FROM agents WHERE id=?", (child.id,)).fetchone()
+            if row[0] in ("COMPLETED", "FAILED"):
+                break
+            await asyncio.sleep(0.05)
+        assert row[0] == "COMPLETED", \
+            f"spawned agent never ran (status={row[0]})"
+
+    asyncio.run(main())
+
+
 def test_no_provider_no_behavior_blocks_honestly(tmp_path):
     async def main():
         rt = _rt(tmp_path)

@@ -490,3 +490,58 @@ def test_connector_rate_limit_and_allowlist(tmp_path):
             mgr._rate_check("c1", 2)
 
     asyncio.run(main())
+
+
+# ------------------------------------- structural: no direct handler invocation
+def test_no_direct_handler_invocation_outside_gateway():
+    """Structural invariant: a registry tool handler may only ever be
+    invoked by ExecutionGateway._dispatch, which runs after argument
+    validation, capability authorization, and budget reservation, and
+    which records the ToolCall lifecycle. Any `.handler(...)` call
+    site outside that method (a bypass of auditing/authorization)
+    fails this test."""
+    import ast
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[1] / "src" / "air"
+    offenders = []
+    for path in sorted(repo.rglob("*.py")):
+        if "__pycache__" in path.parts:
+            continue
+        tree = ast.parse(path.read_text(), filename=str(path))
+
+        # Track enclosing function/class per node.
+        stack: list[str] = []
+
+        def visit(node):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                stack.append(node.name)
+                for child in ast.iter_child_nodes(node):
+                    visit(child)
+                stack.pop()
+                return
+            if isinstance(node, ast.ClassDef):
+                stack.append(node.name)
+                for child in ast.iter_child_nodes(node):
+                    visit(child)
+                stack.pop()
+                return
+            if (isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "handler"):
+                enclosing = ".".join(stack)
+                ok = (path.relative_to(repo).as_posix()
+                      == "tools/gateway.py"
+                      and enclosing == "ExecutionGateway._dispatch")
+                if not ok:
+                    offenders.append(
+                        f"{path.relative_to(repo)}:{node.lineno}"
+                        f" in {enclosing or '<module>'}")
+            for child in ast.iter_child_nodes(node):
+                visit(child)
+
+        visit(tree)
+    assert not offenders, (
+        "direct tool-handler invocation outside"
+        " ExecutionGateway._dispatch (auditing/authorization bypass): "
+        + "; ".join(offenders))

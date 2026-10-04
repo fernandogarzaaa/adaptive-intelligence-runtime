@@ -502,7 +502,8 @@ def test_experience_lineage(client):
     from air.experience.recorder import ExperienceRecorder
     run_id = _seed_run(client)
     _seed_agent(client, run_id)
-    exp = ExperienceRecorder(_conn()).record_run(run_id)
+    exp, _event = ExperienceRecorder(_conn()).record_run(run_id)
+    assert _event is None  # no store wired: no event produced
     r = client.get(f"/experiences/{exp.id}/lineage")
     assert r.status_code == 200
     body = r.json()
@@ -560,11 +561,12 @@ def test_console_shell_is_never_cached(client):
     """index.html served under API-colliding paths must carry
     Cache-Control: no-store, or the browser would serve the cached shell
     to the console's own fetch() of the same URL."""
-    from pathlib import Path
-    dist = Path("web/dist/index.html")
-    if not dist.is_file():
-        import pytest
-        pytest.skip("web/dist not built")
+    import pytest
+    # The wheel does not ship web/dist; the console is only served from a
+    # repo checkout. Skip when this app instance has no console.
+    probe = client.get("/", headers={"Accept": "text/html"})
+    if "text/html" not in probe.headers.get("content-type", ""):
+        pytest.skip("console not served by this install")
     r = client.get("/policies", headers={"Accept": "text/html"})
     assert r.status_code == 200
     assert r.headers["cache-control"] == "no-store"
