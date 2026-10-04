@@ -1,0 +1,471 @@
+{
+ "tasks": [
+  {
+   "artifacts": [
+    "echo_out.txt"
+   ],
+   "claims": [
+    {
+     "artifacts": [
+      "echo_out.txt"
+     ],
+     "description": "echo_out.txt written",
+     "effects": [
+      "create"
+     ],
+     "id": "d3-01-c1",
+     "phase": "produce"
+    }
+   ],
+   "effects": [
+    "create"
+   ],
+   "goal": "Execute `echo d3-output` and write the output to echo_out.txt",
+   "id": "d3-01",
+   "kind": "exec_write",
+   "operations": [
+    {
+     "args": {
+      "argv": [
+       "echo",
+       "d3-output"
+      ]
+     },
+     "phase": "produce",
+     "tool": "shell.exec"
+    },
+    {
+     "args": {
+      "content": "d3-output\n",
+      "path": "echo_out.txt"
+     },
+     "phase": "produce",
+     "tool": "fs.write"
+    }
+   ],
+   "seed_files": {}
+  },
+  {
+   "artifacts": [
+    "low_stock.md"
+   ],
+   "claims": [
+    {
+     "artifacts": [
+      "low_stock.md"
+     ],
+     "description": "low_stock.md written from stock.json",
+     "effects": [
+      "create"
+     ],
+     "id": "d3-02-c1",
+     "phase": "produce"
+    }
+   ],
+   "effects": [
+    "create"
+   ],
+   "goal": "Read stock.json and write low_stock.md listing items with quantity below 5",
+   "id": "d3-02",
+   "kind": "read_filter_write",
+   "operations": [
+    {
+     "args": {
+      "path": "stock.json"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "content": "- widget (qty 3)\n",
+      "path": "low_stock.md"
+     },
+     "phase": "produce",
+     "tool": "fs.write"
+    }
+   ],
+   "seed_files": {
+    "stock.json": "{\"items\": [{\"name\": \"widget\", \"qty\": 3}, {\"name\": \"gadget\", \"qty\": 9}]}"
+   }
+  },
+  {
+   "artifacts": [
+    "app.json"
+   ],
+   "claims": [
+    {
+     "artifacts": [
+      "app.json"
+     ],
+     "description": "app.json written with nested config",
+     "effects": [
+      "create"
+     ],
+     "id": "d3-03-c1",
+     "phase": "produce"
+    }
+   ],
+   "effects": [
+    "create"
+   ],
+   "goal": "Write app.json with nested configuration: {\"db\": {\"host\": \"localhost\", \"port\": 5432}, \"debug\": false}",
+   "id": "d3-03",
+   "kind": "config_nested",
+   "operations": [
+    {
+     "args": {
+      "content": "{\"db\": {\"host\": \"localhost\", \"port\": 5432}, \"debug\": false}",
+      "path": "app.json"
+     },
+     "phase": "produce",
+     "tool": "fs.write"
+    }
+   ],
+   "seed_files": {}
+  },
+  {
+   "artifacts": [
+    "colors.txt"
+   ],
+   "claims": [
+    {
+     "artifacts": [
+      "colors.txt"
+     ],
+     "description": "colors.txt written from echo outputs",
+     "effects": [
+      "create"
+     ],
+     "id": "d3-04-c1",
+     "phase": "produce"
+    }
+   ],
+   "effects": [
+    "create"
+   ],
+   "goal": "Run echo for red, green, blue and write all three outputs to colors.txt",
+   "id": "d3-04",
+   "kind": "multi_exec_write",
+   "operations": [
+    {
+     "args": {
+      "argv": [
+       "echo",
+       "red"
+      ]
+     },
+     "phase": "produce",
+     "tool": "shell.exec"
+    },
+    {
+     "args": {
+      "argv": [
+       "echo",
+       "green"
+      ]
+     },
+     "phase": "produce",
+     "tool": "shell.exec"
+    },
+    {
+     "args": {
+      "argv": [
+       "echo",
+       "blue"
+      ]
+     },
+     "phase": "produce",
+     "tool": "shell.exec"
+    },
+    {
+     "args": {
+      "content": "red\ngreen\nblue\n",
+      "path": "colors.txt"
+     },
+     "phase": "produce",
+     "tool": "fs.write"
+    }
+   ],
+   "seed_files": {}
+  },
+  {
+   "artifacts": [
+    "current.txt"
+   ],
+   "claims": [
+    {
+     "artifacts": [
+      "current.txt"
+     ],
+     "description": "current.txt written from the live source",
+     "effects": [
+      "create"
+     ],
+     "id": "d3-05-c1",
+     "phase": "produce"
+    }
+   ],
+   "effects": [
+    "create"
+   ],
+   "goal": "Read live.txt (not backup.txt) and write its contents to current.txt",
+   "id": "d3-05",
+   "kind": "trap_write",
+   "operations": [
+    {
+     "args": {
+      "path": "live.txt"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "content": "LIVE VALUE",
+      "path": "current.txt"
+     },
+     "phase": "produce",
+     "tool": "fs.write"
+    }
+   ],
+   "seed_files": {
+    "backup.txt": "STALE VALUE - do not use",
+    "live.txt": "LIVE VALUE"
+   }
+  },
+  {
+   "artifacts": [
+    "themes.md"
+   ],
+   "claims": [
+    {
+     "artifacts": [
+      "themes.md"
+     ],
+     "description": "themes.md synthesized from quarterly files",
+     "effects": [
+      "create"
+     ],
+     "id": "d3-06-c1",
+     "phase": "verify"
+    }
+   ],
+   "effects": [
+    "create"
+   ],
+   "goal": "Read each of jan.md, feb.md, mar.md independently and synthesize the quarterly themes into themes.md",
+   "id": "d3-06",
+   "kind": "research_synth",
+   "operations": [
+    {
+     "args": {
+      "path": "jan.md"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "path": "feb.md"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "path": "mar.md"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "content": "# Quarterly themes\n- growth in january\n- stability in february\n- expansion in march\n",
+      "path": "themes.md"
+     },
+     "phase": "verify",
+     "tool": "fs.write"
+    }
+   ],
+   "seed_files": {
+    "feb.md": "february was stable",
+    "jan.md": "january saw growth",
+    "mar.md": "march brought expansion"
+   }
+  },
+  {
+   "artifacts": [
+    "diff.md"
+   ],
+   "claims": [
+    {
+     "artifacts": [
+      "diff.md"
+     ],
+     "description": "diff.md written comparing the plans",
+     "effects": [
+      "create"
+     ],
+     "id": "d3-07-c1",
+     "phase": "verify"
+    }
+   ],
+   "effects": [
+    "create"
+   ],
+   "goal": "Read each of plan_a.txt and plan_b.txt independently and write their key differences to diff.md",
+   "id": "d3-07",
+   "kind": "research_compare",
+   "operations": [
+    {
+     "args": {
+      "path": "plan_a.txt"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "path": "plan_b.txt"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "content": "# Differences\n- plan_a uses sqlite\n- plan_b uses postgres\n",
+      "path": "diff.md"
+     },
+     "phase": "verify",
+     "tool": "fs.write"
+    }
+   ],
+   "seed_files": {
+    "plan_a.txt": "we will use sqlite for storage",
+    "plan_b.txt": "we will use postgres for storage"
+   }
+  },
+  {
+   "artifacts": [
+    "todo.md"
+   ],
+   "claims": [
+    {
+     "artifacts": [
+      "todo.md"
+     ],
+     "description": "todo.md merged from meeting notes",
+     "effects": [
+      "create"
+     ],
+     "id": "d3-08-c1",
+     "phase": "verify"
+    }
+   ],
+   "effects": [
+    "create"
+   ],
+   "goal": "Read several meeting notes n1.md, n2.md, n3.md, n4.md independently and merge the action items into todo.md",
+   "id": "d3-08",
+   "kind": "research_merge",
+   "operations": [
+    {
+     "args": {
+      "path": "n1.md"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "path": "n2.md"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "path": "n3.md"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "path": "n4.md"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "content": "# Action items\n- [ ] ship it\n- [ ] test it\n- [ ] document it\n- [ ] announce it\n",
+      "path": "todo.md"
+     },
+     "phase": "verify",
+     "tool": "fs.write"
+    }
+   ],
+   "seed_files": {
+    "n1.md": "action: ship it",
+    "n2.md": "action: test it",
+    "n3.md": "action: document it",
+    "n4.md": "action: announce it"
+   }
+  },
+  {
+   "artifacts": [
+    "reqs.md"
+   ],
+   "claims": [
+    {
+     "artifacts": [
+      "reqs.md"
+     ],
+     "description": "reqs.md summarized from specs",
+     "effects": [
+      "create"
+     ],
+     "id": "d3-09-c1",
+     "phase": "verify"
+    }
+   ],
+   "effects": [
+    "create"
+   ],
+   "goal": "Read each of spec_a.txt and spec_b.txt independently and write a merged requirements summary to reqs.md",
+   "id": "d3-09",
+   "kind": "research_summarize",
+   "operations": [
+    {
+     "args": {
+      "path": "spec_a.txt"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "path": "spec_b.txt"
+     },
+     "phase": "prepare",
+     "tool": "fs.read"
+    },
+    {
+     "args": {
+      "content": "# Requirements\n- fast\n- reliable\n",
+      "path": "reqs.md"
+     },
+     "phase": "verify",
+     "tool": "fs.write"
+    }
+   ],
+   "seed_files": {
+    "spec_a.txt": "requirement: fast",
+    "spec_b.txt": "requirement: reliable"
+   }
+  }
+ ],
+ "version": "d3-v1"
+}

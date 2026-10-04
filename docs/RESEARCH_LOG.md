@@ -162,3 +162,51 @@ Next: D1 → experience/learning → D2 → experience/learning → D3,
 testing whether AIR learns the allocation distinction — the
 stronger thesis (value in learning the organization policy, not
 the initial policy).
+
+## D-series v1 (2026-10-04): learning failed, and that is the finding
+
+Sealed preregistered learning experiment
+(`~/workspace/air-experiments/d-series-v1/`). D3 task set (9 tasks:
+5 production, 4 research) frozen and hashed before D1.
+
+| phase | question | result |
+|---|---|---|
+| D1 | reproduce the baseline failure? | **yes** — 65/80 (81.2%), t05/t07 → parallel_agents → INCONCLUSIVE, all 5 reps |
+| Learning 1 | useful allocation hypothesis? | **no** — engine proposed *boosting* the failing strategy (+0.1 to parallel_agents); promotion BLOCKED |
+| D2 | failure reduced? | no — 65/80 under v1 (unchanged, as expected) |
+| Learning 2 | refine or reinforce? | neither — same vacuous proposal, BLOCKED again |
+| D3 | generalize to unseen tasks? | moot — no learning occurred; v1 flaw generalized anyway (see below) |
+
+**The v1 learning loop is structurally incapable of learning the
+D1 lesson.** Three specific defects, all in the attribution chain:
+
+1. It aggregates run *completion*, never *verification verdicts*:
+   on D1 data it classified the 0/10-verified `parallel_agents`
+   as "10/10 successful" and proposed boosting it.
+2. Its policy format (global strategy boosts + spawn threshold)
+   cannot represent task-kind × strategy interactions even in
+   principle.
+3. Its policy evaluation compares run-hygiene dimensions already
+   at ceiling (1.0 vs 1.0), so the promotion gate cannot pass on
+   this data. The gate blocked a proposal that would have rewarded
+   failure — correctly, but for the wrong reason (ceiling, not
+   incorrectness).
+
+D3 (40/45, all under v1): production tasks 20/25 SUPPORTED via
+adaptive_spawn; the 5 failures were `multi_exec_write`, where the
+word "three" triggered parallel selection and it failed exactly
+like t05/t07 on an unseen task. Research tasks 20/20 SUPPORTED
+via parallel_agents. So the structural flaw (parallel_agents =
+researchers + synthesizer, no producer) generalizes to unseen
+production tasks, while the same strategy is fine for research —
+precisely the distinction the learning loop cannot represent.
+
+**Program implication:** the stronger thesis — AIR's value is in
+*learning* the organization policy — currently has no working
+mechanism to test it against. The learning engine needs a redesign
+(verdict-aware experience aggregation; a policy format that can
+represent task-kind × strategy/capability interactions; a policy
+evaluation that is not at ceiling) before that thesis can be
+evaluated. This is a finding about the architecture, not a failure
+of the experiment. The experiment did exactly what it was supposed
+to do: it let learning fail, and recorded why.
