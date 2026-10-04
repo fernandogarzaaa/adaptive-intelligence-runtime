@@ -1,0 +1,87 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/hatch/workspace/adaptive-intelligence-runtime
+configfile: pyproject.toml
+collecting ... collected 1 item
+
+web/tests/acceptance/test_console_acceptance.py::test_console_acceptance 
+=== 1. console loads with honest NO MODEL PROVIDER badge ===
+
+=== 2. create run via UI (single_agent) ===
+run1: run_10d372cc49ee
+
+=== 3. live graph populates, run completes ===
+run1 completed
+
+=== 4. spawn sibling via UI, graph updates ===
+sibling spawned, graph shows researcher
+
+=== 5. spawn decision WHY panel (approved) ===
+WHY panel shows strategy and decision evidence
+
+=== 6. tool authorization decision + provenance in UI ===
+tool call COMMITTED + checks + untrusted provenance visible
+
+=== 7. timeline shows tool event chain ===
+canonical chain visible
+
+=== 8. experience appears ===
+experience recorded for run1
+
+=== 9. run evaluation via UI ===
+evaluation: eval_220feaa1b49b SUPPORTED
+
+=== 10. run assurance via UI ===
+assurance: asr_adf4b9624aa1 SOUND
+
+=== 11. propose policy v2 via UI ===
+version 2 proposed, chain: ['1', '2']
+
+=== 12. promote v2 via UI with real evaluation+assurance ===
+v2 promoted, active_version = 2
+
+=== 13. new run header shows cognitive-allocation@v2 ===
+run2: run_41041690bafe under v2, completed
+
+=== 14. attack: permission escalation (READ agent -> fs.write) ===
+escalation denied: DENIED - capability WRITE not granted
+real denial with resolver checks visible in Authority
+
+=== 15. attack: cross-run message ===
+cross-run message denied, status: 500
+policy.blocked event visible in timeline
+
+=== 16. attack: budget exhaustion via UI ===
+budget denial visible in spawn decisions
+
+=== 17. attack: evaluator spoofing (fabricated verdicts) ===
+spoofed verdicts rejected: 422
+
+=== 18. introduce regression under v2 ===
+run4: run_087a032c20c0 agent FAILED under v2
+
+=== 19. attack: promotion bypass with non-SUPPORTED evaluation ===
+regression evaluation: eval_f4e9d930944e
+bypass blocked: 409 {'detail': {'blocked': ['version 3 not found']}}
+
+=== 20. rollback request + approve via UI ===
+rolled back, active_version = 1
+
+=== 21. browser reload, state converges ===
+reload converges on v1
+
+=== 22. transport disconnect, reconnect, replay converges ===
+reconnect replayed, UI converged on 6 runs
+
+ACCEPTANCE COMPLETE
+PASSED
+
+=============================== warnings summary ===============================
+../../.local/lib/python3.12/site-packages/_pytest/config/__init__.py:1464
+  /home/hatch/.local/lib/python3.12/site-packages/_pytest/config/__init__.py:1464: PytestConfigWarning: Unknown config option: asyncio_mode
+  
+    self._warn_or_fail_if_strict(f"Unknown config option: {key}\n")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 1 passed, 1 warning in 33.67s =========================
