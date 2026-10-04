@@ -100,10 +100,11 @@ def test_learning_engine_proposes_from_evidence(tmp_path):
         for role in ("specialist", "researcher", "synthesizer", "verifier",
                      "critic", "planner"):
             rt.register_behavior(role, _worker)
-        # 3 successful runs across strategies -> enough evidence.
+        # 3 successful runs (2x single_agent) -> enough evidence for a
+        # per-strategy adjustment (the engine never adjusts on n=1).
+        await _run(rt, Strategy.SINGLE_AGENT, budget=2)
         await _run(rt, Strategy.SINGLE_AGENT, budget=2)
         await _run(rt, Strategy.PARALLEL_AGENTS, budget=4)
-        await _run(rt, Strategy.EXECUTE_THEN_VERIFY, budget=3)
 
         engine = LearningEngine(db.conn)
         analysis = engine.analyze()
