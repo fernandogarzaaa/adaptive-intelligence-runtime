@@ -361,6 +361,17 @@ export interface RunExplain {
   };
 }
 
+export interface AgentBudgetState {
+  token_limit: number | null;
+  cost_limit_usd: number | null;
+  tool_call_limit: number | null;
+  agent_limit: number | null;
+  consumed_tokens: number;
+  consumed_cost_usd: number;
+  consumed_tool_calls: number;
+  consumed_agents: number;
+}
+
 export interface AgentExplain {
   subject: string;
   id: string;
@@ -370,7 +381,7 @@ export interface AgentExplain {
     objective: string;
     specialization: string | null;
   };
-  constraints: { memory_scope: string; budget: unknown };
+  constraints: { memory_scope: string; budget: AgentBudgetState | null };
   authorization_checks: {
     capabilities: string[];
     granted_capabilities: string[];
