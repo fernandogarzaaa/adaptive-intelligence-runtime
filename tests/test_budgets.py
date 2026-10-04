@@ -21,9 +21,10 @@ def test_agent_slot_exhaustion_blocks_spawn(tmp_path):
     rt = _rt(tmp_path)
 
     async def main():
-        run_id = await rt.create_run("test goal", agent_budget=1)
+        run_id = await rt.create_run("test goal", agent_budget=2)
         parent = await rt.create_agent(run_id, "planner", "plan things")
-        # First spawn consumes the single agent slot.
+        # Creating the parent consumed one of two slots; the spawn consumes
+        # the last one.
         agent, decision = await rt.spawn_agent(parent.id, "do work", "researcher",
                                                uncertainty=0.9)
         assert decision.decision == "SPAWN"

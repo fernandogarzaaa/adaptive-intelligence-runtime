@@ -74,9 +74,11 @@ class AgentRuntime:
         capability_effects = CapabilityStore(self.db.conn).active_effects()
         # The current cognitive-allocation policy contributes its effects too
         # (same data shape, tagged source policy:... for audit).
-        capability_effects = (PolicyStore(self.db.conn)
-                              .current_effects(POLICY_NAME)
+        policy_store = PolicyStore(self.db.conn)
+        capability_effects = (policy_store.current_effects(POLICY_NAME)
                               + capability_effects)
+        _pol = policy_store.current(POLICY_NAME)
+        active_policy_version = f"{POLICY_NAME}@v{_pol.version}" if _pol else None
         plan = allocate(
             goal, context,
             token_budget=token_budget or self.config.default_token_budget,
@@ -93,7 +95,7 @@ class AgentRuntime:
                                  policy_version, runtime_version, created_at)
                VALUES (?, ?, 'CREATED', ?, ?, ?, ?, ?, ?)""",
             (run_id, goal, plan.strategy.value, plan.model_dump_json(),
-             seed, plan.allocator_version, __version__, now),
+             seed, active_policy_version, __version__, now),
         )
         self.db.conn.execute(
             """INSERT INTO budgets (id, run_id, scope, token_limit, time_limit_s,
@@ -135,9 +137,11 @@ class AgentRuntime:
             memory_scope=memory_scope, budget=budget or Budget(),
             lineage=(parent.lineage + [parent.id]) if parent else [],
         )
-        # Enforce run-level agent budget in code.
+        # Enforce run-level agent budget in code, and consume the slot so
+        # repeated create_agent calls cannot bypass the budget.
         self._check_agent_slot(run_id)
         self._persist_agent(agent)
+        self._consume(run_id, agents=1)
         if parent_id:
             self.db.conn.execute(
                 "INSERT INTO agent_lineage (child_id, parent_id, relation, created_at)"
@@ -216,7 +220,6 @@ class AgentRuntime:
             tools=tools, model=model, memory_scope=memory_scope,
             budget=child_budget,
         )
-        self._consume(run_id, agents=1)
         await self.emit("spawn.approved", run_id=run_id, agent_id=agent.id,
                         payload={"parent_id": parent_id, "role": role})
         return agent, decision
@@ -291,7 +294,6 @@ class AgentRuntime:
                               cost_limit_usd=1.0, tool_call_limit=25),
             )
             created[agent.id] = agent
-            self._consume(run_id, agents=1)
         # Launch execution tasks.
         for agent in created.values():
             self._launch(agent)

@@ -23,11 +23,20 @@ from air.events.fabric import utcnow
 
 
 class PolicyVersion(BaseModel):
+    """Immutable version. A candidate never mutates the active policy; only
+    promote() flips policies.current_version, and only through the gate."""
     id: str = Field(default_factory=lambda: "pv_" + uuid.uuid4().hex[:12])
     policy_id: str
     version: str
     parent_version: str | None = None
-    changes: dict = Field(default_factory=dict)
+    # Full candidate lineage (Inan's contract):
+    source_experiences: list[str] = Field(default_factory=list)
+    hypothesis: str = ""
+    changes: dict = Field(default_factory=dict)          # proposed_changes
+    rationale: str = ""
+    expected_effect: dict = Field(default_factory=dict)
+    constraints: dict = Field(default_factory=dict)     # guardrails
+    generated_by: str = "unknown"
     reason: str = ""
     evidence: dict = Field(default_factory=dict)
     evaluation: dict = Field(default_factory=dict)
@@ -76,20 +85,23 @@ class PolicyStore:
             return None
         return self.get_version(pid, row[0])
 
+    _VERSION_COLS = ("id, policy_id, version, parent_version, changes,"
+                     " hypothesis, expected_effect, constraints, generated_by,"
+                     " source_experiences, reason, evidence, evaluation,"
+                     " assurance, status, created_at")
+
     def get_version(self, policy_id: str, version: str) -> PolicyVersion | None:
         row = self._conn.execute(
-            "SELECT id, policy_id, version, parent_version, changes, reason,"
-            " evidence, evaluation, assurance, status, created_at"
-            " FROM policy_versions WHERE policy_id=? AND version=?",
+            f"SELECT {self._VERSION_COLS} FROM policy_versions"
+            " WHERE policy_id=? AND version=?",
             (policy_id, version)).fetchone()
         return self._row(row) if row else None
 
     def history(self, name: str) -> list[PolicyVersion]:
         pid = self.ensure(name)
         rows = self._conn.execute(
-            "SELECT id, policy_id, version, parent_version, changes, reason,"
-            " evidence, evaluation, assurance, status, created_at"
-            " FROM policy_versions WHERE policy_id=? ORDER BY created_at",
+            f"SELECT {self._VERSION_COLS} FROM policy_versions"
+            " WHERE policy_id=? ORDER BY created_at",
             (pid,)).fetchall()
         return [self._row(r) for r in rows]
 
@@ -111,22 +123,42 @@ class PolicyStore:
         return effects
 
     async def propose(self, name: str, params: dict, reason: str,
-                      evidence: dict | None = None) -> PolicyVersion:
-        """Propose a candidate version. Never auto-promotes."""
+                      evidence: dict | None = None,
+                      hypothesis: str = "",
+                      expected_effect: dict | None = None,
+                      constraints: dict | None = None,
+                      generated_by: str = "unknown",
+                      source_experiences: list[str] | None = None) -> PolicyVersion:
+        """Propose a candidate version. Never mutates the active policy:
+        policies.current_version is untouched until promote() passes the gate."""
         pid = self.ensure(name)
         cur = self.current(name)
         parent = cur.version if cur else None
-        try:
-            nxt = str(int(parent) + 1) if parent and parent.isdigit() else "2"
-        except ValueError:
-            nxt = (parent or "1") + ".1"
-        ver = PolicyVersion(policy_id=pid, version=nxt, parent_version=parent,
-                            changes=params, reason=reason,
-                            evidence=evidence or {}, status="CANDIDATE")
+        # Version numbers come from the max existing version, not from the
+        # active one: multiple open candidates must each get a fresh number.
+        maxv = 0
+        for (v,) in self._conn.execute(
+                "SELECT version FROM policy_versions WHERE policy_id=?",
+                (pid,)).fetchall():
+            try:
+                maxv = max(maxv, int(v))
+            except (TypeError, ValueError):
+                continue
+        nxt = str(maxv + 1) if maxv else "1"
+        ver = PolicyVersion(
+            policy_id=pid, version=nxt, parent_version=parent,
+            changes=params, reason=reason, evidence=evidence or {},
+            hypothesis=hypothesis,
+            expected_effect=expected_effect or {},
+            constraints=constraints or {}, generated_by=generated_by,
+            source_experiences=source_experiences or [],
+            status="CANDIDATE")
         self._persist_version(ver)
         self._conn.commit()
         await self._event("policy.proposed",
-                          {"policy": name, "version": nxt, "reason": reason})
+                          {"policy": name, "version": nxt, "reason": reason,
+                           "generated_by": generated_by,
+                           "parent_version": parent})
         return ver
 
     def _gate(self, ver: PolicyVersion) -> tuple[bool, list[str]]:
@@ -193,52 +225,159 @@ class PolicyStore:
 
     async def rollback(self, name: str,
                        decided_by: str = "operator") -> PolicyVersion:
-        """Roll back to the parent version. Immediate effect on new runs."""
+        """Legacy single-step rollback (kept for API compat). Prefer the
+        auditable request/approve flow below."""
+        rb = await self.request_rollback(
+            name, reason="operator rollback", evidence={},
+            requested_by=decided_by)
+        return await self.approve_rollback(rb["id"], approved_by=decided_by)
+
+    async def request_rollback(self, name: str, reason: str, evidence: dict,
+                               requested_by: str) -> dict:
+        """POLICY_ROLLBACK_REQUESTED. Records intent; changes nothing."""
         pid = self.ensure(name)
         cur = self.current(name)
         if cur is None or not cur.parent_version:
             raise GateBlocked([f"policy {name} has no parent version to"
                                " roll back to"])
-        parent = self.get_version(pid, cur.parent_version)
-        if parent is None:
-            raise GateBlocked(["parent version row missing"])
-        cur.status = "DEPRECATED"
-        self._persist_version(cur)
+        rb_id = "rb_" + uuid.uuid4().hex[:12]
+        now = utcnow()
+        self._conn.execute(
+            """INSERT INTO policy_rollbacks (id, policy_id, policy_name,
+               from_version, to_version, reason, evidence, requested_by,
+               status, requested_at)
+               VALUES (?,?,?,?,?,?,?,?, 'REQUESTED', ?)""",
+            (rb_id, pid, name, cur.version, cur.parent_version, reason,
+             json.dumps(evidence), requested_by, now))
+        self._conn.commit()
+        await self._event("policy.rollback_requested",
+                          {"policy": name, "rollback_id": rb_id,
+                           "from_version": cur.version,
+                           "to_version": cur.parent_version,
+                           "reason": reason, "requested_by": requested_by})
+        return {"id": rb_id, "policy": name, "from_version": cur.version,
+                "to_version": cur.parent_version, "status": "REQUESTED"}
+
+    async def approve_rollback(self, rollback_id: str,
+                               approved_by: str) -> PolicyVersion:
+        """POLICY_ROLLBACK_APPROVED then POLICY_ACTIVATED. The version flip
+        happens here, with affected runs computed from the ledger."""
+        row = self._conn.execute(
+            "SELECT policy_id, policy_name, from_version, to_version, reason,"
+            " evidence, requested_by, status FROM policy_rollbacks WHERE id=?",
+            (rollback_id,)).fetchone()
+        if not row:
+            raise GateBlocked([f"rollback {rollback_id} not found"])
+        (pid, name, from_v, to_v, reason, evidence_json,
+         requested_by, status) = row
+        if status != "REQUESTED":
+            raise GateBlocked([f"rollback {rollback_id} is {status},"
+                               " not REQUESTED"])
+        cur = self.current(name)
+        if cur is None or cur.version != from_v:
+            raise GateBlocked(
+                [f"active version is now {cur.version if cur else None},"
+                 f" not {from_v}: rollback is stale"])
+        failed = self.get_version(pid, from_v)
+        parent = self.get_version(pid, to_v)
+        if failed is None or parent is None:
+            raise GateBlocked(["version rows missing"])
+        # Affected runs: created while the failed version was active.
+        # runs.policy_version stores the "name@vN" tag.
+        affected = [r[0] for r in self._conn.execute(
+            "SELECT id FROM runs WHERE policy_version=?",
+            (f"{name}@v{from_v}",)).fetchall()]
+        failed.status = "DEPRECATED"
+        self._persist_version(failed)
         parent.status = "PROMOTED"
         self._persist_version(parent)
         self._conn.execute("UPDATE policies SET current_version=? WHERE id=?",
-                           (parent.version, pid))
+                           (to_v, pid))
+        now = utcnow()
+        self._conn.execute(
+            "UPDATE policy_rollbacks SET status='APPROVED', approved_by=?,"
+            " decided_at=?, affected_runs=? WHERE id=?",
+            (approved_by, now, json.dumps(affected), rollback_id))
         self._conn.commit()
-        await self._event("policy.rolled_back",
-                          {"policy": name, "from": cur.version,
-                           "to": parent.version, "decided_by": decided_by})
+        await self._event("policy.rollback_approved",
+                          {"policy": name, "rollback_id": rollback_id,
+                           "from_version": from_v, "to_version": to_v,
+                           "approved_by": approved_by,
+                           "affected_runs": affected})
+        await self._event("policy.activated",
+                          {"policy": name, "version": to_v,
+                           "previous_version": from_v,
+                           "reason": reason,
+                           "triggering_evidence": json.loads(evidence_json or "{}"),
+                           "actor": approved_by,
+                           "evaluation_refs": failed.evaluation,
+                           "assurance_refs": failed.assurance})
         return parent
+
+    def provenance_chain(self, name: str) -> dict:
+        """Answer: why is this policy active? The complete auditable
+        history: every version in lineage order, parent links, the
+        evaluation/assurance each one carried, and which one is active."""
+        pid = self.ensure(name)
+        cur = self.current(name)
+        if cur is None:
+            return {"policy": name, "active_version": None, "chain": []}
+        rows = self._conn.execute(
+            f"SELECT {self._VERSION_COLS} FROM policy_versions"
+            " WHERE policy_id=? ORDER BY created_at", (pid,)).fetchall()
+        chain = [{
+            "version": v.version, "status": v.status,
+            "parent_version": v.parent_version,
+            "hypothesis": v.hypothesis,
+            "generated_by": v.generated_by,
+            "source_experiences": v.source_experiences,
+            "changes": v.changes,
+            "expected_effect": v.expected_effect,
+            "constraints": v.constraints,
+            "reason": v.reason,
+            "evaluation": v.evaluation,
+            "assurance": v.assurance,
+            "created_at": v.created_at,
+        } for v in (self._row(r) for r in rows)]
+        return {"policy": name, "active_version": cur.version, "chain": chain}
 
     # ---------------------------------------------------------------- internal
     def _persist_version(self, ver: PolicyVersion) -> None:
         cur = self._conn.execute(
-            "UPDATE policy_versions SET parent_version=?, changes=?, reason=?,"
-            " evidence=?, evaluation=?, assurance=?, status=? WHERE id=?",
-            (ver.parent_version, json.dumps(ver.changes), ver.reason,
+            "UPDATE policy_versions SET parent_version=?, changes=?,"
+            " hypothesis=?, expected_effect=?, constraints=?, generated_by=?,"
+            " source_experiences=?, reason=?, evidence=?, evaluation=?,"
+            " assurance=?, status=? WHERE id=?",
+            (ver.parent_version, json.dumps(ver.changes), ver.hypothesis,
+             json.dumps(ver.expected_effect), json.dumps(ver.constraints),
+             ver.generated_by, json.dumps(ver.source_experiences), ver.reason,
              json.dumps(ver.evidence), json.dumps(ver.evaluation),
              json.dumps(ver.assurance), ver.status, ver.id))
         if cur.rowcount == 0:
             self._conn.execute(
                 """INSERT INTO policy_versions (id, policy_id, version,
-                   parent_version, changes, reason, evidence, evaluation,
-                   assurance, status, created_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                   parent_version, changes, hypothesis, expected_effect,
+                   constraints, generated_by, source_experiences, reason,
+                   evidence, evaluation, assurance, status, created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (ver.id, ver.policy_id, ver.version, ver.parent_version,
-                 json.dumps(ver.changes), ver.reason,
-                 json.dumps(ver.evidence), json.dumps(ver.evaluation),
-                 json.dumps(ver.assurance), ver.status, ver.created_at))
+                 json.dumps(ver.changes), ver.hypothesis,
+                 json.dumps(ver.expected_effect), json.dumps(ver.constraints),
+                 ver.generated_by, json.dumps(ver.source_experiences),
+                 ver.reason, json.dumps(ver.evidence),
+                 json.dumps(ver.evaluation), json.dumps(ver.assurance),
+                 ver.status, ver.created_at))
 
     @staticmethod
     def _row(r) -> PolicyVersion:
         return PolicyVersion(
             id=r[0], policy_id=r[1], version=r[2], parent_version=r[3],
-            changes=json.loads(r[4] or "{}"), reason=r[5] or "",
-            evidence=json.loads(r[6] or "{}"),
-            evaluation=json.loads(r[7] or "{}"),
-            assurance=json.loads(r[8] or "{}"), status=r[9],
-            created_at=r[10])
+            changes=json.loads(r[4] or "{}"), hypothesis=r[5] or "",
+            expected_effect=json.loads(r[6] or "{}"),
+            constraints=json.loads(r[7] or "{}"),
+            generated_by=r[8] or "unknown",
+            source_experiences=json.loads(r[9] or "[]"),
+            reason=r[10] or "", evidence=json.loads(r[11] or "{}"),
+            evaluation=json.loads(r[12] or "{}"),
+            assurance=json.loads(r[13] or "{}"), status=r[14],
+            created_at=r[15])

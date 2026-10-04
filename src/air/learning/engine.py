@@ -141,7 +141,17 @@ class LearningEngine:
             reason="; ".join(changes_made),
             evidence={"analysis": analysis,
                       "rule": "v1-heuristics",
-                      "min_experiences": MIN_EXPERIENCES})
+                      "min_experiences": MIN_EXPERIENCES},
+            hypothesis=("Adjusting cognitive-allocation parameters from"
+                        " observed strategy/role outcomes will improve"
+                        " future run success rates without verified"
+                        " regressions."),
+            expected_effect={"direction": "improve",
+                             "metrics": ["success_rate", "verified_rate"]},
+            constraints={"min_verified_rate": "no regression vs baseline",
+                         "max_cost_ratio": 1.25},
+            generated_by="air-learning-engine v1",
+            source_experiences=analysis["experience_ids"])
         if self._emit:
             await self._emit("learning.proposed",
                              payload={"policy": POLICY_NAME,

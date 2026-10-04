@@ -532,6 +532,55 @@ def create_app() -> FastAPI:
         return {"policy": name, "version": ver.version,
                 "status": ver.status}
 
+    class RollbackRequest(BaseModel):
+        reason: str
+        evidence: dict | None = None
+        requested_by: str = "operator"
+
+    @app.post("/policies/{name}/rollback/request")
+    async def request_rollback(name: str, req: RollbackRequest) -> dict:
+        from air.learning.policies import GateBlocked, PolicyStore
+        rt = get_runtime()
+        store = PolicyStore(rt.db.conn,
+                            emit=lambda t, payload=None: rt.emit(t, payload=payload))
+        try:
+            rb = await store.request_rollback(name, req.reason,
+                                              req.evidence or {},
+                                              req.requested_by)
+        except GateBlocked as e:
+            raise HTTPException(409, {"blocked": e.reasons})
+        return rb
+
+    @app.post("/policies/rollback/{rollback_id}/approve")
+    async def approve_rollback(rollback_id: str,
+                               approved_by: str = "operator") -> dict:
+        from air.learning.policies import GateBlocked, PolicyStore
+        rt = get_runtime()
+        store = PolicyStore(rt.db.conn,
+                            emit=lambda t, payload=None: rt.emit(t, payload=payload))
+        try:
+            ver = await store.approve_rollback(rollback_id, approved_by)
+        except GateBlocked as e:
+            raise HTTPException(409, {"blocked": e.reasons})
+        return {"version": ver.version, "status": ver.status}
+
+    @app.get("/policies/{name}/provenance")
+    def policy_provenance(name: str) -> dict:
+        """Why is this policy active? Complete provenance chain."""
+        from air.learning.policies import PolicyStore
+        return PolicyStore(get_runtime().db.conn).provenance_chain(name)
+
+    @app.post("/policies/{name}/evaluate")
+    def evaluate_policy(name: str, version: str,
+                        baseline: str | None = None) -> dict:
+        """Multi-dimensional guardrailed evaluation of a policy candidate."""
+        from air.learning.policy_eval import evaluate_policy_candidate
+        rt = get_runtime()
+        ev_id, verdict, dimensions = evaluate_policy_candidate(
+            rt.db.conn, name, version, baseline_version=baseline)
+        return {"evaluation_id": ev_id, "verdict": verdict.value,
+                "dimensions": dimensions}
+
     @app.post("/learning/analyze")
     def learning_analyze() -> dict:
         from air.learning.engine import LearningEngine

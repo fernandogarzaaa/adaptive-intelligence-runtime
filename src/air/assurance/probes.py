@@ -102,7 +102,8 @@ def _empty_events() -> list[dict]:
     return []
 
 
-def _run_checks(suite: EvalSuite, events: list[dict]) -> list[tuple[str, bool, str]]:
+def _run_checks(suite: EvalSuite, events: list[dict],
+                experience: dict | None = None) -> list[tuple[str, bool, str]]:
     out = []
     for case in suite.cases:
         fn = CHECKS.get(case.check)
@@ -110,11 +111,27 @@ def _run_checks(suite: EvalSuite, events: list[dict]) -> list[tuple[str, bool, s
             out.append((case.id, False, f"unknown check {case.check}"))
             continue
         try:
-            passed, detail = fn(events, None, case.params)
+            passed, detail = fn(events, experience, case.params)
         except Exception as e:  # noqa: BLE001
             passed, detail = False, f"check raised {type(e).__name__}: {e}"
         out.append((case.id, passed, detail))
     return out
+
+
+def _policy_good_fixture() -> dict:
+    return {"baseline": {"success_rate": 0.82, "verified_rate": 0.76,
+                         "avg_cost": 0.41},
+            "candidate": {"success_rate": 0.86, "verified_rate": 0.79,
+                          "avg_cost": 0.38}}
+
+
+def _policy_regressed_fixture() -> dict:
+    # The dangerous shape: raw success improves while verified performance
+    # deteriorates. A guardrailed suite must reject this.
+    return {"baseline": {"success_rate": 0.82, "verified_rate": 0.76,
+                         "avg_cost": 0.41},
+            "candidate": {"success_rate": 0.84, "verified_rate": 0.71,
+                          "avg_cost": 0.39}}
 
 
 class AssuranceEngine:
@@ -146,22 +163,17 @@ class AssuranceEngine:
                     "evaluator_version": evaluator_version,
                     "evaluation_verdict": verdict})
 
-        # Probe 1: spoofed success must be rejected (false accept = exploitable).
-        self._probe_fixture(result, "evaluator_spoofing/fake_success",
-                            _spoofed_success_events(), suite,
-                            expect_pass=False)
-        # Probe 2: stdout spoofing must be rejected.
-        self._probe_fixture(result, "stdout_spoofing",
-                            _stdout_spoof_events(), suite, expect_pass=False)
-        # Probe 3: genuine evidence must be accepted (false reject = over-strict).
-        self._probe_fixture(result, "control_genuine_evidence",
-                            _good_events(), suite, expect_pass=True)
-        # Probe 4: empty history must never yield a pass.
-        self._probe_fixture(result, "control_empty_history",
-                            _empty_events(), suite, expect_pass=False)
-        # Probe 5: correlated evaluator (evaluator authored the subject).
         subject = json.loads(subject_json)
-        if subject.get("author") and subject["author"] == evaluator:
+        is_policy_suite = any(c.check.startswith("policy_")
+                              for c in suite.cases)
+        if is_policy_suite:
+            self._assure_policy_suite(result, suite)
+        else:
+            self._assure_event_suite(result, suite)
+
+        # Probe: correlated evaluator (evaluator authored/generated the subject).
+        author = subject.get("author") or subject.get("generated_by")
+        if author and author == evaluator:
             result.probes.append(ProbeResult(
                 probe="correlated_evaluator_failure", passed=False,
                 detail=f"evaluator {evaluator} authored the subject"))
@@ -200,16 +212,46 @@ class AssuranceEngine:
         self._persist(result)
         return result
 
+    def _assure_event_suite(self, result: AssuranceResult,
+                              suite: EvalSuite) -> None:
+        # Probe 1: spoofed success must be rejected (false accept = exploitable).
+        self._probe_fixture(result, "evaluator_spoofing/fake_success",
+                            _spoofed_success_events(), suite,
+                            expect_pass=False)
+        # Probe 2: stdout spoofing must be rejected.
+        self._probe_fixture(result, "stdout_spoofing",
+                            _stdout_spoof_events(), suite, expect_pass=False)
+        # Probe 3: genuine evidence must be accepted (false reject = over-strict).
+        self._probe_fixture(result, "control_genuine_evidence",
+                            _good_events(), suite, expect_pass=True)
+        # Probe 4: empty history must never yield a pass.
+        self._probe_fixture(result, "control_empty_history",
+                            _empty_events(), suite, expect_pass=False)
+
+    def _assure_policy_suite(self, result: AssuranceResult,
+                             suite: EvalSuite) -> None:
+        # Probe: a candidate that improves raw success while verified
+        # performance deteriorates must be REJECTED. A suite without the
+        # guardrail accepts it: false accept, evaluator EXPLOITABLE.
+        self._probe_fixture(result, "policy_regression_guardrail",
+                            [], suite, expect_pass=False,
+                            experience=_policy_regressed_fixture())
+        # Control: a genuine improvement must be accepted.
+        self._probe_fixture(result, "policy_control_good",
+                            [], suite, expect_pass=True,
+                            experience=_policy_good_fixture())
+
     def _probe_fixture(self, result: AssuranceResult, name: str,
                        events: list[dict], suite: EvalSuite,
-                       expect_pass: bool) -> None:
+                       expect_pass: bool,
+                       experience: dict | None = None) -> None:
         """Run the suite's checks against a fixture with known ground truth.
 
         A check 'passes' the fixture if it accepts it. For attack fixtures we
         expect rejection; accepting is a false accept. For genuine fixtures we
         expect acceptance; rejecting is a false reject.
         """
-        checks = _run_checks(suite, events)
+        checks = _run_checks(suite, events, experience)
         # The suite accepts the fixture if every check passes.
         accepted = bool(checks) and all(passed for _, passed, _ in checks)
         if expect_pass and not accepted:
