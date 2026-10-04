@@ -1,200 +1,447 @@
-"""FastAPI application: the single backend contract for CLI and UI."""
+"""FastAPI application: projection and control surface over the AIR runtime.
+
+The API is a projection/control surface over the runtime, never an
+alternative execution path. Route handlers are thin: they validate input,
+resolve services, and return service results. All business logic lives in
+``air.api.services`` (command/query layer) and AIR core. No handler
+creates agents, allocates budget, emits events, or asserts authority
+(capability grants, verdicts, statuses, provenance, budgets,
+verification state are resolved by the runtime, never by the client).
+
+Realtime (WebSocket / SSE) is a projection of the canonical event
+fabric: every message carries the full event envelope, and clients
+reconnect with a ``last_event_id`` cursor to recover without loss.
+"""
 
 from __future__ import annotations
 
 import asyncio
+import functools
 import json
-from pathlib import Path
+import threading
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse, StreamingResponse
+from pydantic import BaseModel, Field
 
 from air import __version__
 from air.agents.runtime import AgentRuntime
+from air.api.services import (
+    AgentService,
+    ApiError,
+    ApprovalService,
+    AssuranceService,
+    CapabilityService,
+    EvalService,
+    EventService,
+    ExplainService,
+    ExperienceService,
+    IdempotencyStore,
+    LearningService,
+    MemoryService,
+    MetricsService,
+    ModelService,
+    PolicyService,
+    RunService,
+    ToolService,
+    project_event,
+)
 from air.config import AirConfig
 from air.events.fabric import Event
-from air.persistence.db import Database
+from air.persistence.db import Database, find_migrations_dir
 
 _runtime: AgentRuntime | None = None
-_ws_clients: set[WebSocket] = set()
+_runtime_lock = threading.Lock()
+
+# Realtime projection clients: each connected socket/stream owns a bounded
+# queue fed by the single canonical fanout subscriber. A full queue means
+# the client cannot keep up; it is disconnected loudly (it reconnects with
+# its last_event_id cursor) rather than silently losing events.
+_ws_queues: dict[WebSocket, asyncio.Queue] = {}
+_sse_queues: set[asyncio.Queue] = set()
+_QUEUE_MAX = 10000
 
 
 def get_runtime() -> AgentRuntime:
     global _runtime
-    if _runtime is None:
+    if _runtime is not None:
+        return _runtime
+    with _runtime_lock:
+        if _runtime is not None:
+            return _runtime
         config = AirConfig.from_env()
         config.ensure_dirs()
         db = Database(config.db_path)
-        db.migrate(Path(__file__).resolve().parents[2] / "migrations")
+        db.migrate(find_migrations_dir())
         _runtime = AgentRuntime(config, db)
 
         async def _fanout(event: Event) -> None:
-            dead = []
-            payload = event.model_dump()
-            for ws in list(_ws_clients):
+            row = db.conn.execute(
+                "SELECT rowid FROM events WHERE event_id=?",
+                (event.event_id,)).fetchone()
+            projected = project_event({
+                "event_id": event.event_id, "type": event.type,
+                "schema_version": event.schema_version,
+                "timestamp": event.timestamp, "run_id": event.run_id,
+                "agent_id": event.agent_id,
+                "causation_id": event.causation_id,
+                "correlation_id": event.correlation_id,
+                "sequence": row[0] if row else None,
+                "payload": event.payload,
+            })
+            dead_ws = []
+            for ws, q in list(_ws_queues.items()):
                 try:
-                    await ws.send_json(payload)
+                    q.put_nowait(projected)
+                except asyncio.QueueFull:
+                    dead_ws.append(ws)
+            for ws in dead_ws:
+                _ws_queues.pop(ws, None)
+                try:
+                    await ws.close(code=1013)
                 except Exception:  # noqa: BLE001
-                    dead.append(ws)
-            for ws in dead:
-                _ws_clients.discard(ws)
+                    pass
+            dead_sse = []
+            for q in list(_sse_queues):
+                try:
+                    q.put_nowait(projected)
+                except asyncio.QueueFull:
+                    dead_sse.append(q)
+            for q in dead_sse:
+                _sse_queues.discard(q)
 
         _runtime.bus.subscribe("*", _fanout)
     return _runtime
 
 
+def _conn():
+    return get_runtime().db.conn
+
+
+def _rt() -> AgentRuntime:
+    return get_runtime()
+
+
+# ------------------------------------------------------------------ errors
+
+def _register_error_handlers(app: FastAPI) -> None:
+    @app.exception_handler(ApiError)
+    async def _api_error(_: Request, exc: ApiError) -> JSONResponse:
+        return JSONResponse(status_code=exc.status_code,
+                            content={"detail": exc.detail})
+
+
+# ------------------------------------------------------------ idempotency
+
+def idempotent(fn):
+    """Replay stored responses for repeated mutations carrying the same
+    Idempotency-Key. A repeated POST must not spawn twice, promote twice,
+    consume budget twice, or execute a tool twice."""
+    @functools.wraps(fn)
+    async def wrapper(request: Request, *args, **kwargs):
+        key = request.headers.get("Idempotency-Key")
+        if not key:
+            return await fn(request, *args, **kwargs)
+        store = IdempotencyStore(_conn())
+        hit = store.replay(key, request.method, request.url.path)
+        if hit:
+            status, body = hit
+            return JSONResponse(status_code=status,
+                                content={**body, "idempotent": True})
+        try:
+            body = await fn(request, *args, **kwargs)
+        except ApiError:
+            raise
+        store.record(key, request.method, request.url.path, 200, body)
+        return body
+    return wrapper
+
+
+# ------------------------------------------------------------------ models
+# Request models carry only client-settable fields. Authority fields
+# (capability grants, verdicts, statuses, provenance, budgets consumed,
+# verification state) are never accepted here; the runtime resolves them.
+
+class RunRequest(BaseModel):
+    goal: str
+    context: dict | None = None
+    strategy: str | None = None
+    agent_budget: int | None = None
+    seed: int | None = None
+
+
+class AgentCreateRequest(BaseModel):
+    role: str
+    objective: str
+    specialization: str | None = None
+    capabilities: list[str] | None = None
+    tools: list[str] | None = None
+    model: str | None = None
+    memory_scope: str = "task"
+
+
+class SpawnRequest(BaseModel):
+    objective: str
+    role: str
+    specialization: str | None = None
+    capabilities: list[str] | None = None
+    tools: list[str] | None = None
+    model: str | None = None
+    constraints: dict | None = None
+    uncertainty: float = 0.5
+    reason_hint: str | None = None
+
+
+class MessageRequest(BaseModel):
+    to_agent_id: str | None = None
+    channel: str = "sibling"
+    kind: str = "note"
+    payload: dict = Field(default_factory=dict)
+
+
+class ToolCallRequest(BaseModel):
+    tool_name: str
+    args: dict = Field(default_factory=dict)
+
+
+class ApprovalDecision(BaseModel):
+    approved: bool
+    decided_by: str = "operator"
+
+
+class CapabilityProposal(BaseModel):
+    name: str
+    description: str
+    effect: dict | None = None
+    created_from: str | None = None
+
+
+class EvaluationRequest(BaseModel):
+    run_id: str
+    suite: dict | None = None
+
+
+class PolicyProposal(BaseModel):
+    params: dict
+    reason: str
+
+
+class PolicyPromotion(BaseModel):
+    """The client names persisted evidence; AIR reads the verdicts.
+    Caller-supplied verdict dictionaries are not accepted."""
+    version: str
+    evaluation_id: str
+    assurance_id: str
+
+
+class RollbackRequest(BaseModel):
+    reason: str
+    evidence: dict | None = None
+    requested_by: str = "operator"
+
+
+class MemoryRequest(BaseModel):
+    namespace: str
+    type: str = "episodic"
+    content: dict
+    scope: str = "run"
+    importance: float = 0.5
+    confidence: float = 0.5
+
+
+# ------------------------------------------------------------------- app
+
 def create_app() -> FastAPI:
     app = FastAPI(title="Adaptive Intelligence Runtime", version=__version__)
+    _register_error_handlers(app)
 
-    @app.get("/health")
-    def health() -> dict:
-        return {"status": "ok", "version": __version__}
-
-    @app.get("/ready")
-    def ready() -> dict:
-        rt = get_runtime()
-        ok, bad = rt.store.verify_chain()
-        return {"ready": ok, "event_chain_ok": ok, "bad_event": bad}
-
-    class RunRequest(BaseModel):
-        goal: str
-        strategy: str | None = None
-        context: dict | None = None
-        agent_budget: int | None = None
-        seed: int | None = None
-
+    # ---------------------------------------------------------------- runs
     @app.post("/runs")
-    async def create_run(req: RunRequest) -> dict:
-        from air.allocation.allocator import Strategy
-        rt = get_runtime()
-        strategy = Strategy(req.strategy) if req.strategy else None
-        run_id = await rt.create_run(req.goal, context=req.context,
-                                     strategy=strategy,
-                                     agent_budget=req.agent_budget,
-                                     seed=req.seed)
-        asyncio.create_task(rt.start_run(run_id))
-        return {"run_id": run_id}
+    @idempotent
+    async def create_run(request: Request, req: RunRequest) -> dict:
+        return await RunService(_conn(), _rt).start(
+            req.goal, context=req.context, strategy=req.strategy,
+            agent_budget=req.agent_budget, seed=req.seed)
 
     @app.get("/runs")
     def list_runs(limit: int = 20) -> list[dict]:
-        rt = get_runtime()
-        rows = rt.db.conn.execute(
-            "SELECT id, goal, status, strategy, created_at, completed_at"
-            " FROM runs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
-        return [{"id": r[0], "goal": r[1], "status": r[2], "strategy": r[3],
-                 "created_at": r[4], "completed_at": r[5]} for r in rows]
+        return RunService(_conn(), _rt).list(limit=limit)
 
     @app.get("/runs/{run_id}")
     def get_run(run_id: str) -> dict:
-        rt = get_runtime()
-        row = rt.db.conn.execute(
-            "SELECT id, goal, status, strategy, cognitive_plan, seed, total_cost,"
-            " total_tokens, error, final_result, created_at, started_at, completed_at"
-            " FROM runs WHERE id=?", (run_id,)).fetchone()
-        if not row:
-            raise HTTPException(404, "run not found")
-        keys = ["id", "goal", "status", "strategy", "cognitive_plan", "seed",
-                "total_cost", "total_tokens", "error", "final_result",
-                "created_at", "started_at", "completed_at"]
-        out = dict(zip(keys, row))
-        for k in ("cognitive_plan", "final_result"):
-            if out[k]:
-                out[k] = json.loads(out[k])
-        return out
+        return RunService(_conn(), _rt).get(run_id)
 
     @app.post("/runs/{run_id}/pause")
-    async def pause_run(run_id: str) -> dict:
-        await get_runtime().pause_run(run_id)
-        return {"ok": True}
+    @idempotent
+    async def pause_run(request: Request, run_id: str) -> dict:
+        return await RunService(_conn(), _rt).pause(run_id)
 
     @app.post("/runs/{run_id}/resume")
-    async def resume_run(run_id: str) -> dict:
-        await get_runtime().resume_run(run_id)
-        return {"ok": True}
+    @idempotent
+    async def resume_run(request: Request, run_id: str) -> dict:
+        return await RunService(_conn(), _rt).resume(run_id)
 
     @app.post("/runs/{run_id}/cancel")
-    async def cancel_run(run_id: str) -> dict:
-        await get_runtime().cancel_run(run_id)
-        return {"ok": True}
+    @idempotent
+    async def cancel_run(request: Request, run_id: str) -> dict:
+        return await RunService(_conn(), _rt).cancel(run_id)
 
     @app.get("/runs/{run_id}/agents")
     def run_agents(run_id: str) -> list[dict]:
-        rt = get_runtime()
-        rows = rt.db.conn.execute(
-            "SELECT id, parent_id, role, specialization, objective, model, provider,"
-            " status, status_reason, created_at, terminated_at, generation"
-            " FROM agents WHERE root_run_id=? ORDER BY created_at", (run_id,)).fetchall()
-        keys = ["id", "parent_id", "role", "specialization", "objective",
-                "model", "provider", "status", "status_reason",
-                "created_at", "terminated_at", "generation"]
-        return [dict(zip(keys, r)) for r in rows]
+        return RunService(_conn(), _rt).agents(run_id)
 
     @app.get("/runs/{run_id}/events")
-    def run_events(run_id: str, limit: int = 500) -> list[dict]:
-        return get_runtime().store.list(run_id=run_id, limit=limit)
-
-    @app.get("/runs/{run_id}/graph")
-    def run_graph(run_id: str) -> dict:
-        """Cognitive graph: nodes (agents) + edges (lineage, messages)."""
-        rt = get_runtime()
-        agents = rt.db.conn.execute(
-            "SELECT id, parent_id, role, status, model, provider, generation"
-            " FROM agents WHERE root_run_id=?", (run_id,)).fetchall()
-        nodes = [{"id": r[0], "parent_id": r[1], "role": r[2], "status": r[3],
-                  "model": r[4], "provider": r[5], "generation": r[6]}
-                 for r in agents]
-        edges = [{"from": r[1], "to": r[0], "kind": "lineage"}
-                 for r in agents if r[1]]
-        msgs = rt.db.conn.execute(
-            "SELECT from_agent_id, to_agent_id, channel, kind"
-            " FROM agent_messages WHERE run_id=? LIMIT 500", (run_id,)).fetchall()
-        for f, t, channel, kind in msgs:
-            if f and t:
-                edges.append({"from": f, "to": t, "kind": kind,
-                              "channel": channel})
-        return {"nodes": nodes, "edges": edges}
+    def run_events(run_id: str, limit: int = 500,
+                   after_event_id: str | None = None) -> list[dict]:
+        return EventService(_conn()).list(run_id=run_id, limit=limit,
+                                          after_event_id=after_event_id)
 
     @app.get("/runs/{run_id}/world")
     def run_world(run_id: str) -> dict:
-        from air.world.state import WorldStateStore
-        rt = get_runtime()
-        return WorldStateStore(rt.db.conn, rt.store).build(run_id)
+        return RunService(_conn(), _rt).world(run_id)
 
+    @app.get("/runs/{run_id}/explain")
+    def explain_run(run_id: str) -> dict:
+        return ExplainService(_conn(), _rt).explain_run(run_id)
+
+    # ---------------------------------------------------------------- graph
+    @app.get("/runs/{run_id}/graph")
+    def run_graph(run_id: str) -> dict:
+        agents = RunService(_conn(), _rt).agents(run_id)
+        nodes = [{"id": a["id"], "role": a["role"], "status": a["status"],
+                  "generation": a["generation"]} for a in agents]
+        edges = [{"from": a["parent_id"], "to": a["id"]}
+                 for a in agents if a["parent_id"]]
+        return {"nodes": nodes, "edges": edges}
+
+    # --------------------------------------------------------------- agents
+    @app.get("/agents")
+    def list_agents(run_id: str | None = None,
+                    limit: int = 100) -> list[dict]:
+        return AgentService(_conn(), _rt).list(run_id=run_id, limit=limit)
+
+    @app.get("/agents/{agent_id}")
+    def get_agent(agent_id: str) -> dict:
+        return AgentService(_conn(), _rt).get(agent_id)
+
+    @app.get("/agents/{agent_id}/explain")
+    def explain_agent(agent_id: str) -> dict:
+        return ExplainService(_conn(), _rt).explain_agent(agent_id)
+
+    @app.post("/runs/{run_id}/agents")
+    @idempotent
+    async def create_agent(request: Request, run_id: str,
+                           req: AgentCreateRequest) -> dict:
+        return await AgentService(_conn(), _rt).create(
+            run_id, req.role, req.objective,
+            specialization=req.specialization,
+            capabilities=req.capabilities, tools=req.tools, model=req.model,
+            memory_scope=req.memory_scope)
+
+    @app.post("/agents/{parent_id}/spawn")
+    @idempotent
+    async def spawn_agent(request: Request, parent_id: str,
+                          req: SpawnRequest) -> dict:
+        return await AgentService(_conn(), _rt).spawn(
+            parent_id, req.objective, req.role,
+            specialization=req.specialization,
+            capabilities=req.capabilities, tools=req.tools, model=req.model,
+            constraints=req.constraints, uncertainty=req.uncertainty,
+            reason_hint=req.reason_hint)
+
+    @app.post("/agents/{agent_id}/terminate")
+    @idempotent
+    async def terminate_agent(request: Request, agent_id: str,
+                              subtree: bool = True) -> dict:
+        return await AgentService(_conn(), _rt).terminate(agent_id, subtree)
+
+    @app.post("/agents/{agent_id}/message")
+    async def send_agent_message(agent_id: str, req: MessageRequest,
+                                 run_id: str) -> dict:
+        return await AgentService(_conn(), _rt).message(
+            run_id, agent_id, req.to_agent_id, req.channel, req.kind,
+            req.payload)
+
+    @app.get("/spawn-decisions/{decision_id}")
+    def explain_spawn_decision(decision_id: str) -> dict:
+        return ExplainService(_conn(), _rt).explain_spawn_decision(decision_id)
+
+    # ---------------------------------------------------------------- tools
+    @app.get("/tools")
+    def list_tools() -> list[dict]:
+        return ToolService(_conn(), _rt).list()
+
+    @app.post("/agents/{agent_id}/tools/call")
+    @idempotent
+    async def call_tool(request: Request, agent_id: str,
+                        req: ToolCallRequest) -> dict:
+        return await ToolService(_conn(), _rt).call(
+            agent_id, req.tool_name, req.args)
+
+    @app.get("/tool-calls")
+    def list_tool_calls(run_id: str | None = None,
+                        agent_id: str | None = None,
+                        limit: int = 100) -> list[dict]:
+        return ToolService(_conn(), _rt).list_calls(
+            run_id=run_id, agent_id=agent_id, limit=limit)
+
+    @app.get("/tool-calls/{call_id}")
+    def get_tool_call(call_id: str) -> dict:
+        return ToolService(_conn(), _rt).get_call(call_id)
+
+    @app.get("/tool-calls/{call_id}/authorization")
+    def explain_tool_authorization(call_id: str) -> dict:
+        return ExplainService(_conn(), _rt).explain_tool_authorization(call_id)
+
+    # ------------------------------------------------------------ approvals
+    @app.get("/approvals")
+    def list_approvals() -> list[dict]:
+        return ApprovalService(_conn(), _rt).pending()
+
+    @app.get("/approvals/{approval_id}")
+    def get_approval(approval_id: str) -> dict:
+        return ApprovalService(_conn(), _rt).get(approval_id)
+
+    @app.post("/approvals/{approval_id}/decide")
+    @idempotent
+    async def decide_approval(request: Request, approval_id: str,
+                              req: ApprovalDecision) -> dict:
+        return await ApprovalService(_conn(), _rt).decide(
+            approval_id, req.approved, req.decided_by)
+
+    # ---------------------------------------------------------- experience
     @app.get("/experience")
-    def list_experience(limit: int = 50) -> list[dict]:
-        from air.experience.recorder import ExperienceRecorder
-        return ExperienceRecorder(get_runtime().db.conn).list(limit=limit)
+    def list_experience(run_id: str | None = None,
+                        limit: int = 50) -> list[dict]:
+        return ExperienceService(_conn(), _rt).list(run_id=run_id, limit=limit)
 
     @app.get("/experience/compare")
     def compare_experiences(ids: str) -> dict:
         """Compare experiences across structured dimensions: what changed
         between successful and unsuccessful runs?"""
-        from air.experience.recorder import ExperienceRecorder
-        return ExperienceRecorder(get_runtime().db.conn).compare(
+        return ExperienceService(_conn(), _rt).compare(
             [i.strip() for i in ids.split(",") if i.strip()])
 
     @app.get("/experience/{exp_id}")
     def get_experience(exp_id: str) -> dict:
-        from air.experience.recorder import ExperienceRecorder
-        exp = ExperienceRecorder(get_runtime().db.conn).get(exp_id)
-        if exp is None:
-            raise HTTPException(404, "experience not found")
-        return exp
+        return ExperienceService(_conn(), _rt).get(exp_id)
+
+    @app.get("/experiences/{exp_id}/lineage")
+    def explain_experience(exp_id: str) -> dict:
+        return ExplainService(_conn(), _rt).explain_experience(exp_id)
 
     @app.post("/experience/{exp_id}/promote")
-    def promote_experience(exp_id: str, namespace: str = "global",
-                           knowledge: dict | None = None) -> dict:
+    @idempotent
+    async def promote_experience(request: Request, exp_id: str,
+                                 namespace: str = "global",
+                                 knowledge: dict | None = None) -> dict:
         """Validated learning bridge: experience -> evaluated knowledge.
         Blocked unless the experience has SUPPORTED evaluation + SOUND
         assurance. There is no run -> memory shortcut."""
-        from air.learning.bridge import BridgeBlocked, LearningBridge
-        try:
-            mem_id = LearningBridge(get_runtime().db.conn).promote_to_knowledge(
-                exp_id, namespace, knowledge or {})
-        except BridgeBlocked as e:
-            raise HTTPException(409, {"blocked": e.reasons})
-        return {"memory_id": mem_id}
+        return ExperienceService(_conn(), _rt).promote_to_knowledge(
+            exp_id, namespace, knowledge or {})
 
+    # --------------------------------------------------------------- memory
     @app.get("/memory")
     def list_memory(namespace: str, scopes: str = "global",
                     type: str | None = None, q: str | None = None,
@@ -202,412 +449,234 @@ def create_app() -> FastAPI:
         """Scoped retrieval. Returns memories WITH evidence metadata
         (why retrieved, trust, trust flags) so consumers know whether a
         memory is trustworthy."""
-        from air.memory.store import MemoryStore
-        rt = get_runtime()
         scope_tuple = tuple(s.strip() for s in scopes.split(",") if s.strip())
-        results = MemoryStore(rt.db.conn).retrieve(
-            namespace, scopes=scope_tuple or ("global",), type=type,
-            query=q, limit=limit)
-        return [r.model_dump() for r in results]
-
-    class MemoryRequest(BaseModel):
-        namespace: str
-        type: str = "episodic"
-        content: dict
-        scope: str = "run"
-        provenance: str = "DERIVED"
-        provenance_detail: dict | None = None
-        importance: float = 0.5
-        confidence: float = 0.5
-        source_run_id: str | None = None
-        source_agent_id: str | None = None
-        source_event_id: str | None = None
+        return MemoryService(_conn(), _rt).retrieve(
+            namespace, scopes=scope_tuple or ("global",), type=type, q=q,
+            limit=limit)
 
     @app.post("/memory")
     def create_memory(req: MemoryRequest) -> dict:
-        from air.memory.store import MemoryStore
-        try:
-            mem = MemoryStore(get_runtime().db.conn).store(
-                req.namespace, req.type, req.content, scope=req.scope,
-                provenance=req.provenance,
-                provenance_detail=req.provenance_detail or {},
-                importance=req.importance, confidence=req.confidence,
-                source_run_id=req.source_run_id,
-                source_agent_id=req.source_agent_id,
-                source_event_id=req.source_event_id)
-        except ValueError as e:
-            raise HTTPException(422, str(e))
-        return {"id": mem.id}
+        """Direct writes are operator assertions (USER_ASSERTED). Evaluated
+        knowledge enters only through the learning bridge."""
+        return MemoryService(_conn(), _rt).store(
+            req.namespace, req.type, req.content, scope=req.scope,
+            importance=req.importance, confidence=req.confidence)
 
     @app.get("/memory/{memory_id}/history")
     def memory_history(memory_id: str) -> list[dict]:
-        from air.memory.store import MemoryStore
-        chain = MemoryStore(get_runtime().db.conn).history(memory_id)
-        if not chain:
-            raise HTTPException(404, "memory not found")
-        return [m.model_dump() for m in chain]
+        return MemoryService(_conn(), _rt).history(memory_id)
 
     @app.delete("/memory/{memory_id}")
     def delete_memory(memory_id: str) -> dict:
-        from air.memory.store import MemoryStore
-        ok = MemoryStore(get_runtime().db.conn).delete(memory_id)
-        if not ok:
-            raise HTTPException(404, "memory not found")
-        return {"ok": True}
+        return MemoryService(_conn(), _rt).forget(memory_id)
 
-    @app.get("/agents")
-    def list_agents(run_id: str | None = None, limit: int = 100) -> list[dict]:
-        rt = get_runtime()
-        q = ("SELECT id, parent_id, root_run_id, role, objective, status"
-             " FROM agents")
-        params: list = []
-        if run_id:
-            q += " WHERE root_run_id=?"
-            params.append(run_id)
-        q += " ORDER BY created_at DESC LIMIT ?"
-        params.append(limit)
-        rows = rt.db.conn.execute(q, params).fetchall()
-        return [{"id": r[0], "parent_id": r[1], "root_run_id": r[2],
-                 "role": r[3], "objective": r[4], "status": r[5]} for r in rows]
-
-    @app.get("/agents/{agent_id}")
-    def get_agent(agent_id: str) -> dict:
-        agent = get_runtime().get_agent(agent_id)
-        if agent is None:
-            raise HTTPException(404, "agent not found")
-        return agent.model_dump()
-
-    @app.post("/agents/{agent_id}/terminate")
-    async def terminate_agent(agent_id: str, subtree: bool = True) -> dict:
-        terminated = await get_runtime().terminate_agent(agent_id, subtree=subtree)
-        return {"terminated": terminated}
-
+    # ---------------------------------------------------------- capabilities
     @app.get("/capabilities")
     def list_capabilities() -> list[dict]:
-        rt = get_runtime()
-        rows = rt.db.conn.execute(
-            "SELECT capability_id, name, version, validation_status, confidence"
-            " FROM capabilities ORDER BY updated_at DESC").fetchall()
-        return [{"capability_id": r[0], "name": r[1], "version": r[2],
-                 "validation_status": r[3], "confidence": r[4]} for r in rows]
+        return CapabilityService(_conn(), _rt).list()
 
     @app.get("/capabilities/{capability_id}")
     def get_capability(capability_id: str) -> dict:
-        from air.capabilities.store import CapabilityStore
-        cap = CapabilityStore(get_runtime().db.conn).get(capability_id)
-        if cap is None:
-            raise HTTPException(404, "capability not found")
-        return cap.model_dump()
+        return CapabilityService(_conn(), _rt).get(capability_id)
 
-    class CapabilityRequest(BaseModel):
-        name: str
-        description: str
-        effect: dict | None = None
-        created_from: str | None = None
+    @app.get("/capabilities/{capability_id}/provenance")
+    def explain_capability(capability_id: str) -> dict:
+        return ExplainService(_conn(), _rt).explain_capability(capability_id)
 
     @app.post("/capabilities")
-    async def propose_capability(req: CapabilityRequest) -> dict:
-        from air.capabilities.models import CapabilityEffect
-        from air.capabilities.pipeline import CapabilityPipeline
-        rt = get_runtime()
-        pipeline = CapabilityPipeline(
-            rt.db.conn,
-            emit=lambda t, capability_id=None, payload=None: rt.emit(
-                t, agent_id=None, payload={"capability_id": capability_id,
-                                           **(payload or {})}))
-        effect = CapabilityEffect(**req.effect) if req.effect else None
-        cap = await pipeline.propose(req.name, req.description, effect=effect,
-                                     created_from=req.created_from)
-        return {"capability_id": cap.capability_id}
+    @idempotent
+    async def propose_capability(request: Request,
+                                 req: CapabilityProposal) -> dict:
+        if req.created_from:
+            try:
+                ExperienceService(_conn(), _rt).get(req.created_from)
+            except ApiError:
+                raise HTTPException(
+                    422, "created_from references unknown experience:"
+                        f" {req.created_from}")
+        return await CapabilityService(_conn(), _rt).propose(
+            req.name, req.description, effect=req.effect,
+            created_from=req.created_from)
 
     @app.post("/capabilities/{capability_id}/promote")
-    async def promote_capability(capability_id: str) -> dict:
-        from air.capabilities.pipeline import CapabilityPipeline, GateBlocked
-        rt = get_runtime()
-        pipeline = CapabilityPipeline(
-            rt.db.conn,
-            emit=lambda t, capability_id=None, payload=None: rt.emit(
-                t, payload={"capability_id": capability_id,
-                            **(payload or {})}))
-        try:
-            cap = await pipeline.promote(capability_id)
-        except GateBlocked as e:
-            raise HTTPException(409, {"blocked": e.reasons})
-        return {"capability_id": cap.capability_id,
-                "status": cap.validation_status.value}
+    @idempotent
+    async def promote_capability(request: Request,
+                                 capability_id: str) -> dict:
+        return await CapabilityService(_conn(), _rt).promote(capability_id)
 
     @app.post("/capabilities/{capability_id}/rollback")
-    async def rollback_capability(capability_id: str) -> dict:
-        from air.capabilities.pipeline import CapabilityPipeline, GateBlocked
-        rt = get_runtime()
-        pipeline = CapabilityPipeline(
-            rt.db.conn,
-            emit=lambda t, capability_id=None, payload=None: rt.emit(
-                t, payload={"capability_id": capability_id,
-                            **(payload or {})}))
-        try:
-            cap = await pipeline.rollback(capability_id)
-        except GateBlocked as e:
-            raise HTTPException(409, {"blocked": e.reasons})
-        return {"capability_id": cap.capability_id,
-                "status": cap.validation_status.value}
+    @idempotent
+    async def rollback_capability(request: Request,
+                                  capability_id: str) -> dict:
+        return await CapabilityService(_conn(), _rt).rollback(capability_id)
 
-    class EvaluationRequest(BaseModel):
-        run_id: str
-        suite: dict | None = None  # {name, version, cases:[{id,name,check,params}]}
-
+    # ---------------------------------------------------- evaluation/assurance
     @app.post("/evaluations")
-    def run_evaluation(req: EvaluationRequest) -> dict:
-        from air.evaluation.suites import EvalCase, EvalSuite, Evaluator
-        rt = get_runtime()
-        if req.suite:
-            suite = EvalSuite(name=req.suite.get("name", "ad-hoc"),
-                              version=req.suite.get("version", "1.0.0"),
-                              cases=[EvalCase(**c)
-                                     for c in req.suite.get("cases", [])])
-        else:
-            suite = EvalSuite(name="default-grounding", cases=[
-                EvalCase(id="c1", name="execution evidence",
-                         check="event_evidence",
-                         params={"required": ["tool.completed"]}),
-                EvalCase(id="c2", name="no failures", check="no_failures",
-                         params={}),
-                EvalCase(id="c3", name="agents completed",
-                         check="agents_completed", params={"min_completed": 1}),
-            ])
-        evaluator = Evaluator(rt.db.conn)
-        evaluator.save_suite(suite)
-        result = evaluator.evaluate_run(req.run_id, suite)
-        return {"evaluation_id": result.id, "verdict": result.verdict.value,
-                "metrics": result.metrics}
+    @idempotent
+    async def run_evaluation(request: Request,
+                             req: EvaluationRequest) -> dict:
+        return EvalService(_conn(), _rt).run(req.run_id, req.suite)
 
     @app.get("/evaluations/{evaluation_id}")
     def get_evaluation(evaluation_id: str) -> dict:
-        rt = get_runtime()
-        row = rt.db.conn.execute(
-            "SELECT id, suite_id, subject, evaluator, evaluator_version,"
-            " metrics, verdict, evidence, started_at, completed_at"
-            " FROM evaluation_runs WHERE id=?", (evaluation_id,)).fetchone()
-        if not row:
-            raise HTTPException(404, "evaluation not found")
-        keys = ["id", "suite_id", "subject", "evaluator", "evaluator_version",
-                "metrics", "verdict", "evidence", "started_at", "completed_at"]
-        out = dict(zip(keys, row))
-        for k in ("subject", "metrics", "evidence"):
-            out[k] = json.loads(out[k]) if out[k] else None
-        return out
+        return EvalService(_conn(), _rt).get(evaluation_id)
 
     @app.post("/assurance")
-    def run_assurance(evaluation_id: str) -> dict:
-        from air.assurance.probes import AssuranceEngine
-        rt = get_runtime()
-        result = AssuranceEngine(rt.db.conn).assure(evaluation_id)
-        return {"assurance_id": result.id,
-                "evaluator_verdict": result.evaluator_verdict.value,
-                "system_verdict": result.system_verdict.value,
-                "false_accepts": result.false_accepts,
-                "false_rejects": result.false_rejects}
+    @idempotent
+    async def run_assurance(request: Request, evaluation_id: str) -> dict:
+        return AssuranceService(_conn(), _rt).run(evaluation_id)
 
     @app.get("/assurance/{assurance_id}")
     def get_assurance(assurance_id: str) -> dict:
-        rt = get_runtime()
-        row = rt.db.conn.execute(
-            "SELECT id, target, probes, false_accepts, false_rejects, timeouts,"
-            " evaluator_verdict, system_verdict, evidence, started_at,"
-            " completed_at FROM assurance_runs WHERE id=?",
-            (assurance_id,)).fetchone()
-        if not row:
-            raise HTTPException(404, "assurance run not found")
-        keys = ["id", "target", "probes", "false_accepts", "false_rejects",
-                "timeouts", "evaluator_verdict", "system_verdict", "evidence",
-                "started_at", "completed_at"]
-        out = dict(zip(keys, row))
-        for k in ("target", "probes", "evidence"):
-            out[k] = json.loads(out[k]) if out[k] else None
-        return out
+        return AssuranceService(_conn(), _rt).get(assurance_id)
 
-    @app.get("/metrics")
-    def metrics() -> dict:
-        rt = get_runtime()
-        c = rt.db.conn
-        return {
-            "runs": c.execute("SELECT COUNT(*) FROM runs").fetchone()[0],
-            "agents": c.execute("SELECT COUNT(*) FROM agents").fetchone()[0],
-            "events": c.execute("SELECT COUNT(*) FROM events").fetchone()[0],
-            "spawns_approved": c.execute(
-                "SELECT COUNT(*) FROM events WHERE type='spawn.approved'").fetchone()[0],
-            "spawns_denied": c.execute(
-                "SELECT COUNT(*) FROM events WHERE type='spawn.denied'").fetchone()[0],
-        }
-
+    # --------------------------------------------------------------- models
     @app.get("/models")
     def list_models() -> list[dict]:
-        rt = get_runtime()
-        out = []
-        for name in rt.providers.names():
-            p = rt.providers.get(name)
-            caps = p.capabilities().model_dump() if p else {}
-            out.append({"provider": name, "model": "configured",
-                        "capabilities": caps,
-                        "local": caps.get("local", False)})
-        for name, reason in rt.providers.unavailable.items():
-            out.append({"provider": name, "model": "unavailable",
-                        "reason": reason})
-        return out
+        return ModelService(_conn(), _rt).list()
 
-    @app.get("/tools")
-    def list_tools() -> list[dict]:
-        rt = get_runtime()
-        rows = rt.db.conn.execute(
-            "SELECT id, name, server, capability_class, enabled, policy_status"
-            " FROM tools ORDER BY name").fetchall()
-        return [{"id": r[0], "name": r[1], "server": r[2],
-                 "capability_class": r[3], "enabled": bool(r[4]),
-                 "policy_status": r[5]} for r in rows]
-
+    # -------------------------------------------------------------- policies
     @app.get("/policies")
     def list_policies() -> list[dict]:
-        from air.learning.policies import PolicyStore
-        rt = get_runtime()
-        store = PolicyStore(rt.db.conn)
-        rows = rt.db.conn.execute(
-            "SELECT name, current_version FROM policies").fetchall()
-        return [{"name": r[0], "current_version": r[1],
-                 "effects": store.current_effects(r[0])} for r in rows]
+        return PolicyService(_conn(), _rt).list()
 
     @app.get("/policies/{name}")
     def get_policy(name: str) -> dict:
-        from air.learning.policies import PolicyStore
-        store = PolicyStore(get_runtime().db.conn)
-        cur = store.current(name)
-        if cur is None:
-            raise HTTPException(404, "policy not found")
-        return {"current": cur.model_dump(),
-                "history": [v.model_dump() for v in store.history(name)]}
-
-    class PolicyProposal(BaseModel):
-        params: dict
-        reason: str
+        return PolicyService(_conn(), _rt).get(name)
 
     @app.post("/policies/{name}/propose")
-    async def propose_policy(name: str, req: PolicyProposal) -> dict:
-        from air.learning.policies import PolicyStore
-        rt = get_runtime()
-        store = PolicyStore(rt.db.conn,
-                            emit=lambda t, payload=None: rt.emit(t, payload=payload))
-        ver = await store.propose(name, req.params, req.reason)
-        return {"policy": name, "version": ver.version,
-                "status": ver.status}
-
-    class PolicyPromotion(BaseModel):
-        version: str
-        evaluation: dict | None = None
-        assurance: dict | None = None
+    @idempotent
+    async def propose_policy(request: Request, name: str,
+                             req: PolicyProposal) -> dict:
+        return await PolicyService(_conn(), _rt).propose(
+            name, req.params, req.reason)
 
     @app.post("/policies/{name}/promote")
-    async def promote_policy(name: str, req: PolicyPromotion) -> dict:
-        from air.learning.policies import GateBlocked, PolicyStore
-        rt = get_runtime()
-        store = PolicyStore(rt.db.conn,
-                            emit=lambda t, payload=None: rt.emit(t, payload=payload))
-        try:
-            ver = await store.promote(name, req.version,
-                                      evaluation=req.evaluation,
-                                      assurance=req.assurance)
-        except GateBlocked as e:
-            raise HTTPException(409, {"blocked": e.reasons})
-        return {"policy": name, "version": ver.version,
-                "status": ver.status}
+    @idempotent
+    async def promote_policy(request: Request, name: str,
+                             req: PolicyPromotion) -> dict:
+        return await PolicyService(_conn(), _rt).promote(
+            name, req.version, req.evaluation_id, req.assurance_id)
 
     @app.post("/policies/{name}/rollback")
-    async def rollback_policy(name: str) -> dict:
-        from air.learning.policies import GateBlocked, PolicyStore
-        rt = get_runtime()
-        store = PolicyStore(rt.db.conn,
-                            emit=lambda t, payload=None: rt.emit(t, payload=payload))
-        try:
-            ver = await store.rollback(name)
-        except GateBlocked as e:
-            raise HTTPException(409, {"blocked": e.reasons})
-        return {"policy": name, "version": ver.version,
-                "status": ver.status}
-
-    class RollbackRequest(BaseModel):
-        reason: str
-        evidence: dict | None = None
-        requested_by: str = "operator"
+    @idempotent
+    async def rollback_policy(request: Request, name: str) -> dict:
+        return await PolicyService(_conn(), _rt).rollback(name)
 
     @app.post("/policies/{name}/rollback/request")
-    async def request_rollback(name: str, req: RollbackRequest) -> dict:
-        from air.learning.policies import GateBlocked, PolicyStore
-        rt = get_runtime()
-        store = PolicyStore(rt.db.conn,
-                            emit=lambda t, payload=None: rt.emit(t, payload=payload))
-        try:
-            rb = await store.request_rollback(name, req.reason,
-                                              req.evidence or {},
-                                              req.requested_by)
-        except GateBlocked as e:
-            raise HTTPException(409, {"blocked": e.reasons})
-        return rb
+    @idempotent
+    async def request_rollback(request: Request, name: str,
+                               req: RollbackRequest) -> dict:
+        return await PolicyService(_conn(), _rt).request_rollback(
+            name, req.reason, req.evidence, req.requested_by)
 
     @app.post("/policies/rollback/{rollback_id}/approve")
-    async def approve_rollback(rollback_id: str,
+    @idempotent
+    async def approve_rollback(request: Request, rollback_id: str,
                                approved_by: str = "operator") -> dict:
-        from air.learning.policies import GateBlocked, PolicyStore
-        rt = get_runtime()
-        store = PolicyStore(rt.db.conn,
-                            emit=lambda t, payload=None: rt.emit(t, payload=payload))
-        try:
-            ver = await store.approve_rollback(rollback_id, approved_by)
-        except GateBlocked as e:
-            raise HTTPException(409, {"blocked": e.reasons})
-        return {"version": ver.version, "status": ver.status}
+        return await PolicyService(_conn(), _rt).approve_rollback(
+            rollback_id, approved_by)
 
     @app.get("/policies/{name}/provenance")
     def policy_provenance(name: str) -> dict:
         """Why is this policy active? Complete provenance chain."""
-        from air.learning.policies import PolicyStore
-        return PolicyStore(get_runtime().db.conn).provenance_chain(name)
+        return PolicyService(_conn(), _rt).provenance(name)
 
     @app.post("/policies/{name}/evaluate")
-    def evaluate_policy(name: str, version: str,
-                        baseline: str | None = None) -> dict:
+    @idempotent
+    async def evaluate_policy(request: Request, name: str, version: str,
+                              baseline: str | None = None) -> dict:
         """Multi-dimensional guardrailed evaluation of a policy candidate."""
-        from air.learning.policy_eval import evaluate_policy_candidate
-        rt = get_runtime()
-        ev_id, verdict, dimensions = evaluate_policy_candidate(
-            rt.db.conn, name, version, baseline_version=baseline)
-        return {"evaluation_id": ev_id, "verdict": verdict.value,
-                "dimensions": dimensions}
+        return PolicyService(_conn(), _rt).evaluate(name, version, baseline)
 
+    # -------------------------------------------------------------- learning
     @app.post("/learning/analyze")
     def learning_analyze() -> dict:
-        from air.learning.engine import LearningEngine
-        return LearningEngine(get_runtime().db.conn).analyze()
+        return LearningService(_conn(), _rt).analyze()
 
     @app.post("/learning/propose")
-    async def learning_propose() -> dict:
-        from air.learning.engine import LearningEngine
+    @idempotent
+    async def learning_propose(request: Request) -> dict:
+        return await LearningService(_conn(), _rt).propose()
+
+    # --------------------------------------------------------------- metrics
+    @app.get("/metrics")
+    def metrics() -> dict:
+        return MetricsService(_conn(), _rt).get()
+
+    # ---------------------------------------------------------------- health
+    @app.get("/health")
+    def health() -> dict:
+        return {"ok": True, "version": __version__}
+
+    @app.get("/ready")
+    def ready() -> dict:
         rt = get_runtime()
-        engine = LearningEngine(
-            rt.db.conn,
-            emit=lambda t, payload=None: rt.emit(t, payload=payload))
-        proposal = await engine.propose_policy_update()
-        if proposal is None:
-            return {"proposed": False,
-                    "reason": "insufficient evidence or no changes warranted"}
-        return {"proposed": True, **proposal}
-    @app.websocket("/ws")
-    async def ws(ws: WebSocket) -> None:
+        ok, bad = rt.store.verify_chain()
+        return {"ok": ok, "bad_event": bad}
+
+    # -------------------------------------------------------------- realtime
+    @app.websocket("/ws/events")
+    async def ws_events(ws: WebSocket,
+                        last_event_id: str | None = None) -> None:
+        """Event-fabric projection. Replays every event after
+        ``last_event_id``, then streams live events with the full
+        canonical envelope. Reconnect with the last received event_id to
+        converge without loss."""
         await ws.accept()
-        _ws_clients.add(ws)
+        rt = get_runtime()
+        es = EventService(rt.db.conn)
         try:
+            if last_event_id:
+                for e in es.list(limit=10000, after_event_id=last_event_id):
+                    await ws.send_json(project_event(e))
+            else:
+                await ws.send_json({"event_type": "hello",
+                                    "last_event_id": es.latest_event_id()})
+            q: asyncio.Queue = asyncio.Queue(maxsize=_QUEUE_MAX)
+            _ws_queues[ws] = q
             while True:
-                await ws.receive_text()  # keepalive; server pushes events
-        except WebSocketDisconnect:
+                projected = await q.get()
+                await ws.send_json(projected)
+        except (WebSocketDisconnect, RuntimeError):
             pass
         finally:
-            _ws_clients.discard(ws)
+            _ws_queues.pop(ws, None)
+
+    @app.get("/events/stream")
+    async def sse_events(request: Request,
+                         last_event_id: str | None = None) -> StreamingResponse:
+        """Server-sent projection of the same canonical event fabric."""
+        rt = get_runtime()
+        es = EventService(rt.db.conn)
+
+        async def gen():
+            q: asyncio.Queue = asyncio.Queue(maxsize=_QUEUE_MAX)
+            _sse_queues.add(q)
+            try:
+                if last_event_id:
+                    for e in es.list(limit=10000,
+                                     after_event_id=last_event_id):
+                        yield (f"id: {e['event_id']}\n"
+                               f"event: {e['type']}\n"
+                               f"data: {json.dumps(project_event(e))}\n\n")
+                else:
+                    yield (f"event: hello\ndata: "
+                           f"{json.dumps({'last_event_id': es.latest_event_id()})}\n\n")
+                while True:
+                    if await request.is_disconnected():
+                        break
+                    try:
+                        projected = await asyncio.wait_for(q.get(), 15.0)
+                    except asyncio.TimeoutError:
+                        yield ": keepalive\n\n"
+                        continue
+                    yield (f"id: {projected['event_id']}\n"
+                           f"event: {projected['event_type']}\n"
+                           f"data: {json.dumps(projected)}\n\n")
+            finally:
+                _sse_queues.discard(q)
+
+        return StreamingResponse(gen(), media_type="text/event-stream")
 
     return app

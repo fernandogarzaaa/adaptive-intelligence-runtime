@@ -61,21 +61,27 @@ class PolicyStore:
             await self._emit(type, payload=payload)
 
     def ensure(self, name: str, initial_params: dict | None = None) -> str:
-        """Create the policy with a v1 if it does not exist. Returns policy id."""
-        row = self._conn.execute("SELECT id FROM policies WHERE name=?",
-                                 (name,)).fetchone()
-        if row:
-            return row[0]
+        """Create the policy with a v1 if it does not exist. Returns policy id.
+
+        Race-safe: concurrent creators use INSERT OR IGNORE, then the
+        winner's row is read back. Exactly one v1 exists per name.
+        """
         pid = "pol_" + uuid.uuid4().hex[:12]
         now = utcnow()
-        self._conn.execute(
-            "INSERT INTO policies (id, name, current_version, created_at)"
-            " VALUES (?, ?, '1', ?)", (pid, name, now))
-        self._persist_version(PolicyVersion(
-            policy_id=pid, version="1", changes=initial_params or {},
-            reason="initial policy version", status="PROMOTED"))
+        with self._conn:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO policies (id, name, current_version,"
+                " created_at) VALUES (?, ?, '1', ?)", (pid, name, now))
+            row = self._conn.execute(
+                "SELECT id FROM policies WHERE name=?", (name,)).fetchone()
+            assert row is not None
+            if row[0] == pid:
+                self._persist_version(PolicyVersion(
+                    policy_id=pid, version="1",
+                    changes=initial_params or {},
+                    reason="initial policy version", status="PROMOTED"))
         self._conn.commit()
-        return pid
+        return row[0]
 
     def current(self, name: str) -> PolicyVersion | None:
         pid = self.ensure(name)

@@ -5,11 +5,11 @@ import json
 from pathlib import Path
 
 from air.events.fabric import Event, EventBus, EventStore
-from air.persistence.db import Database
+from air.persistence.db import Database, find_migrations_dir
 
 
 def _migrations() -> Path:
-    return Path(__file__).resolve().parents[1] / "migrations"
+    return find_migrations_dir()
 
 
 def _store(tmp_path):

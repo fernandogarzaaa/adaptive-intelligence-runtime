@@ -9,10 +9,10 @@ Hash chain: entry_n.hash = sha256(canonical(event_n) || entry_{n-1}.hash).
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import json
 import sqlite3
+import threading
 import uuid
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
@@ -72,14 +72,18 @@ class EventStore:
 
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
-        self._lock = asyncio.Lock()
+        # Threading lock, not asyncio: appends arrive from the main loop
+        # (async handlers, background agent tasks) and from worker threads
+        # (sync API handlers). The read-compute-insert sequence must be
+        # atomic across all of them or the hash chain interleaves.
+        self._lock = threading.Lock()
 
     def _last_hash(self) -> str:
         row = self._conn.execute("SELECT hash FROM events ORDER BY rowid DESC LIMIT 1").fetchone()
         return row[0] if row else self.GENESIS_HASH
 
     async def append(self, event: Event) -> Event:
-        async with self._lock:
+        with self._lock:
             prev = self._last_hash()
             body = {
                 "event_id": event.event_id,

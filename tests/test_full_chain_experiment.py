@@ -28,7 +28,7 @@ from air.evaluation.suites import (EvalCase, EvalSuite, Evaluator,
 from air.experience.recorder import ExperienceRecorder
 from air.learning.bridge import LearningBridge
 from air.mcp import MCPClientManager, MCPServerConfig
-from air.persistence.db import Database
+from air.persistence.db import Database, find_migrations_dir
 from air.security.policy import CapabilityClass
 from air.tools import ToolCallState
 
@@ -36,7 +36,7 @@ from air.tools import ToolCallState
 def _env(tmp_path):
     config = AirConfig(data_dir=tmp_path)
     db = Database(tmp_path / "air.db")
-    db.migrate(Path(__file__).resolve().parents[1] / "migrations")
+    db.migrate(find_migrations_dir())
     return AgentRuntime(config, db), db
 
 

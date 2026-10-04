@@ -14,13 +14,13 @@ from air.config import AirConfig
 from air.learning.engine import POLICY_NAME
 from air.learning.policies import PolicyStore
 from air.memory.store import MemoryStore, MemoryType, Scope
-from air.persistence.db import Database
+from air.persistence.db import Database, find_migrations_dir
 
 
 def _env(tmp_path):
     config = AirConfig(data_dir=tmp_path)
     db = Database(tmp_path / "air.db")
-    db.migrate(Path(__file__).resolve().parents[1] / "migrations")
+    db.migrate(find_migrations_dir())
     rt = AgentRuntime(config, db)
 
     async def emit(type, payload=None):

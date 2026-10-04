@@ -5,14 +5,14 @@ import pytest
 from air.agents.models import Budget
 from air.agents.runtime import AgentRuntime, BudgetExhausted
 from air.config import AirConfig
-from air.persistence.db import Database
+from air.persistence.db import Database, find_migrations_dir
 from pathlib import Path
 
 
 def _rt(tmp_path):
     config = AirConfig(data_dir=tmp_path)
     db = Database(tmp_path / "air.db")
-    db.migrate(Path(__file__).resolve().parents[1] / "migrations")
+    db.migrate(find_migrations_dir())
     return AgentRuntime(config, db)
 
 

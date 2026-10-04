@@ -77,6 +77,7 @@ class Agent(BaseModel):
 
 
 class SpawnDecision(BaseModel):
+    decision_id: str = Field(default_factory=lambda: "sd_" + uuid.uuid4().hex[:12])
     decision: str  # SPAWN | DENY
     role: str
     reason: str

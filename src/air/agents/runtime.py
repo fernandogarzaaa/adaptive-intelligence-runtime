@@ -256,15 +256,32 @@ class AgentRuntime:
             evidence=[f"parent={parent_id}", f"role={role}"],
         )
         decision = decide(ctx)
+        # The decision id is the stable handle for /spawn-decisions/{id}
+        # explain. The full SpawnContext is emitted so the decision is
+        # inspectable from the event fabric without a second store.
+        ctx_payload = {
+            "decision_id": decision.decision_id,
+            "role": role, "objective": objective,
+            "decision": decision.decision, "reason": decision.reason,
+            "expected_gain": decision.expected_gain,
+            "estimated_cost": decision.estimated_cost,
+            "risk": decision.risk, "evidence": decision.evidence,
+            "inputs": {
+                "uncertainty": ctx.uncertainty,
+                "task_complexity": ctx.task_complexity,
+                "current_agent_count": ctx.current_agent_count,
+                "budget_agents_remaining": ctx.budget_agents_remaining,
+                "budget_tokens_remaining": ctx.budget_tokens_remaining,
+                "spawn_threshold": ctx.spawn_threshold,
+                "reason_hint": ctx.reason_hint,
+            },
+        }
         await self.emit("spawn.requested", run_id=run_id, agent_id=parent_id,
-                        payload={"role": role, "objective": objective,
-                                 "decision": decision.decision, "reason": decision.reason,
-                                 "expected_gain": decision.expected_gain,
-                                 "estimated_cost": decision.estimated_cost,
-                                 "risk": decision.risk})
+                        payload=ctx_payload)
         if decision.decision != "SPAWN":
             await self.emit("spawn.denied", run_id=run_id, agent_id=parent_id,
-                            payload={"role": role, "reason": decision.reason})
+                            payload={"decision_id": decision.decision_id,
+                                     "role": role, "reason": decision.reason})
             return None, decision
         # Depth limit enforcement in code.
         depth_limit = (run_budget or {}).get("depth_limit") or 4
@@ -287,7 +304,8 @@ class AgentRuntime:
             budget=child_budget,
         )
         await self.emit("spawn.approved", run_id=run_id, agent_id=agent.id,
-                        payload={"parent_id": parent_id, "role": role})
+                        payload={"decision_id": decision.decision_id,
+                                 "parent_id": parent_id, "role": role})
         return agent, decision
 
     # --------------------------------------------------------------- messaging

@@ -18,7 +18,7 @@ from air.agents.runtime import AgentRuntime
 from air.config import AirConfig
 from air.mcp import MCPClientManager, MCPServerConfig
 from air.orchestration.claims import ClaimDenied, ClaimManager
-from air.persistence.db import Database
+from air.persistence.db import Database, find_migrations_dir
 from air.security.policy import (CapabilityClass, PolicyDenied, check_url,
                                  assert_safe_path)
 from air.tools import (AuthzVerdict, ToolCallRequest, ToolCallState,
@@ -28,7 +28,7 @@ from air.tools import (AuthzVerdict, ToolCallRequest, ToolCallState,
 def _env(tmp_path):
     config = AirConfig(data_dir=tmp_path)
     db = Database(tmp_path / "air.db")
-    db.migrate(Path(__file__).resolve().parents[1] / "migrations")
+    db.migrate(find_migrations_dir())
     rt = AgentRuntime(config, db)
     return rt, db
 
@@ -290,7 +290,7 @@ def test_symlink_traversal_blocked(tmp_path):
 def _mcp_env(tmp_path):
     config = AirConfig(data_dir=tmp_path)
     db = Database(tmp_path / "air.db")
-    db.migrate(Path(__file__).resolve().parents[1] / "migrations")
+    db.migrate(find_migrations_dir())
     return db
 
 

@@ -16,12 +16,12 @@ from air.experience.provenance import Provenance
 from air.memory.store import (
     MemoryStatus, MemoryStore, MemoryType, Scope, trust_of,
 )
-from air.persistence.db import Database
+from air.persistence.db import Database, find_migrations_dir
 
 
 def _store(tmp_path):
     db = Database(tmp_path / "m.db")
-    db.migrate(Path(__file__).resolve().parents[1] / "migrations")
+    db.migrate(find_migrations_dir())
     return MemoryStore(db.conn), db
 
 

@@ -13,10 +13,11 @@ from pathlib import Path
 
 from air import __version__
 from air.config import AirConfig
+from air.persistence.db import find_migrations_dir
 
 
 def _migrations_dir() -> Path:
-    return Path(__file__).resolve().parents[2] / "migrations"
+    return find_migrations_dir()
 
 
 def cmd_doctor(_args: argparse.Namespace) -> int:

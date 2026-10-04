@@ -43,7 +43,11 @@ def test_decision_is_deterministic():
               failure_history_rate=0.4)
     d1 = decide(SpawnContext(**kw))
     d2 = decide(SpawnContext(**kw))
-    assert d1 == d2
+    # Decision content is deterministic; the decision_id handle is unique
+    # per decision (it keys /spawn-decisions/{id} explain).
+    assert d1.model_dump(exclude={"decision_id"}) == \
+        d2.model_dump(exclude={"decision_id"})
+    assert d1.decision_id != d2.decision_id
 
 
 def test_verifier_preferred_under_high_verification_need():

@@ -16,13 +16,13 @@ from air.experience.provenance import Provenance
 from air.experience.recorder import ExperienceRecorder
 from air.learning.bridge import BridgeBlocked, LearningBridge
 from air.memory.store import MemoryType, Provenance as MemProv
-from air.persistence.db import Database
+from air.persistence.db import Database, find_migrations_dir
 
 
 def _env(tmp_path):
     config = AirConfig(data_dir=tmp_path)
     db = Database(tmp_path / "air.db")
-    db.migrate(Path(__file__).resolve().parents[1] / "migrations")
+    db.migrate(find_migrations_dir())
     return AgentRuntime(config, db), db
 
 
