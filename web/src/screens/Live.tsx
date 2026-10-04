@@ -574,7 +574,7 @@ export default function LiveScreen() {
   }, [agents.data, messages.data]);
 
   const noProvider =
-    (models.data ?? []).length > 0 && (models.data ?? []).every((m) => m.model === 'unavailable');
+    (models.data ?? []).every((m) => m.model === 'unavailable');
 
   const isTerminal = r ? TERMINAL_RUN_STATES.includes(r.status) : true;
   const runMs = r ? elapsedMs(r.started_at ?? r.created_at, r.completed_at, now) : null;

@@ -153,10 +153,22 @@ class EventStream {
 export const eventStream = new EventStream();
 
 /** Re-render when connection state changes. */
+let streamSnapshot: { connected: boolean; reconnects: number } | null = null;
+function getStreamSnapshot() {
+  const s = eventStream;
+  if (
+    !streamSnapshot ||
+    streamSnapshot.connected !== s.connected ||
+    streamSnapshot.reconnects !== s.reconnects
+  ) {
+    streamSnapshot = { connected: s.connected, reconnects: s.reconnects };
+  }
+  return streamSnapshot;
+}
 export function useStreamState() {
   return useSyncExternalStore(
     (cb) => eventStream.subscribeState(cb),
-    () => ({ connected: eventStream.connected, reconnects: eventStream.reconnects }),
+    getStreamSnapshot,
   );
 }
 

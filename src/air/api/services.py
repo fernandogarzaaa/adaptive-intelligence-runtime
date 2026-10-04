@@ -89,7 +89,7 @@ def project_event(row: dict) -> dict:
     full envelope so a client can reconnect with a cursor and converge."""
     return {
         "event_id": row["event_id"],
-        "event_type": row["type"],
+        "event_type": row.get("event_type") or row["type"],
         "schema_version": row["schema_version"],
         "timestamp": row["timestamp"],
         "run_id": row["run_id"],
@@ -132,7 +132,7 @@ class EventService:
         for r in rows:
             out.append({
                 "sequence": r[0], "event_id": r[1], "timestamp": r[2],
-                "run_id": r[3], "agent_id": r[4], "type": r[5],
+                "run_id": r[3], "agent_id": r[4], "event_type": r[5],
                 "payload": json.loads(r[6]), "causation_id": r[7],
                 "correlation_id": r[8], "schema_version": r[9],
             })
@@ -944,7 +944,7 @@ class ExplainService:
         events = EventService(self._conn).list(run_id=run_id, limit=10000)
         by_type: dict[str, int] = {}
         for e in events:
-            by_type[e["type"]] = by_type.get(e["type"], 0) + 1
+            by_type[e["event_type"]] = by_type.get(e["event_type"], 0) + 1
         return {
             "subject": "run",
             "id": run_id,

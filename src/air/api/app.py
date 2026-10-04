@@ -668,7 +668,7 @@ def create_app() -> FastAPI:
                     for e in es.list(limit=10000,
                                      after_event_id=last_event_id):
                         yield (f"id: {e['event_id']}\n"
-                               f"event: {e['type']}\n"
+                               f"event: {e['event_type']}\n"
                                f"data: {json.dumps(project_event(e))}\n\n")
                 else:
                     yield (f"event: hello\ndata: "
@@ -715,17 +715,31 @@ def _serve_console(app: FastAPI) -> None:
     async def _console_root() -> FileResponse:
         return FileResponse(index)
 
+    # The API list routes (GET /runs, /policies, ...) share their paths
+    # with the console's frontend routes. Browser page loads send
+    # Accept: text/html; API clients send */* or application/json.
+    # Negotiate on the header so navigation renders the console while
+    # fetch/XHR still reaches the API.
+    _spa_first_segments = {"runs", "policies", "capabilities", "authority",
+                           "approvals", "experience", "memory", "metrics"}
+
+    @app.middleware("http")
+    async def _spa_html_first(request, call_next):  # type: ignore[no-untyped-def]
+        if request.method == "GET" and "text/html" in request.headers.get(
+                "accept", ""):
+            first = request.url.path.strip("/").split("/", 1)[0]
+            if first in _spa_first_segments:
+                return FileResponse(index)
+        return await call_next(request)
+
     @app.get("/{path:path}", include_in_schema=False)
     async def _console_fallback(path: str) -> FileResponse:
-        # Do not swallow unknown API paths: anything under a known API
-        # prefix that reached here is a genuine 404.
+        # API and realtime routes are registered before this fallback, so
+        # anything reaching here did not match them. Serve the console for
+        # the frontend's own top-level routes; anything else is a 404.
         first = path.split("/", 1)[0]
-        if first in {"runs", "agents", "tools", "tool-calls", "approvals",
-                     "experience", "experiences", "memory", "capabilities",
-                     "evaluations", "assurance", "models", "policies",
-                     "learning", "metrics", "events", "health", "ready",
-                     "spawn-decisions", "openapi.json", "docs",
-                     "redoc", "ws"}:
+        if first not in {"runs", "policies", "capabilities", "authority",
+                         "approvals", "experience", "memory", "metrics"}:
             from fastapi import HTTPException as _HTTPException
             raise _HTTPException(404, "not found")
         return FileResponse(index)

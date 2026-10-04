@@ -50,6 +50,14 @@ def main() -> None:
 
     rt = app_module.get_runtime()
 
+    # The sandbox has no reachable model provider. The default config
+    # registers ollama aspirationally; clear it so GET /models honestly
+    # reports zero providers and the console renders its no-provider
+    # empty state from the real API response. Scripted behaviors below
+    # stand in for model execution; nothing else needs a provider.
+    rt.providers._providers.clear()
+    rt.providers.unavailable.clear()
+
     async def specialist(agent, runtime):
         """Scripted stand-in for model execution (test harness only)."""
         if (data_dir / "regression.on").exists():

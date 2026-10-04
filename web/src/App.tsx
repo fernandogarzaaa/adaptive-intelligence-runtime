@@ -34,7 +34,7 @@ function Shell() {
   const { data: approvals } = useApi(() => Approvals.pending(), [], { pollMs: 15000 });
   const { data: models } = useApi(() => Models.list(), [], { pollMs: 60000 });
   const pendingCount = (approvals ?? []).filter((a) => a.status === 'PENDING').length;
-  const noProvider = (models ?? []).length > 0 && (models ?? []).every((m) => m.model === 'unavailable');
+  const noProvider = (models ?? []).every((m) => m.model === 'unavailable');
 
   useEffect(() => {
     // One canonical stream for the whole console.
