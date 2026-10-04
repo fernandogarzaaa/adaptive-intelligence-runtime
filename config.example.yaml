@@ -1,0 +1,10 @@
+# AIR example configuration. Secrets are NOT stored here; see .env.example.
+data_dir: ~/.air
+host: 127.0.0.1
+port: 8765
+log_level: INFO
+max_concurrent_agents: 16
+default_token_budget: 64000
+default_cost_budget_usd: 5.0
+default_time_budget_s: 1800
+default_agent_budget: 8
