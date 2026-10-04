@@ -69,7 +69,14 @@ class AgentRuntime:
                          seed: int | None = None) -> str:
         # Promoted capabilities change future allocation. Effects are data.
         from air.capabilities.store import CapabilityStore
+        from air.learning.engine import POLICY_NAME
+        from air.learning.policies import PolicyStore
         capability_effects = CapabilityStore(self.db.conn).active_effects()
+        # The current cognitive-allocation policy contributes its effects too
+        # (same data shape, tagged source policy:... for audit).
+        capability_effects = (PolicyStore(self.db.conn)
+                              .current_effects(POLICY_NAME)
+                              + capability_effects)
         plan = allocate(
             goal, context,
             token_budget=token_budget or self.config.default_token_budget,

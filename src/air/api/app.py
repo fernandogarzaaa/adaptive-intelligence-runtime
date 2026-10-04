@@ -440,6 +440,115 @@ def create_app() -> FastAPI:
                 "SELECT COUNT(*) FROM events WHERE type='spawn.denied'").fetchone()[0],
         }
 
+    @app.get("/models")
+    def list_models() -> list[dict]:
+        rt = get_runtime()
+        out = []
+        for name in rt.providers.names():
+            p = rt.providers.get(name)
+            caps = p.capabilities().model_dump() if p else {}
+            out.append({"provider": name, "model": "configured",
+                        "capabilities": caps,
+                        "local": caps.get("local", False)})
+        for name, reason in rt.providers.unavailable.items():
+            out.append({"provider": name, "model": "unavailable",
+                        "reason": reason})
+        return out
+
+    @app.get("/tools")
+    def list_tools() -> list[dict]:
+        rt = get_runtime()
+        rows = rt.db.conn.execute(
+            "SELECT id, name, server, capability_class, enabled, policy_status"
+            " FROM tools ORDER BY name").fetchall()
+        return [{"id": r[0], "name": r[1], "server": r[2],
+                 "capability_class": r[3], "enabled": bool(r[4]),
+                 "policy_status": r[5]} for r in rows]
+
+    @app.get("/policies")
+    def list_policies() -> list[dict]:
+        from air.learning.policies import PolicyStore
+        rt = get_runtime()
+        store = PolicyStore(rt.db.conn)
+        rows = rt.db.conn.execute(
+            "SELECT name, current_version FROM policies").fetchall()
+        return [{"name": r[0], "current_version": r[1],
+                 "effects": store.current_effects(r[0])} for r in rows]
+
+    @app.get("/policies/{name}")
+    def get_policy(name: str) -> dict:
+        from air.learning.policies import PolicyStore
+        store = PolicyStore(get_runtime().db.conn)
+        cur = store.current(name)
+        if cur is None:
+            raise HTTPException(404, "policy not found")
+        return {"current": cur.model_dump(),
+                "history": [v.model_dump() for v in store.history(name)]}
+
+    class PolicyProposal(BaseModel):
+        params: dict
+        reason: str
+
+    @app.post("/policies/{name}/propose")
+    async def propose_policy(name: str, req: PolicyProposal) -> dict:
+        from air.learning.policies import PolicyStore
+        rt = get_runtime()
+        store = PolicyStore(rt.db.conn,
+                            emit=lambda t, payload=None: rt.emit(t, payload=payload))
+        ver = await store.propose(name, req.params, req.reason)
+        return {"policy": name, "version": ver.version,
+                "status": ver.status}
+
+    class PolicyPromotion(BaseModel):
+        version: str
+        evaluation: dict | None = None
+        assurance: dict | None = None
+
+    @app.post("/policies/{name}/promote")
+    async def promote_policy(name: str, req: PolicyPromotion) -> dict:
+        from air.learning.policies import GateBlocked, PolicyStore
+        rt = get_runtime()
+        store = PolicyStore(rt.db.conn,
+                            emit=lambda t, payload=None: rt.emit(t, payload=payload))
+        try:
+            ver = await store.promote(name, req.version,
+                                      evaluation=req.evaluation,
+                                      assurance=req.assurance)
+        except GateBlocked as e:
+            raise HTTPException(409, {"blocked": e.reasons})
+        return {"policy": name, "version": ver.version,
+                "status": ver.status}
+
+    @app.post("/policies/{name}/rollback")
+    async def rollback_policy(name: str) -> dict:
+        from air.learning.policies import GateBlocked, PolicyStore
+        rt = get_runtime()
+        store = PolicyStore(rt.db.conn,
+                            emit=lambda t, payload=None: rt.emit(t, payload=payload))
+        try:
+            ver = await store.rollback(name)
+        except GateBlocked as e:
+            raise HTTPException(409, {"blocked": e.reasons})
+        return {"policy": name, "version": ver.version,
+                "status": ver.status}
+
+    @app.post("/learning/analyze")
+    def learning_analyze() -> dict:
+        from air.learning.engine import LearningEngine
+        return LearningEngine(get_runtime().db.conn).analyze()
+
+    @app.post("/learning/propose")
+    async def learning_propose() -> dict:
+        from air.learning.engine import LearningEngine
+        rt = get_runtime()
+        engine = LearningEngine(
+            rt.db.conn,
+            emit=lambda t, payload=None: rt.emit(t, payload=payload))
+        proposal = await engine.propose_policy_update()
+        if proposal is None:
+            return {"proposed": False,
+                    "reason": "insufficient evidence or no changes warranted"}
+        return {"proposed": True, **proposal}
     @app.websocket("/ws")
     async def ws(ws: WebSocket) -> None:
         await ws.accept()
