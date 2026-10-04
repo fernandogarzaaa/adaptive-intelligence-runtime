@@ -1,11 +1,24 @@
 # Learning Engine Redesign: Formal Learning Problem and Policy Representation
 
-**Status: design revision, not implementation.** Written 2026-10-04,
-after the D-series falsified the v1 learning mechanism. No code
-changes follow from this document until it is reviewed. The rule
-this document exists to enforce: do not build a learner whose
-hypothesis space is incapable of representing the phenomenon under
-study — the exact mistake the D-series exposed.
+**Status: design revision v2, amended per review 2026-10-04.**
+Implementation of the learner and the synthetic shakedown is
+approved **after** these amendments. No D-series until the
+shakedown passes and the promotion protocol is sealed. No code
+changes follow from this document until then.
+
+Changelog from v1: declared_kind removed from the default
+hypothesis space (three-class feature schema); mechanical
+task-effect features added; eligibility matrix fixed
+(FALSIFIED+UNSOUND excluded); overlap requirements added;
+evaluation pool sealed with one-candidate discipline;
+parent-vs-candidate intervention runs required; non-inferiority
+margins replace raw "no regression"; multiplicity and paired
+tests specified; resource efficiency in the promotion gate;
+confidence renamed to evidence_strength; typed canonical scope
+and rule hashing; feasibility-before-topology for hard
+requirements; attribution defined as conditional association,
+not causation; shakedown uses matched minimal pairs and
+behavioral equivalence.
 
 ## 1. Research state
 
@@ -15,10 +28,7 @@ study — the exact mistake the D-series exposed.
   p=0.0294).
 - **H2**: AIR can learn improved organization policies from
   verified experience. **Implementation falsified; underlying
-  hypothesis unresolved.** The v1 engine aggregates run
-  completion, never verification verdicts; its policy format
-  (global strategy boosts) cannot represent task-kind × strategy
-  interactions; its policy evaluation is at ceiling.
+  hypothesis unresolved.**
 - **H3**: a sufficiently expressive, verdict-aware learning
   mechanism can discover task-conditioned organization policies.
   **Untested.** This document specifies the mechanism that would
@@ -26,148 +36,183 @@ study — the exact mistake the D-series exposed.
 
 ## 2. The formal learning problem
 
-**Input.** A set of verified-outcome records (section 3), each
-binding task features, the allocation that was chosen, the
-organization that executed, the evidence produced, and the
-evaluation + assurance verdicts on the claimed outcome.
+**Input.** Verified-outcome records (section 3): task features,
+allocation chosen, organization executed, evidence produced,
+evaluation + assurance verdicts.
 
 **Hypothesis space.** Finite sets of `AllocationRule`
 (section 5): conditional rules mapping task features to
 organization requirements and strategy-scoring adjustments. The
-space is fixed and inspectable; learning selects within it, never
-outside it.
+space is fixed and inspectable; learning selects within it,
+never outside it.
 
 **Objective.** Maximize the verified-success rate on *unseen*
 tasks (generalization), as measured by discriminating evaluation
 (section 8). Fitting the training experiences is necessary but
-never sufficient; a rule set that memorizes D1 without
-transferring to D3 is a failure, detectable by construction.
+never sufficient.
 
 **Constraints.**
-- No LLM judge anywhere in the loop. Every artifact is
-  mechanically inspectable: every rule cites its evidence
-  experiences, every promotion cites its evaluation and
-  assurance records.
+- No LLM judge anywhere. Every artifact is mechanically
+  inspectable: every rule cites its evidence experiences, every
+  promotion cites its evaluation and assurance records.
 - Only promotion-gated policy changes may influence allocation.
-  The learner proposes; the gates dispose.
 - The learner never sees task IDs, condition labels, phase
   labels, or any field correlated with the intended answer.
 
 ## 3. Input contract: the VerifiedOutcome record
 
-The v1 engine consumed raw run records (completion aggregates).
-The redesigned engine consumes only this record. A run that does
-not produce one is invisible to learning.
-
 ```
 VerifiedOutcome
-├── task_features      # fixed mechanical schema (section 6)
+├── task_features      # three-class schema (section 6)
 ├── allocation         # strategy chosen, scores at decision time,
-│                      # organization proposed (roles, capabilities)
+│                      # organization proposed (roles, capabilities,
+│                      # topology)
 ├── execution          # what actually ran (agents, tool calls)
 ├── evidence           # evidence objects cited for the outcome
 ├── evaluation
-│   ├── verdict        # SUPPORTED | FALSIFIED | INCONCLUSIVE | INVALID | UNTESTED
-│   ├── metrics        # per-check results
+│   ├── verdict        # SUPPORTED | FALSIFIED | INCONCLUSIVE
+│   │                  # | INVALID | UNTESTED
+│   ├── metrics
 │   └── evaluator_version
 └── assurance
-    ├── verdict        # SOUND | INCONCLUSIVE | UNSOUND (or NOT_RUN)
+    ├── verdict        # SOUND | INCONCLUSIVE | UNSOUND | NOT_RUN
     └── assurance_version
 ```
 
 ## 4. Learning eligibility
 
 The D1 pathology was inferring positive utility from a completed
-but INCONCLUSIVE run. Eligibility is now a function of the
-verdicts, and it is the same epistemic hierarchy the rest of AIR
-uses: execution → evidence → evaluation → assurance → learning
-eligibility.
+but INCONCLUSIVE run. A subtler pathology would be learning from
+an evaluator's negative verdict that assurance itself distrusts:
+"this evaluator cannot be trusted" must never coexist with "let's
+nevertheless learn from its verdict." Eligibility binds the
+assurance verdict too:
 
 | evaluation | assurance | eligibility |
 |---|---|---|
 | SUPPORTED | SOUND | **positive** learning evidence |
-| SUPPORTED | not SOUND (INCONCLUSIVE, UNSOUND, NOT_RUN) | excluded from directional updates (verified but unassured; counts toward coverage statistics only) |
-| FALSIFIED | any | **negative** learning evidence |
-| INCONCLUSIVE | any | **no directional reward** (excluded from updates) |
-| INVALID | any | **excluded** entirely |
-| UNTESTED | any | **excluded** entirely |
+| SUPPORTED | not SOUND | **excluded** |
+| FALSIFIED | SOUND | **negative** learning evidence |
+| FALSIFIED | not SOUND | **excluded** |
+| INCONCLUSIVE | any | **nondirectional** (excluded from updates) |
+| INVALID / UNTESTED | any | **excluded** |
 
 A rule's supporting evidence is the set of eligible records it
 was derived from; a rule with no eligible evidence cannot exist.
+This is a blocking semantic: the earlier draft allowed
+FALSIFIED+UNSOUND as negative evidence, which violates the
+evaluator-independence principle the assurance architecture was
+built to protect.
 
 ## 5. Policy representation: AllocationRule
-
-Replaces global strategy boosts, which are incapable of
-expressing "parallel research is good for research tasks but bad
-for artifact-producing tasks without a production capability."
 
 ```
 AllocationRule
 ├── id
 ├── WHEN: predicate            # conjunction of atomic conditions
-│                              # over the fixed task-feature schema
+│                              # over the admissible feature schema
 ├── THEN: action                # one of:
 │                              #   require_capability(CapabilityClass)
 │                              #   require_role(role)
 │                              #   boost_strategy(Strategy, delta)
 │                              #   penalize_strategy(Strategy, delta)
 ├── WITH:
-│   ├── evidence               # VerifiedOutcome ids (eligible only)
-│   ├── confidence             # mechanical: function of the
-│   │                          #   verified-rate differential magnitude
-│   │                          #   and eligible evidence count.
-│   │                          #   Formula versioned; never a vibe.
-│   ├── scope                  # task-feature strata the rule was
-│   │                          #   validated on; the rule does not
-│   │                          #   apply outside its scope
+│   ├── evidence               # eligible VerifiedOutcome ids
+│   ├── evidence_strength      # deterministic, versioned formula
+│   │                          #   of association magnitude and
+│   │                          #   eligible evidence count.
+│   │                          #   NOT statistical confidence.
+│   ├── uncertainty            # kept separate: effect estimate,
+│   │                          #   confidence interval, sample size,
+│   │                          #   overlap statistics, p-value
+│   ├── scope                  # typed canonical predicate +
+│   │                          #   feature_schema_version; the rule
+│   │                          #   does not apply outside its scope
 │   ├── constraints            # hard limits, e.g. max |delta|,
-│   │                          #   "may not override safety constraints",
-│   │                          #   "may not remove verifier from
-│   │                          #   production tasks"
+│   │                          #   "may not override safety
+│   │                          #   constraints"
 │   └── priority               # integer; resolves rule conflicts
+├── rule_schema_version
+├── feature_schema_version
+├── organization_schema_version
+├── policy_semantics_version
+└── rule_hash                  # hash of the canonical form;
+                               # reproducible, drift-proof
 ```
 
-Semantics. At allocation time, for a task with features F:
-applicable rules are those whose WHEN holds and whose scope
-covers F. Constraints are vetoes (a rule violating a constraint
-is inert, loudly). `require_*` actions are hard requirements:
-organizations not satisfying them are removed from consideration.
-Scoring actions adjust the existing `score_strategies` outputs.
-Conflicts between applicable rules resolve by priority, then by
-narrower scope, deterministically. The full decision (applicable
-rules, conflicts, resolution) is recorded on the allocation
-record — the allocator's reasoning is itself auditable.
-
-Example (illustrative, not hardcoded):
+Semantics. For a task with features F, applicable rules are
+those whose WHEN holds and whose scope covers F. Constraints are
+vetoes. `require_*` actions are **hard requirements evaluated
+during strategy feasibility, before topology commitment**:
 
 ```
-IF requires_artifact = true AND artifact_count > 1
-THEN require_capability(WRITE)
-WITH evidence=[...], confidence=0.81, scope={write_multi},
-     constraints={max_boost: 0.5}, priority=10
+strategy
+  → feasible organization(s)
+  → apply hard requirements (veto violators)
+  → score surviving organizations
+  → choose
 ```
 
-The research question is whether AIR can *discover* such rules.
-They must never be hand-written into the policy.
+NOT: choose topology first, discover the violation afterward.
+A requirement that fires after the organization is built has
+merely moved the D1 failure one stage later. Scoring actions
+adjust the existing `score_strategies` outputs for survivors.
+Conflicts resolve deterministically: constraints → hard
+requirements → scoring adjustments → priority → narrower scope.
+The allocator records applicable rules, conflicts, and
+resolutions on every allocation record.
 
-## 6. Task features: mechanical, fixed, versioned
+The representation can express the observed failure
+(`WHEN task requires multiple output artifacts THEN
+require_role(producer)`) while still permitting (`WHEN task
+requires research AND work units are independent THEN
+boost_strategy(parallel_agents, +δ)`) — task-conditioned
+organization, not global strategy preference.
 
-Predicates range over a fixed feature schema computed by
-deterministic, versioned extractor functions of the task
-definition (goal text, declared task fields). Never hand-labeled
-per task after results are seen; never derived from the task ID
-or any answer-correlated label. Initial schema (v1):
+## 6. Task features: three classes, mechanical extraction
 
-- `names_production_verb`: bool (deterministic verb list:
-  write/create/build/generate/produce — versioned, inspectable)
-- `artifact_mentions`: int (count of path-like tokens)
-- `involves_reading`: bool, `involves_execution`: bool
-- `declared_kind`: the task record's kind field (write_multi,
-  read_write, …) — a task-specification property, not a label
-- `multi_step`: bool (more than one operation in the task spec)
+Predicates range over a fixed, versioned feature schema computed
+by deterministic extractor functions of the task definition.
+The schema is split because not all "features" are
+epistemically equal:
 
-The extractor is itself a versioned artifact; changing it is a
-protocol change, not a tuning knob.
+**A. Runtime-observable task features** (admissible by
+default — available naturally before allocation):
+
+- `requires_output_artifact`: bool
+- `output_artifact_count`: int
+- `has_named_output_targets`: bool
+- `requested_write_effect`, `requested_read_effect`,
+  `requested_execute_effect`: bool
+- `independent_work_unit_count`: int
+- `dependency_depth`: int
+- `multi_step`: bool
+
+The critical distinction: *"write" appears in the sentence*
+versus *the task specification requires a write effect*. The
+schema encodes the second — mechanically derived from the task
+specification's declared operations and targets, not from
+lexical proxies. The intended learned rule is then
+"output-producing task → organization containing production
+capability," a far better research object than "task contains
+the word write → producer."
+
+**B. User/task-author declarations** (admissible only when they
+genuinely exist before execution): `declared_kind`,
+`declared_constraints`, `declared_output_type`.
+
+**C. Benchmark/evaluation labels** (never admissible to the
+learner): `production_task`, `correct_strategy`,
+`expected_role`, `condition`, `phase`, and — for our
+benchmarks — the task record's `kind` field (`write_multi`,
+...), which was assigned by the experiment designer and is
+benchmark metadata, not a pre-allocation observable.
+`declared_kind` is therefore **excluded from the default H3
+hypothesis space**. A production deployment with genuine
+user-declared kinds may admit class B; our task sets may not.
+Allowing `WHEN declared_kind = write_multi THEN
+require_role(producer)` would let the learner "succeed" without
+learning anything from outcomes, silently redefining H3.
 
 ## 7. The pipeline
 
@@ -176,43 +221,33 @@ EXPERIENCE (VerifiedOutcome records)
     │
     ▼
 ┌──────────────────┐
-│ Verified Outcome │  assemble records; drop ineligible runs
-│ Extraction       │  (section 4); output is the learning dataset
+│ Verified Outcome │  assemble records; apply eligibility
+│ Extraction       │  (section 4); the learning dataset
 └────────┬─────────┘
          │
          ▼
 ┌─────────────────┐
-│ Experience      │  contrastive: for each organizational
-│ Attribution     │  property P in the fixed property schema
-│                 │  (strategy used, role set, capability coverage),
-│                 │  partition eligible records by task-feature
-│                 │  strata and compute the verified-rate
-│                 │  differential with vs without P, with minimum
-│                 │  evidence counts. Report differentials that
-│                 │  persist under conditioning, plus the
-│                 │  confounders checked.
+│ Experience      │  CONDITIONAL ASSOCIATIONS, not causal
+│ Attribution     │  attribution (section 8)
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│ Hypothesis      │  exhaustive-but-pruned enumeration over the
-│ Generator       │  property schema × feature strata:
-│                 │  differentials above threshold and evidence
-│                 │  minimum become candidate AllocationRules
-│                 │  with provisional confidence.
+│ Hypothesis      │  pruned enumeration over the property
+│ Generator       │  schema × feature strata → candidate rules
+│                 │  with evidence_strength
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│ Policy Candidate│  candidate = parent policy + candidate rules;
-│ Generator       │  rule conflicts resolved per section 5;
-│                 │  every rule carries its evidence.
+│ Policy Candidate│  ONE candidate selected; conflicts resolved;
+│ Generator       │  every rule carries its evidence
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│ Discriminating  │  evaluate parent vs candidate on a set built
-│ Evaluation      │  to discriminate (section 8)
+│ Sealed          │  parent vs candidate INTERVENTION runs on a
+│ Evaluation      │  sealed pool (section 9)
 └────────┬────────┘
          │
          ▼
@@ -225,59 +260,119 @@ EXPERIENCE (VerifiedOutcome records)
 PROMOTE     REJECT
 ```
 
-The critical addition over v1 is Experience Attribution: the
-learner asks "given the task's characteristics, what
-organizational property distinguishes verified successes from
-verified failures?" — not "which strategy had successful runs?"
+Epistemology of the loop, kept clean:
 
-## 8. Discriminating evaluation
+```
+observed experience
+        ↓
+conditional association
+        ↓
+hypothesis
+        ↓
+intervention
+        ↓
+measured effect
+```
 
-Fixes the ceiling problem. Construction:
+Observational data generates hypotheses; only the intervention
+establishes effects. Nothing in the attribution stage is
+described in causal language.
 
-1. Compute the *decision delta*: the task-feature regions where
-   parent and candidate policies choose different organizations.
-   If the delta is empty, evaluation is vacuous and promotion
-   is refused outright (never "no difference detected, promote
-   anyway").
-2. The discriminating set covers the delta regions plus a
-   regression set (regions where both agree, to catch
-   regressions). It must include, at minimum, one class per
-   qualitatively distinct allocation regime:
-   - research task → parallel research good
-   - single artifact → direct/single producer good
-   - multi-artifact → producer (+ verifier) good
-   - multi-file research + production → researcher(s) +
-     producer (+ verifier) good
-   - production task with misleading lexical cues → producer
-     required despite wording good (the D3 "three" shortcut:
-     the evaluation must contain the confounder class, or the
-     learner is never tested against shortcut learning)
+## 8. Experience Attribution: associations with overlap requirements
 
-Promotion criterion (preregistered): the candidate must not
-regress on any class and must improve on at least one class, at
-a preregistered minimum effect size and statistical bar
-(Fisher's exact on verified outcomes, preregistered alpha).
-INCONCLUSIVE/INVALID outcomes are bucketed explicitly per the
-contamination rules; they never count as successes.
+For each organizational property P in the fixed property schema
+(strategy used, role set, capability coverage, **topology**),
+partition eligible records by task-feature strata and compute
+the verified-rate differential with vs without P. A proposed
+relationship requires:
 
-## 9. Mechanical inspectability
+- minimum treated support (eligible records with P present)
+- minimum untreated support (eligible records with P absent)
+- minimum positive and negative support within each side
+- feature-stratum overlap between the sides
+
+Thresholds are preregistered constants, not tuned per run.
+When overlap does not exist, the attribution outcome is
+**INSUFFICIENT_OVERLAP** — a first-class result, never a causal
+claim. In particular: P present in 10 failures with zero
+untreated observations is hypothesis-generation material, not
+evidence that P caused anything. This matters directly for D1,
+whose data are one-sided by construction.
+
+Report, per hypothesis: the differential, the support counts,
+the confounders conditioned on, and the overlap statistics.
+
+## 9. Sealed discriminating evaluation
+
+Fixes both the ceiling problem and the test-set-as-tuning-set
+problem.
+
+1. **Decision delta.** Compute the task-feature regions where
+   parent and candidate choose different organizations. If the
+   delta is empty, evaluation is vacuous: promotion refused
+   outright.
+2. **Sealed pool.** The evaluation pool is feature-stratified;
+   its outcomes are sealed **before** candidate generation.
+   Discipline, strictly enforced:
+   training experiences → candidate generation → ONE candidate
+   selected → sealed pool → parent vs candidate execution →
+   promotion decision. If a candidate fails, a revised
+   candidate requires a **new sealed allocation**. Never
+   modify-and-rerun against the same holdout; never let
+   candidate generation adapt to test outcomes. This is the
+   single most important statistical control in the design.
+3. **Intervention, not retrospection.** The decisive
+   evaluation executes parent and candidate on the same tasks,
+   same environment, same budgets, same evaluator, same
+   assurance — paired outcomes. Comparing historical
+   experiences tagged v1 vs candidate repeats the old
+   ceiling-evaluator weakness and is forbidden for the
+   promotion decision.
+4. **Statistical bar (preregistered).**
+   - Performance classes: non-inferiority margins, not raw
+     "no regression." The candidate's verified-rate lower
+     bound must remain above parent − ε (ε preregistered per
+     class), because 10/10→9/10, 50/50→49/50, and 5/5→0/5
+     are not the same evidence.
+   - Safety/invariant classes: hard zero-tolerance. Any
+     violation rejects.
+   - Improvement: required on at least one discriminating
+     class at the preregistered bar.
+   - Multiplicity: preregistered strategy across classes
+     (e.g., hierarchical primary-then-secondary, or
+     Holm–Bonferroni); the method is frozen before evaluation.
+   - Paired holdout → exact McNemar-style paired test on
+     binary verified success. Independent holdout → Fisher's
+     exact. The choice is frozen before evaluation.
+5. **Resource efficiency in the gate.** The baseline showed B
+   matching A at 4× the agent cost; a learner that "solves" a
+   failure by spawning more agents is a bad adaptive policy.
+   Verified success must improve (per the bar above); cost and
+   latency must be non-inferior within preregistered bounded
+   increases; agent count and tool calls are measured as
+   diagnostics in this revision.
+
+## 10. Mechanical inspectability
 
 - Every rule cites eligible VerifiedOutcome ids. No evidence,
   no rule.
-- Every promotion cites the discriminating evaluation id and
-  the assurance id.
-- Confidence is a versioned formula of differential magnitude
-  and evidence count, recomputable by hand.
+- Every promotion cites the sealed evaluation id and the
+  assurance id.
+- evidence_strength is a versioned deterministic formula,
+  recomputable by hand; uncertainty (interval, n, overlap,
+  p-value) is reported alongside, never conflated with it.
 - The allocator records applicable rules, conflicts, and
-  resolutions on every allocation record.
-- An independent party with the ledgers can re-derive every
-  rule, every promotion, and every rejection.
+  resolutions per allocation.
+- An independent party with the ledgers re-derives every rule,
+  promotion, and rejection.
 
-## 10. Learning Engine Shakedown (gated milestone)
+## 11. Learning Engine Shakedown (gated milestone)
 
-Before another D-series, the redesigned learner must pass a
-shakedown on synthetic cases where the correct rule is known
-but hidden from the learner:
+No D-series until this passes and the promotion protocol is
+sealed.
+
+**Stage 1: known-rule recovery.** Synthetic cases where the
+correct rule is known but hidden:
 
 | task type | strategy | verified outcome |
 |---|---|---|
@@ -288,42 +383,86 @@ but hidden from the learner:
 | mixed | parallel | failure |
 | mixed | hierarchical | success |
 
-Pass criterion: the learner recovers a conditional policy
-distinguishing production from research (a rule whose scope and
-predicate capture the production requirement, not a global
-penalty on parallel).
+**Stage 2: matched minimal pairs.** Surface features held
+≈ identical while the required effect differs — matched on
+word count, the token "three," artifact mentions, step count,
+read operations, execution flags:
 
-Then confounders, to test causal vs lexical learning:
+- Research: "Review three sources and summarize them."
+  (parallel good)
+- Production: "Create three files containing the requested
+  material." (producer required)
 
-- "three researchers" (research, parallel good)
-- "three files" (production, producer required)
-- "three sources" (research, parallel good)
-- "three sections" (production, producer required)
+plus the confounder set: "three researchers" (research),
+"three files" (production), "three sources" (research),
+"three sections" (production).
 
-The learner must acquire the structural feature (production
-requirement → production capability), not the word "three".
-Only after passing both stages does another D-series run.
+**Pass criterion: behavioral equivalence, not syntax.** For
+the prespecified shakedown population, the learned policy must
+select production-capable organizations for the production
+strata, preserve parallel research behavior, and reject the
+lexical confounders — whether it expresses that as
+`requires_output AND output_count > 1 → require_role(producer)`
+or as `requested_write_effect → require_capability(WRITE)`.
+Simplicity and generality are measured separately. A learner
+that emits the right string for the wrong reason (e.g.,
+`artifact_mentions > 2 → producer`) fails the minimal pairs.
 
-## 11. What would falsify H3
+## 12. What would falsify H3
 
 - The redesigned learner passes the shakedown but cannot
   recover a useful rule from real D1-style data.
 - Its rules do not survive D3 generalization.
-- No mechanically-inspectable learner (within this hypothesis
-  space) beats the lexical-shortcut problem — that would bound
-  the approach and force the question of whether semantic
+- No mechanically-inspectable learner in this hypothesis
+  space beats the lexical-shortcut problem — bounding the
+  approach and forcing the question of whether semantic
   hypothesis generation (behind assurance, adversarially
-  evaluated) is necessary after all.
+  evaluated) is necessary.
 
-## 12. Non-goals
+## 13. Non-goals
 
 - No LLM judge, no LLM hypothesis generator in this revision.
-  An LLM may eventually become a hypothesis *generator*, but it
-  must never be the authority that declares its own hypothesis
-  successful; that stays with discriminating evaluation +
-  assurance.
 - No change to the evidence, evaluation, assurance, or
-  epistemic layers. This redesign consumes their outputs; it
-  does not redefine them.
-- No retrospective re-explanation of the D-series. The v1
-  results stand as the falsification record.
+  epistemic layers. This redesign consumes their outputs.
+- No retrospective re-explanation of the D-series results.
+
+## Appendix: the loop
+
+What this design is becoming — a small causal-adaptation loop:
+
+```
+                 EXPERIENCE
+                     │
+                     ▼
+             VERIFIED OUTCOME
+                     │
+                     ▼
+          CONDITIONAL ASSOCIATIONS
+                     │
+                     ▼
+              HYPOTHESIS SPACE
+                     │
+                     ▼
+            POLICY CANDIDATE
+                     │
+             ┌───────┴───────┐
+             ▼               ▼
+        parent policy    candidate policy
+             │               │
+             └───────┬───────┘
+                     ▼
+              SEALED INTERVENTION
+                     │
+                     ▼
+               EVALUATION
+                     │
+                     ▼
+                ASSURANCE
+                     │
+             ┌───────┴───────┐
+             ▼               ▼
+           REJECT          PROMOTE
+```
+
+The learner never decides what constitutes evidence that the
+learner improved. Discriminating intervention + assurance do.
