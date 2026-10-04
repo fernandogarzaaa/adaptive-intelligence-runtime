@@ -300,6 +300,14 @@ def create_app() -> FastAPI:
     def run_world(run_id: str) -> dict:
         return RunService(_conn(), _rt).world(run_id)
 
+    @app.get("/runs/{run_id}/messages")
+    def run_messages(run_id: str, limit: int = 200) -> list[dict]:
+        return AgentService(_conn(), _rt).messages(run_id, limit)
+
+    @app.get("/runs/{run_id}/spawn-decisions")
+    def run_spawn_decisions(run_id: str) -> list[dict]:
+        return EventService(_conn()).spawn_decisions(run_id)
+
     @app.get("/runs/{run_id}/explain")
     def explain_run(run_id: str) -> dict:
         return ExplainService(_conn(), _rt).explain_run(run_id)
@@ -381,9 +389,10 @@ def create_app() -> FastAPI:
     @app.get("/tool-calls")
     def list_tool_calls(run_id: str | None = None,
                         agent_id: str | None = None,
+                        state: str | None = None,
                         limit: int = 100) -> list[dict]:
         return ToolService(_conn(), _rt).list_calls(
-            run_id=run_id, agent_id=agent_id, limit=limit)
+            run_id=run_id, agent_id=agent_id, state=state, limit=limit)
 
     @app.get("/tool-calls/{call_id}")
     def get_tool_call(call_id: str) -> dict:

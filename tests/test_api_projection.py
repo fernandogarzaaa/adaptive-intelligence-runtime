@@ -418,7 +418,54 @@ def test_promote_requires_persisted_evidence(client):
 
 # ------------------------------------------------------- explain
 
-def test_explain_endpoints(client):
+def test_run_messages(client):
+    run_id = _seed_run(client)
+    root = _seed_agent(client, run_id)
+    r = client.post(f"/agents/{root}/message?run_id={run_id}",
+                    json={"to_agent_id": None, "channel": "sibling",
+                          "kind": "note", "payload": {"text": "hello"}})
+    assert r.status_code == 200
+    msgs = client.get(f"/runs/{run_id}/messages").json()
+    assert len(msgs) == 1
+    assert msgs[0]["payload"] == {"text": "hello"}
+    assert msgs[0]["from_agent_id"] == root
+
+
+def test_spawn_decisions_list_includes_evidence(client):
+    run_id = _seed_run(client)
+    root = _seed_agent(client, run_id)
+    r = client.post(f"/agents/{root}/spawn",
+                    json={"objective": "child work", "role": "coder"})
+    assert r.status_code == 200
+    decisions = client.get(f"/runs/{run_id}/spawn-decisions").json()
+    assert len(decisions) >= 1
+    d = next(x for x in decisions
+             if x["decision_id"] == r.json()["decision_id"])
+    assert d["decision"] in ("SPAWN", "DENY")
+    assert d["inputs"]["spawn_threshold"] is not None
+    assert d["events"], "decision must reference its event trail"
+
+
+def test_tool_calls_state_filter(client, tmp_path):
+    run_id = _seed_run(client)
+    root = _seed_agent(client, run_id)
+    _conn().execute(
+        "UPDATE agents SET granted_capabilities=? WHERE id=?",
+        (json.dumps(["READ"]), root))
+    _conn().commit()
+    (tmp_path / "probe.txt").write_text("filter me")
+    r = client.post(f"/agents/{root}/tools/call",
+                    json={"tool_name": "fs.read",
+                          "args": {"path": "probe.txt"}})
+    assert r.status_code == 200
+    committed = client.get("/tool-calls",
+                           params={"run_id": run_id,
+                                   "state": "COMMITTED"}).json()
+    assert any(c["id"] == r.json()["id"] for c in committed)
+    denied = client.get("/tool-calls",
+                        params={"run_id": run_id,
+                                "state": "DENIED"}).json()
+    assert all(c["state"] == "DENIED" for c in denied)
     run_id = _seed_run(client)
     root = _seed_agent(client, run_id)
     r = client.post(f"/agents/{root}/spawn",

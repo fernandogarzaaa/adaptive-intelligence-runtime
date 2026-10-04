@@ -143,6 +143,46 @@ class EventService:
             "SELECT event_id FROM events ORDER BY rowid DESC LIMIT 1").fetchone()
         return row[0] if row else None
 
+    def spawn_decisions(self, run_id: str) -> list[dict]:
+        """Every spawn decision for a run, approved AND denied, newest
+        first. Denied decisions are first-class evidence that AIR does not
+        spawn indiscriminately."""
+        rows = self._conn.execute(
+            "SELECT type, payload, timestamp FROM events"
+            " WHERE run_id=? AND type IN ('spawn.requested','spawn.approved',"
+            " 'spawn.denied') ORDER BY rowid DESC LIMIT 500",
+            (run_id,)).fetchall()
+        by_id: dict[str, dict] = {}
+        for typ, payload_json, ts in rows:
+            p = json.loads(payload_json)
+            did = p.get("decision_id")
+            if not did:
+                continue
+            entry = by_id.setdefault(did, {
+                "decision_id": did,
+                "decision": p.get("decision"),
+                "role": p.get("role"),
+                "reason": p.get("reason"),
+                "expected_gain": p.get("expected_gain"),
+                "estimated_cost": p.get("estimated_cost"),
+                "risk": p.get("risk"),
+                "inputs": p.get("inputs"),
+                "evidence": p.get("evidence"),
+                "events": [],
+            })
+            entry["events"].append({"type": typ, "timestamp": ts})
+            # The requested event carries the full decision payload; later
+            # events (approved/denied) only carry the decision_id.
+            if typ == "spawn.requested":
+                entry["decision"] = p.get("decision")
+                entry["reason"] = p.get("reason")
+                entry["expected_gain"] = p.get("expected_gain")
+                entry["estimated_cost"] = p.get("estimated_cost")
+                entry["risk"] = p.get("risk")
+                entry["inputs"] = p.get("inputs")
+                entry["evidence"] = p.get("evidence")
+        return list(by_id.values())
+
 
 # ------------------------------------------------------------------ runs
 
@@ -318,6 +358,19 @@ class AgentService:
             run_id, from_agent_id, to_agent_id, channel, kind, payload)
         return {"message_id": msg_id}
 
+    def messages(self, run_id: str, limit: int = 200) -> list[dict]:
+        RunService(self._conn, self._runtime).get(run_id)  # 404 if unknown
+        rows = self._conn.execute(
+            "SELECT id, from_agent_id, to_agent_id, channel, kind, payload,"
+            " created_at FROM agent_messages WHERE run_id=?"
+            " ORDER BY created_at LIMIT ?", (run_id, limit)).fetchall()
+        out = []
+        for r in rows:
+            out.append({"id": r[0], "from_agent_id": r[1],
+                        "to_agent_id": r[2], "channel": r[3], "kind": r[4],
+                        "payload": json.loads(r[5]), "created_at": r[6]})
+        return out
+
 
 # ------------------------------------------------------------------ tools
 
@@ -366,7 +419,9 @@ class ToolService:
         return out
 
     def list_calls(self, run_id: str | None = None,
-                   agent_id: str | None = None, limit: int = 100) -> list[dict]:
+                   agent_id: str | None = None,
+                   state: str | None = None,
+                   limit: int = 100) -> list[dict]:
         q = ("SELECT id, run_id, agent_id, tool_name, capability, state,"
              " verification_status, created_at FROM tool_calls")
         clauses, params = [], []
@@ -376,6 +431,9 @@ class ToolService:
         if agent_id:
             clauses.append("agent_id = ?")
             params.append(agent_id)
+        if state:
+            clauses.append("state = ?")
+            params.append(state)
         if clauses:
             q += " WHERE " + " AND ".join(clauses)
         q += " ORDER BY created_at DESC LIMIT ?"
