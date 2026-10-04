@@ -45,6 +45,11 @@ class Blocked(ApiError):
     status_code = 409
 
 
+class Forbidden(ApiError):
+    """The runtime denied the operation (scope, permission)."""
+    status_code = 403
+
+
 class Unprocessable(ApiError):
     status_code = 422
 
@@ -354,8 +359,13 @@ class AgentService:
     async def message(self, run_id: str, from_agent_id: str | None,
                       to_agent_id: str | None, channel: str, kind: str,
                       payload: dict) -> dict:
-        msg_id = await self._runtime().send_message(
-            run_id, from_agent_id, to_agent_id, channel, kind, payload)
+        try:
+            msg_id = await self._runtime().send_message(
+                run_id, from_agent_id, to_agent_id, channel, kind, payload)
+        except PermissionError as e:
+            # Out-of-scope denial: already recorded as a policy.blocked
+            # event by the runtime. The API reports it, never overrides it.
+            raise Forbidden(str(e))
         return {"message_id": msg_id}
 
     def messages(self, run_id: str, limit: int = 200) -> list[dict]:
@@ -391,8 +401,15 @@ class ToolService:
     async def call(self, agent_id: str, tool_name: str, args: dict) -> dict:
         """The client requests a tool call; the gateway independently
         resolves authorization, budget, approvals, and verification."""
+        from air.security.approvals import ApprovalRequired
         try:
             result = await self._runtime().call_tool(agent_id, tool_name, args)
+        except ApprovalRequired as e:
+            # Not an error: the call is parked as APPROVAL_PENDING and the
+            # operator decides via /approvals. The console needs the id.
+            raise Forbidden({"reason": e.reason,
+                             "approval_id": e.approval_id,
+                             "state": "APPROVAL_PENDING"})
         except ValueError as e:
             raise NotFound(str(e))
         return result.model_dump() if hasattr(result, "model_dump") else result

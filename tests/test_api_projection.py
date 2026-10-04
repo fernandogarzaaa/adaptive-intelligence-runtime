@@ -509,3 +509,67 @@ def test_experience_lineage(client):
     assert body["subject"] == "experience"
     assert body["inputs"]["run_id"] == run_id
     assert "evaluation_refs" in body["evidence_references"]
+
+
+def test_out_of_scope_message_is_403_not_500(client):
+    """A cross-run message is denied by the runtime (policy.blocked event)
+    and the API surfaces it as 403 Forbidden, never a 500."""
+    run1 = _seed_run(client)
+    a1 = _seed_agent(client, run1)
+    run2 = _seed_run(client)
+    a2 = _seed_agent(client, run2)
+    r = client.post(
+        f"/agents/{a1}/message?run_id={run1}",
+        json={"to_agent_id": a2, "channel": "sibling",
+              "kind": "note", "payload": {}})
+    assert r.status_code == 403, (r.status_code, r.text[:200])
+    assert "not in communication scope" in r.text
+
+
+def test_approval_required_tool_call_is_403_with_approval_id(client):
+    """A tool call gated on operator approval returns 403 carrying the
+    approval_id, so the console can direct the operator to the inbox."""
+    import asyncio
+
+    from air.security.policy import CapabilityClass
+    from air.tools.registry import ToolDefinition
+
+    run_id = _seed_run(client)
+    rt = app_module.get_runtime()
+
+    async def _noop(args, ctx):
+        return {"ok": True}
+
+    rt.tool_gateway()._registry.register(
+        ToolDefinition(name="test.privileged",
+                       description="test-only privileged tool",
+                       input_schema={"type": "object", "properties": {}},
+                       capability=CapabilityClass.PRIVILEGED), _noop)
+    agent = asyncio.new_event_loop().run_until_complete(
+        rt.create_agent(run_id, role="operator", objective="probe approvals",
+                        granted=["PRIVILEGED"]))
+    r = client.post(f"/agents/{agent.id}/tools/call",
+                    json={"tool_name": "test.privileged", "args": {}})
+    assert r.status_code == 403, (r.status_code, r.text[:200])
+    body = r.json()["detail"]
+    assert body["state"] == "APPROVAL_PENDING"
+    assert body["approval_id"].startswith("appr_")
+
+
+def test_console_shell_is_never_cached(client):
+    """index.html served under API-colliding paths must carry
+    Cache-Control: no-store, or the browser would serve the cached shell
+    to the console's own fetch() of the same URL."""
+    from pathlib import Path
+    dist = Path("web/dist/index.html")
+    if not dist.is_file():
+        import pytest
+        pytest.skip("web/dist not built")
+    r = client.get("/policies", headers={"Accept": "text/html"})
+    assert r.status_code == 200
+    assert r.headers["cache-control"] == "no-store"
+    assert "<!doctype html>" in r.text.lower()
+    # API clients still get JSON.
+    r = client.get("/policies", headers={"Accept": "application/json"})
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("application/json")

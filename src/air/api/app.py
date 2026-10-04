@@ -711,9 +711,17 @@ def _serve_console(app: FastAPI) -> None:
     if assets.is_dir():
         app.mount("/assets", StaticFiles(directory=assets), name="console-assets")
 
+    def _console_page() -> FileResponse:
+        # The console shares URL paths with API list routes (GET /runs,
+        # /policies, ...). The HTML shell must never be cached under one
+        # of those paths: a cached shell would be served to the console's
+        # own fetch() of the same URL and break JSON parsing. no-store on
+        # the shell; the hashed /assets bundle keeps its own caching.
+        return FileResponse(index, headers={"Cache-Control": "no-store"})
+
     @app.get("/", include_in_schema=False)
     async def _console_root() -> FileResponse:
-        return FileResponse(index)
+        return _console_page()
 
     # The API list routes (GET /runs, /policies, ...) share their paths
     # with the console's frontend routes. Browser page loads send
@@ -729,7 +737,7 @@ def _serve_console(app: FastAPI) -> None:
                 "accept", ""):
             first = request.url.path.strip("/").split("/", 1)[0]
             if first in _spa_first_segments:
-                return FileResponse(index)
+                return _console_page()
         return await call_next(request)
 
     @app.get("/{path:path}", include_in_schema=False)
@@ -742,4 +750,4 @@ def _serve_console(app: FastAPI) -> None:
                          "approvals", "experience", "memory", "metrics"}:
             from fastapi import HTTPException as _HTTPException
             raise _HTTPException(404, "not found")
-        return FileResponse(index)
+        return _console_page()
