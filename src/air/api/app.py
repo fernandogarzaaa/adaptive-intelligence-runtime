@@ -19,6 +19,7 @@ import asyncio
 import functools
 import json
 import threading
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -688,4 +689,43 @@ def create_app() -> FastAPI:
 
         return StreamingResponse(gen(), media_type="text/event-stream")
 
+    _serve_console(app)
+
     return app
+
+
+def _serve_console(app: FastAPI) -> None:
+    """Serve the AIR console (web/dist) at / with SPA fallback.
+
+    Only active when the console has been built. API and realtime routes
+    are registered before this, so they always win over the fallback.
+    """
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+
+    dist = Path(__file__).resolve().parents[3] / "web" / "dist"
+    index = dist / "index.html"
+    if not index.is_file():
+        return
+    assets = dist / "assets"
+    if assets.is_dir():
+        app.mount("/assets", StaticFiles(directory=assets), name="console-assets")
+
+    @app.get("/", include_in_schema=False)
+    async def _console_root() -> FileResponse:
+        return FileResponse(index)
+
+    @app.get("/{path:path}", include_in_schema=False)
+    async def _console_fallback(path: str) -> FileResponse:
+        # Do not swallow unknown API paths: anything under a known API
+        # prefix that reached here is a genuine 404.
+        first = path.split("/", 1)[0]
+        if first in {"runs", "agents", "tools", "tool-calls", "approvals",
+                     "experience", "experiences", "memory", "capabilities",
+                     "evaluations", "assurance", "models", "policies",
+                     "learning", "metrics", "events", "health", "ready",
+                     "spawn-decisions", "openapi.json", "docs",
+                     "redoc", "ws"}:
+            from fastapi import HTTPException as _HTTPException
+            raise _HTTPException(404, "not found")
+        return FileResponse(index)

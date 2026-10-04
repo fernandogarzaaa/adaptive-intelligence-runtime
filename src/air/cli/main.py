@@ -74,7 +74,7 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
 
     asyncio.run(_health())
 
-    web_dir = Path(__file__).resolve().parents[2] / "web"
+    web_dir = Path(__file__).resolve().parents[3] / "web"
     checks.append(("frontend", (web_dir / "package.json").exists(),
                    str(web_dir) if (web_dir / "package.json").exists()
                    else "web/ not yet built"))

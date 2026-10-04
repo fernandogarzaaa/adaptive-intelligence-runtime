@@ -207,14 +207,14 @@ class RunService:
     def get(self, run_id: str) -> dict:
         row = self._conn.execute(
             "SELECT id, goal, status, strategy, cognitive_plan, seed,"
-            " total_cost, total_tokens, error, final_result,"
+            " policy_version, total_cost, total_tokens, error, final_result,"
             " created_at, started_at, completed_at"
             " FROM runs WHERE id=?", (run_id,)).fetchone()
         if not row:
             raise NotFound("run not found")
         keys = ["id", "goal", "status", "strategy", "cognitive_plan", "seed",
-                "total_cost", "total_tokens", "error", "final_result",
-                "created_at", "started_at", "completed_at"]
+                "policy_version", "total_cost", "total_tokens", "error",
+                "final_result", "created_at", "started_at", "completed_at"]
         out = dict(zip(keys, row))
         for k in ("cognitive_plan", "final_result"):
             if out[k]:
@@ -955,7 +955,7 @@ class ExplainService:
             "candidate_strategies": plan.get("candidates"),
             "selected_strategy": run["strategy"],
             "scores": plan.get("scores"),
-            "policy_version": plan.get("policy_version"),
+            "policy_version": run.get("policy_version") or plan.get("policy_version"),
             "budget_state": {"total_cost": run["total_cost"],
                              "total_tokens": run["total_tokens"]},
             "verification_state": {"error": run["error"]},
