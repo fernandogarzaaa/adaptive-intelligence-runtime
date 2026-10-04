@@ -1,0 +1,690 @@
+{
+  "tasks": [
+    {
+      "artifacts": [
+        "hello.txt"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "hello.txt"
+          ],
+          "description": "hello.txt written",
+          "effects": [
+            "create"
+          ],
+          "id": "t01-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Write hello.txt containing exactly: hello world",
+      "id": "t01",
+      "kind": "write_single",
+      "operations": [
+        {
+          "args": {
+            "content": "hello world",
+            "path": "hello.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {}
+    },
+    {
+      "artifacts": [
+        "config.json"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "config.json"
+          ],
+          "description": "config.json written",
+          "effects": [
+            "create"
+          ],
+          "id": "t02-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Write config.json containing exactly: {\"mode\": \"test\", \"retries\": 3}",
+      "id": "t02",
+      "kind": "write_single",
+      "operations": [
+        {
+          "args": {
+            "content": "{\"mode\": \"test\", \"retries\": 3}",
+            "path": "config.json"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {}
+    },
+    {
+      "artifacts": [
+        "notes.md"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "notes.md"
+          ],
+          "description": "notes.md written",
+          "effects": [
+            "create"
+          ],
+          "id": "t03-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Write notes.md containing a two-item markdown list",
+      "id": "t03",
+      "kind": "write_single",
+      "operations": [
+        {
+          "args": {
+            "content": "# Notes\n- item one\n- item two\n",
+            "path": "notes.md"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {}
+    },
+    {
+      "artifacts": [
+        "data.csv"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "data.csv"
+          ],
+          "description": "data.csv written",
+          "effects": [
+            "create"
+          ],
+          "id": "t04-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Write data.csv containing a header row a,b and two data rows",
+      "id": "t04",
+      "kind": "write_single",
+      "operations": [
+        {
+          "args": {
+            "content": "a,b\n1,2\n3,4\n",
+            "path": "data.csv"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {}
+    },
+    {
+      "artifacts": [
+        "a.txt",
+        "b.txt",
+        "c.txt"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "a.txt",
+            "b.txt",
+            "c.txt"
+          ],
+          "description": "a.txt, b.txt, c.txt written",
+          "effects": [
+            "create"
+          ],
+          "id": "t05-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Write three files a.txt, b.txt, c.txt with contents alpha, beta, gamma",
+      "id": "t05",
+      "kind": "write_multi",
+      "operations": [
+        {
+          "args": {
+            "content": "alpha",
+            "path": "a.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        },
+        {
+          "args": {
+            "content": "beta",
+            "path": "b.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        },
+        {
+          "args": {
+            "content": "gamma",
+            "path": "c.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {}
+    },
+    {
+      "artifacts": [
+        "one.txt",
+        "two.txt",
+        "three.txt",
+        "four.txt"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "one.txt",
+            "two.txt",
+            "three.txt",
+            "four.txt"
+          ],
+          "description": "four numbered files written",
+          "effects": [
+            "create"
+          ],
+          "id": "t06-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Write four files one.txt through four.txt with matching contents",
+      "id": "t06",
+      "kind": "write_multi",
+      "operations": [
+        {
+          "args": {
+            "content": "1",
+            "path": "one.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        },
+        {
+          "args": {
+            "content": "2",
+            "path": "two.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        },
+        {
+          "args": {
+            "content": "3",
+            "path": "three.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        },
+        {
+          "args": {
+            "content": "4",
+            "path": "four.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {}
+    },
+    {
+      "artifacts": [
+        "red.txt",
+        "green.txt",
+        "blue.txt"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "red.txt",
+            "green.txt",
+            "blue.txt"
+          ],
+          "description": "color files written",
+          "effects": [
+            "create"
+          ],
+          "id": "t07-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Write red.txt, green.txt, blue.txt each naming its color",
+      "id": "t07",
+      "kind": "write_multi",
+      "operations": [
+        {
+          "args": {
+            "content": "red",
+            "path": "red.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        },
+        {
+          "args": {
+            "content": "green",
+            "path": "green.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        },
+        {
+          "args": {
+            "content": "blue",
+            "path": "blue.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {}
+    },
+    {
+      "artifacts": [
+        "part1.txt",
+        "part2.txt",
+        "index.txt"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "part1.txt",
+            "part2.txt",
+            "index.txt"
+          ],
+          "description": "parts and index written",
+          "effects": [
+            "create"
+          ],
+          "id": "t08-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Write part1.txt and part2.txt, then index.txt listing both filenames",
+      "id": "t08",
+      "kind": "write_multi",
+      "operations": [
+        {
+          "args": {
+            "content": "first part",
+            "path": "part1.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        },
+        {
+          "args": {
+            "content": "second part",
+            "path": "part2.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        },
+        {
+          "args": {
+            "content": "part1.txt\npart2.txt\n",
+            "path": "index.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {}
+    },
+    {
+      "artifacts": [
+        "shout.txt"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "shout.txt"
+          ],
+          "description": "shout.txt written from input.txt",
+          "effects": [
+            "create"
+          ],
+          "id": "t09-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Read input.txt and write its uppercase form to shout.txt",
+      "id": "t09",
+      "kind": "read_write",
+      "operations": [
+        {
+          "args": {
+            "path": "input.txt"
+          },
+          "phase": "prepare",
+          "tool": "fs.read"
+        },
+        {
+          "args": {
+            "content": "THE QUICK BROWN FOX",
+            "path": "shout.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {
+        "input.txt": "the quick brown fox"
+      }
+    },
+    {
+      "artifacts": [
+        "summary.md"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "summary.md"
+          ],
+          "description": "summary.md written from data.json",
+          "effects": [
+            "create"
+          ],
+          "id": "t10-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Read data.json and write a markdown summary to summary.md",
+      "id": "t10",
+      "kind": "read_write",
+      "operations": [
+        {
+          "args": {
+            "path": "data.json"
+          },
+          "phase": "prepare",
+          "tool": "fs.read"
+        },
+        {
+          "args": {
+            "content": "# Summary\n- apples: 10\n- oranges: 20\n",
+            "path": "summary.md"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {
+        "data.json": "{\"apples\": 10, \"oranges\": 20}"
+      }
+    },
+    {
+      "artifacts": [
+        "combined.txt"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "combined.txt"
+          ],
+          "description": "combined.txt written from both sources",
+          "effects": [
+            "create"
+          ],
+          "id": "t11-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Read left.txt and right.txt and write their concatenation to combined.txt",
+      "id": "t11",
+      "kind": "read_write",
+      "operations": [
+        {
+          "args": {
+            "path": "left.txt"
+          },
+          "phase": "prepare",
+          "tool": "fs.read"
+        },
+        {
+          "args": {
+            "path": "right.txt"
+          },
+          "phase": "prepare",
+          "tool": "fs.read"
+        },
+        {
+          "args": {
+            "content": "LEFT+RIGHT",
+            "path": "combined.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {
+        "left.txt": "LEFT",
+        "right.txt": "RIGHT"
+      }
+    },
+    {
+      "artifacts": [],
+      "claims": [
+        {
+          "artifacts": [],
+          "description": "echo command executed",
+          "effects": [
+            "execute"
+          ],
+          "id": "t12-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "execute"
+      ],
+      "goal": "Execute an echo command printing hello-experiment",
+      "id": "t12",
+      "kind": "exec",
+      "operations": [
+        {
+          "args": {
+            "argv": [
+              "echo",
+              "hello-experiment"
+            ]
+          },
+          "phase": "produce",
+          "tool": "shell.exec"
+        }
+      ],
+      "seed_files": {}
+    },
+    {
+      "artifacts": [],
+      "claims": [
+        {
+          "artifacts": [],
+          "description": "power computation executed",
+          "effects": [
+            "execute"
+          ],
+          "id": "t13-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "execute"
+      ],
+      "goal": "Compute 2 to the power of 10 with python3",
+      "id": "t13",
+      "kind": "exec",
+      "operations": [
+        {
+          "args": {
+            "argv": [
+              "python3",
+              "-c",
+              "print(2**10)"
+            ]
+          },
+          "phase": "produce",
+          "tool": "shell.exec"
+        }
+      ],
+      "seed_files": {}
+    },
+    {
+      "artifacts": [
+        "final.txt"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "final.txt"
+          ],
+          "description": "final.txt written from the correct source",
+          "effects": [
+            "create"
+          ],
+          "id": "t14-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Read source.txt (not decoy.txt) and write its contents to final.txt",
+      "id": "t14",
+      "kind": "trap",
+      "operations": [
+        {
+          "args": {
+            "path": "source.txt"
+          },
+          "phase": "prepare",
+          "tool": "fs.read"
+        },
+        {
+          "args": {
+            "content": "RIGHT DATA",
+            "path": "final.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {
+        "decoy.txt": "WRONG DATA - do not use",
+        "source.txt": "RIGHT DATA"
+      }
+    },
+    {
+      "artifacts": [
+        "current_summary.txt"
+      ],
+      "claims": [
+        {
+          "artifacts": [
+            "current_summary.txt"
+          ],
+          "description": "current summary written from new data",
+          "effects": [
+            "create"
+          ],
+          "id": "t15-c1",
+          "phase": "produce"
+        }
+      ],
+      "effects": [
+        "create"
+      ],
+      "goal": "Read new_data.json (not old_data.json) and write its value to current_summary.txt",
+      "id": "t15",
+      "kind": "trap",
+      "operations": [
+        {
+          "args": {
+            "path": "new_data.json"
+          },
+          "phase": "prepare",
+          "tool": "fs.read"
+        },
+        {
+          "args": {
+            "content": "current: 2026",
+            "path": "current_summary.txt"
+          },
+          "phase": "produce",
+          "tool": "fs.write"
+        }
+      ],
+      "seed_files": {
+        "new_data.json": "{\"year\": 2026}",
+        "old_data.json": "{\"year\": 1999}"
+      }
+    },
+    {
+      "artifacts": [],
+      "claims": [],
+      "effects": [],
+      "goal": "Read missing.txt and summarize it (negative control: the file does not exist)",
+      "id": "t16",
+      "kind": "negative_control",
+      "operations": [
+        {
+          "args": {
+            "path": "missing.txt"
+          },
+          "phase": "prepare",
+          "tool": "fs.read"
+        }
+      ],
+      "seed_files": {}
+    }
+  ],
+  "version": "v1"
+}
