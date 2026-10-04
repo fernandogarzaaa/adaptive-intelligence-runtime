@@ -133,6 +133,81 @@ def create_app() -> FastAPI:
     def run_events(run_id: str, limit: int = 500) -> list[dict]:
         return get_runtime().store.list(run_id=run_id, limit=limit)
 
+    @app.get("/runs/{run_id}/graph")
+    def run_graph(run_id: str) -> dict:
+        """Cognitive graph: nodes (agents) + edges (lineage, messages)."""
+        rt = get_runtime()
+        agents = rt.db.conn.execute(
+            "SELECT id, parent_id, role, status, model, provider, generation"
+            " FROM agents WHERE root_run_id=?", (run_id,)).fetchall()
+        nodes = [{"id": r[0], "parent_id": r[1], "role": r[2], "status": r[3],
+                  "model": r[4], "provider": r[5], "generation": r[6]}
+                 for r in agents]
+        edges = [{"from": r[1], "to": r[0], "kind": "lineage"}
+                 for r in agents if r[1]]
+        msgs = rt.db.conn.execute(
+            "SELECT from_agent_id, to_agent_id, channel, kind"
+            " FROM agent_messages WHERE run_id=? LIMIT 500", (run_id,)).fetchall()
+        for f, t, channel, kind in msgs:
+            if f and t:
+                edges.append({"from": f, "to": t, "kind": kind,
+                              "channel": channel})
+        return {"nodes": nodes, "edges": edges}
+
+    @app.get("/runs/{run_id}/world")
+    def run_world(run_id: str) -> dict:
+        from air.world.state import WorldStateStore
+        rt = get_runtime()
+        return WorldStateStore(rt.db.conn, rt.store).build(run_id)
+
+    @app.get("/experience")
+    def list_experience(limit: int = 50) -> list[dict]:
+        from air.experience.recorder import ExperienceRecorder
+        return ExperienceRecorder(get_runtime().db.conn).list(limit=limit)
+
+    @app.get("/experience/{exp_id}")
+    def get_experience(exp_id: str) -> dict:
+        from air.experience.recorder import ExperienceRecorder
+        exp = ExperienceRecorder(get_runtime().db.conn).get(exp_id)
+        if exp is None:
+            raise HTTPException(404, "experience not found")
+        return exp
+
+    @app.get("/memory")
+    def list_memory(namespace: str, type: str | None = None,
+                    q: str | None = None, limit: int = 50) -> list[dict]:
+        from air.memory.store import MemoryStore
+        rt = get_runtime()
+        mems = MemoryStore(rt.db.conn).retrieve(namespace, type=type,
+                                                query=q, limit=limit)
+        return [m.model_dump() for m in mems]
+
+    class MemoryRequest(BaseModel):
+        namespace: str
+        type: str = "episodic"
+        content: dict
+        importance: float = 0.5
+        confidence: float = 0.5
+        provenance: dict | None = None
+        visibility: str = "private"
+
+    @app.post("/memory")
+    def create_memory(req: MemoryRequest) -> dict:
+        from air.memory.store import MemoryStore
+        mem = MemoryStore(get_runtime().db.conn).store(
+            req.namespace, req.type, req.content,
+            importance=req.importance, confidence=req.confidence,
+            provenance=req.provenance or {}, visibility=req.visibility)
+        return {"id": mem.id}
+
+    @app.delete("/memory/{memory_id}")
+    def delete_memory(memory_id: str) -> dict:
+        from air.memory.store import MemoryStore
+        ok = MemoryStore(get_runtime().db.conn).delete(memory_id)
+        if not ok:
+            raise HTTPException(404, "memory not found")
+        return {"ok": True}
+
     @app.get("/agents")
     def list_agents(run_id: str | None = None, limit: int = 100) -> list[dict]:
         rt = get_runtime()

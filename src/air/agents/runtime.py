@@ -366,6 +366,16 @@ class AgentRuntime:
             (now, json.dumps(summary), run_id))
         self.db.conn.commit()
         await self.emit("run.completed", run_id=run_id, payload=summary)
+        # Every completed run generates an experience record from its event
+        # history. Never from agent self-report.
+        try:
+            from air.experience.recorder import ExperienceRecorder
+            exp = ExperienceRecorder(self.db.conn).record_run(run_id)
+            await self.emit("experience.created", run_id=run_id,
+                            payload={"experience_id": exp.id})
+        except Exception as e:  # noqa: BLE001 - experience must not break runs
+            await self.emit("experience.failed", run_id=run_id,
+                            payload={"error": f"{type(e).__name__}: {e}"})
 
     async def terminate_agent(self, agent_id: str, subtree: bool = True,
                               reason: str = "operator terminated") -> list[str]:
