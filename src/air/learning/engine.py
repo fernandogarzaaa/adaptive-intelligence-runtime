@@ -153,10 +153,14 @@ class LearningEngine:
             generated_by="air-learning-engine v1",
             source_experiences=analysis["experience_ids"])
         if self._emit:
-            await self._emit("learning.proposed",
-                             payload={"policy": POLICY_NAME,
-                                      "version": ver.version,
-                                      "changes": changes_made})
+            # The learning engine's proposal is the engine-side twin of the
+            # policy store's proposal: chain to that event.
+            await self._emit(
+                "learning.proposed",
+                payload={"policy": POLICY_NAME, "version": ver.version,
+                         "changes": changes_made},
+                causation_id=self._policies._latest_policy_event(
+                    "policy.proposed", POLICY_NAME, ver.version))
         return {"policy": POLICY_NAME, "version": ver.version,
                 "changes": changes_made, "evidence_experiences":
                 analysis["experience_ids"]}

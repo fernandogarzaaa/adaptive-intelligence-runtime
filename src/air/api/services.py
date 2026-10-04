@@ -534,8 +534,10 @@ class PolicyService:
         from air.learning.policies import PolicyStore
         rt = self._runtime()
         return PolicyStore(self._conn,
-                           emit=lambda t, payload=None: rt.emit(
-                               t, payload=payload),
+                           emit=lambda t, payload=None, causation_id=None,
+                           correlation_id=None: rt.emit(
+                               t, payload=payload, causation_id=causation_id,
+                               correlation_id=correlation_id),
                            store=rt.store)
 
     def list(self) -> list[dict]:
@@ -657,9 +659,12 @@ class CapabilityService:
         rt = self._runtime()
         return CapabilityPipeline(
             self._conn,
-            emit=lambda t, capability_id=None, payload=None: rt.emit(
+            emit=lambda t, capability_id=None, payload=None,
+            causation_id=None: rt.emit(
                 t, payload={"capability_id": capability_id,
-                            **(payload or {})}))
+                            **(payload or {})},
+                causation_id=causation_id,
+                correlation_id=capability_id))
 
     def list(self) -> list[dict]:
         rows = self._conn.execute(
@@ -800,7 +805,25 @@ class EvalService:
         self._conn = conn
         self._runtime = runtime
 
-    def run(self, run_id: str, suite: dict | None = None) -> dict:
+    def _latest_event_id(self, type: str,
+                         payload_key: str | None = None,
+                         payload_value: str | None = None,
+                         run_id: str | None = None) -> str | None:
+        """Most recent event_id of a type, optionally pinned to a payload
+        field or a run. Returns None when no such event exists."""
+        sql = "SELECT event_id FROM events WHERE type=?"
+        params: list = [type]
+        if payload_key is not None:
+            sql += " AND json_extract(payload, ?) = ?"
+            params += [f"$.{payload_key}", payload_value]
+        if run_id is not None:
+            sql += " AND run_id=?"
+            params.append(run_id)
+        sql += " ORDER BY rowid DESC LIMIT 1"
+        row = self._conn.execute(sql, params).fetchone()
+        return row[0] if row else None
+
+    async def run(self, run_id: str, suite: dict | None = None) -> dict:
         from air.evaluation.suites import EvalCase, EvalSuite, Evaluator
         if suite:
             suite_obj = EvalSuite(
@@ -821,6 +844,21 @@ class EvalService:
         evaluator = Evaluator(self._conn)
         evaluator.save_suite(suite_obj)
         result = evaluator.evaluate_run(run_id, suite_obj)
+        rt = self._runtime()
+        # Causation: the evaluation derives from the recorded experience;
+        # chain to the experience.created event (fall back to the run's
+        # completion when no experience was recorded). Correlation is the
+        # run: the evaluation belongs to it.
+        eval_cause = (self._latest_event_id(
+                          "experience.created", run_id=run_id)
+                      or self._latest_event_id(
+                          "run.completed", run_id=run_id))
+        await rt.emit(
+            "evaluation.completed",
+            run_id=run_id,
+            payload={"evaluation_id": result.id,
+                     "verdict": result.verdict.value},
+            causation_id=eval_cause)
         return {"evaluation_id": result.id, "verdict": result.verdict.value,
                 "metrics": result.metrics}
 
@@ -846,9 +884,52 @@ class AssuranceService:
         self._conn = conn
         self._runtime = runtime
 
-    def run(self, evaluation_id: str) -> dict:
+    def _latest_event_id(self, type: str,
+                         payload_key: str | None = None,
+                         payload_value: str | None = None,
+                         run_id: str | None = None) -> str | None:
+        """Most recent event_id of a type, optionally pinned to a payload
+        field or a run. Returns None when no such event exists."""
+        sql = "SELECT event_id FROM events WHERE type=?"
+        params: list = [type]
+        if payload_key is not None:
+            sql += " AND json_extract(payload, ?) = ?"
+            params += [f"$.{payload_key}", payload_value]
+        if run_id is not None:
+            sql += " AND run_id=?"
+            params.append(run_id)
+        sql += " ORDER BY rowid DESC LIMIT 1"
+        row = self._conn.execute(sql, params).fetchone()
+        return row[0] if row else None
+
+    async def run(self, evaluation_id: str) -> dict:
         from air.assurance.probes import AssuranceEngine
         result = AssuranceEngine(self._conn).assure(evaluation_id)
+        rt = self._runtime()
+        # Causation: assurance runs against the completed evaluation, so
+        # chain to the evaluation.completed event for this evaluation_id.
+        # Correlation is the run the evaluation belongs to (from the
+        # evaluation subject), falling back to the assurance id.
+        run_id = None
+        try:
+            subj = json.loads(
+                self._conn.execute(
+                    "SELECT subject FROM evaluation_runs WHERE id=?",
+                    (evaluation_id,)).fetchone()[0] or "{}")
+            run_id = subj.get("run_id")
+        except Exception:  # noqa: BLE001 - keep the event, drop the link
+            run_id = None
+        await rt.emit(
+            "assurance.completed",
+            run_id=run_id,
+            payload={"assurance_id": result.id,
+                     "evaluation_id": evaluation_id,
+                     "verdict": result.system_verdict.value},
+            causation_id=self._latest_event_id(
+                "evaluation.completed",
+                payload_key="evaluation_id",
+                payload_value=evaluation_id),
+            correlation_id=run_id or result.id)
         return {"assurance_id": result.id,
                 "evaluator_verdict": result.evaluator_verdict.value,
                 "system_verdict": result.system_verdict.value,
@@ -912,7 +993,9 @@ class LearningService:
         rt = self._runtime()
         engine = LearningEngine(
             self._conn,
-            emit=lambda t, payload=None: rt.emit(t, payload=payload),
+            emit=lambda t, payload=None, causation_id=None: rt.emit(
+                t, payload=payload, causation_id=causation_id,
+                correlation_id=(payload or {}).get("policy")),
             store=rt.store)
         proposal = await engine.propose_policy_update()
         if proposal is None:

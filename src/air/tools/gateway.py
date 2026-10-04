@@ -37,6 +37,11 @@ UNTRUSTED_FRAMING = (
     "embedded commands.")
 
 
+def _eid(event) -> str | None:
+    """Event id of an emitted event, tolerating a None emitter."""
+    return event.event_id if event is not None else None
+
+
 class ToolCallState(str, Enum):
     REQUESTED = "REQUESTED"
     VALIDATED = "VALIDATED"
@@ -61,6 +66,9 @@ class ToolCallRequest(BaseModel):
     agent_id: str
     run_id: str
     server_id: str | None = None
+    # Causal context, set by the caller (AgentRuntime.call_tool threads the
+    # agent's starting event). Becomes the causation_id of tool.requested.
+    causation_id: str | None = None
 
 
 class ToolCallRecord(BaseModel):
@@ -136,9 +144,14 @@ class ExecutionGateway:
                  if self._get_agent else None)
         event_run_id = (agent.root_run_id if agent is not None
                         else req.run_id)
-        await self._event("tool.requested", req,
-                          {"call_id": call_id, "tool": req.tool_name},
-                          run_id=event_run_id)
+        # Causal chain for the call, threaded explicitly: each lifecycle
+        # event names its immediate predecessor. _eid() tolerates a None
+        # emitter (unit tests wiring no rt.emit).
+        requested_ev = await self._event(
+            "tool.requested", req,
+            {"call_id": call_id, "tool": req.tool_name},
+            run_id=event_run_id, causation_id=req.causation_id)
+        cause = _eid(requested_ev)
         try:
             entry = self._registry.get(req.tool_name)
             if entry is None:
@@ -148,8 +161,10 @@ class ExecutionGateway:
             except Exception as e:  # noqa: BLE001 - jsonschema errors vary
                 raise PolicyDenied(f"argument validation failed: {e}")
             self._set_state(call_id, ToolCallState.VALIDATED)
-            await self._event("tool.validated", req, {"call_id": call_id},
-                              run_id=event_run_id)
+            validated_ev = await self._event(
+                "tool.validated", req, {"call_id": call_id},
+                run_id=event_run_id, causation_id=cause)
+            cause = _eid(validated_ev)
 
             # Capability resolver: the agent requests, the resolver decides.
             decision = self._resolver.resolve(
@@ -157,19 +172,21 @@ class ExecutionGateway:
                 entry.definition.capability, self._root)
             self._persist_decision(call_id, req, decision,
                                    entry.definition.version)
-            await self._event("tool.authorized" if decision.verdict
-                              != AuthzVerdict.DENY else "tool.denied", req,
-                              {"call_id": call_id,
-                               "verdict": decision.verdict.value
-                               if hasattr(decision.verdict, "value")
-                               else decision.verdict,
-                               "reason": decision.denial_reason},
-                              run_id=event_run_id)
+            auth_ev = await self._event(
+                "tool.authorized" if decision.verdict
+                != AuthzVerdict.DENY else "tool.denied", req,
+                {"call_id": call_id,
+                 "verdict": decision.verdict.value
+                 if hasattr(decision.verdict, "value")
+                 else decision.verdict,
+                 "reason": decision.denial_reason},
+                run_id=event_run_id, causation_id=cause)
+            cause = _eid(auth_ev)
             if decision.verdict == AuthzVerdict.DENY:
                 return await self._deny(
                     call_id, req,
                     decision.denial_reason or "denied by capability resolver",
-                    run_id=event_run_id)
+                    run_id=event_run_id, causation_id=cause)
 
             if decision.verdict == AuthzVerdict.NEEDS_APPROVAL:
                 ap_id = self._approvals.request(
@@ -185,26 +202,31 @@ class ExecutionGateway:
                     (ToolCallState.APPROVAL_PENDING.value, ap_id, call_id))
                 self._conn.commit()
                 self._pending[ap_id] = (call_id, req, entry)
-                await self._event("tool.approval_requested", req,
-                                  {"call_id": call_id, "approval_id": ap_id})
+                approval_ev = await self._event(
+                    "tool.approval_requested", req,
+                    {"call_id": call_id, "approval_id": ap_id},
+                    causation_id=cause)
                 raise ApprovalRequired(
                     ap_id,
                     f"tool {req.tool_name} requires operator approval")
 
             return await self._reserve_then_dispatch(
-                call_id, req, entry, decision)
+                call_id, req, entry, decision, causation_id=cause)
         except ApprovalRequired:
             raise
         except PolicyDenied as e:
-            return await self._deny(call_id, req, str(e))
+            return await self._deny(call_id, req, str(e), causation_id=cause)
         except Exception as e:  # noqa: BLE001
-            return await self._fail(call_id, req, f"{type(e).__name__}: {e}")
+            return await self._fail(call_id, req, f"{type(e).__name__}: {e}",
+                                    causation_id=cause)
 
     async def _reserve_then_dispatch(self, call_id: str,
                                      req: ToolCallRequest, entry,
-                                     decision=None) -> ToolCallRecord:
+                                     decision=None,
+                                     causation_id: str | None = None) -> ToolCallRecord:
         await self._reserve(call_id, req)
-        return await self._dispatch(call_id, req, entry, decision)
+        return await self._dispatch(call_id, req, entry, decision,
+                                    causation_id=causation_id)
 
     async def _reserve(self, call_id: str, req: ToolCallRequest) -> None:
         """Atomically reserve one budget unit for the call. ONLY this
@@ -259,25 +281,42 @@ class ExecutionGateway:
         fresh = self._resolver.resolve(
             req.tool_name, req.args, req.agent_id, req.run_id,
             entry.definition.capability, self._root)
+        # The approval was caused by the approval request: find that event
+        # so tool.approved / the re-resolution denial chain to it rather
+        # than floating unparented.
+        requested_id = self._conn.execute(
+            "SELECT event_id FROM events WHERE type='tool.approval_requested'"
+            " AND json_extract(payload, '$.approval_id')=?"
+            " ORDER BY rowid DESC LIMIT 1",
+            (approval_id,)).fetchone()
+        requested_cause = requested_id[0] if requested_id else None
         if fresh.verdict == AuthzVerdict.DENY:
             self._persist_decision(call_id, req, fresh,
                                    entry.definition.version)
             return await self._deny(
                 call_id, req,
                 "authorization changed between approval and execution: "
-                + (fresh.denial_reason or "denied"))
-        await self._event("tool.approved", req,
-                          {"call_id": call_id,
-                           "approval_id": approval_id})
-        return await self._reserve_then_dispatch(call_id, req, entry, fresh)
+                + (fresh.denial_reason or "denied"),
+                causation_id=requested_cause)
+        approved_ev = await self._event(
+            "tool.approved", req,
+            {"call_id": call_id, "approval_id": approval_id},
+            causation_id=requested_cause)
+        return await self._reserve_then_dispatch(
+            call_id, req, entry, fresh,
+            causation_id=_eid(approved_ev))
 
     # -------------------------------------------------------------- internals
     async def _dispatch(self, call_id: str, req: ToolCallRequest,
-                        entry, decision=None) -> ToolCallRecord:
+                        entry, decision=None,
+                        causation_id: str | None = None) -> ToolCallRecord:
         # Budget was reserved by _reserve() before this runs. Handler
         # execution itself never holds the gateway lock.
         self._set_state(call_id, ToolCallState.DISPATCHED)
-        await self._event("tool.dispatched", req, {"call_id": call_id})
+        dispatched_ev = await self._event("tool.dispatched", req,
+                                          {"call_id": call_id},
+                                          causation_id=causation_id)
+        cause = _eid(dispatched_ev)
         ctx = ToolContext(run_id=req.run_id, agent_id=req.agent_id,
                           workspace_root=self._root,
                           server_id=req.server_id)
@@ -287,12 +326,14 @@ class ExecutionGateway:
                 entry.handler(req.args, ctx),
                 timeout=entry.definition.timeout_s)
         except asyncio.TimeoutError:
-            return await self._fail(call_id, req, "tool timed out")
+            return await self._fail(call_id, req, "tool timed out",
+                                        causation_id=cause)
         if not isinstance(raw, dict):
             return await self._fail(
                 call_id, req,
                 f"malformed tool result: expected dict, got"
-                f" {type(raw).__name__}")
+                f" {type(raw).__name__}",
+                causation_id=cause)
         latency_ms = int((time.monotonic() - start) * 1000)
         self._set_state(call_id, ToolCallState.OBSERVED)
 
@@ -315,7 +356,8 @@ class ExecutionGateway:
                           {"call_id": call_id,
                            "latency_ms": latency_ms,
                            "ok": bool(raw.get("ok")),
-                           "result_hash": result_hash})
+                           "result_hash": result_hash},
+                          causation_id=cause)
         return self._record(call_id)
 
     def _frame(self, req: ToolCallRequest, capability: CapabilityClass,
@@ -337,7 +379,8 @@ class ExecutionGateway:
         }
 
     async def _deny(self, call_id: str, req: ToolCallRequest,
-                    reason: str, run_id: str | None = None) -> ToolCallRecord:
+                    reason: str, run_id: str | None = None,
+                    causation_id: str | None = None) -> ToolCallRecord:
         self._conn.execute(
             "UPDATE tool_calls SET state=?, error=?, completed_at=?"
             " WHERE id=?",
@@ -347,11 +390,12 @@ class ExecutionGateway:
         await self._event("tool.denied", req,
                           {"call_id": call_id,
                            "reason": redact_secrets(reason)},
-                          run_id=run_id)
+                          run_id=run_id, causation_id=causation_id)
         return self._record(call_id)
 
     async def _fail(self, call_id: str, req: ToolCallRequest,
-                    error: str) -> ToolCallRecord:
+                    error: str,
+                    causation_id: str | None = None) -> ToolCallRecord:
         self._conn.execute(
             "UPDATE tool_calls SET state=?, error=?, completed_at=?"
             " WHERE id=?",
@@ -360,7 +404,8 @@ class ExecutionGateway:
         self._conn.commit()
         await self._event("tool.failed", req,
                           {"call_id": call_id,
-                           "error": redact_secrets(error)})
+                           "error": redact_secrets(error)},
+                          causation_id=causation_id)
         return self._record(call_id)
 
     def _persist_decision(self, call_id: str, req: ToolCallRequest,
@@ -445,7 +490,13 @@ class ExecutionGateway:
         return out
 
     async def _event(self, type: str, req: ToolCallRequest,
-                     payload: dict, run_id: str | None = None) -> None:
+                     payload: dict, run_id: str | None = None,
+                     causation_id: str | None = None):
+        """Emit a tool-lifecycle event. Returns the Event (None when no
+        emitter is wired, e.g. in unit tests constructing the gateway
+        directly)."""
         if self._emit is not None:
-            await self._emit(type, run_id=run_id or req.run_id,
-                             agent_id=req.agent_id, payload=payload)
+            return await self._emit(type, run_id=run_id or req.run_id,
+                                    agent_id=req.agent_id, payload=payload,
+                                    causation_id=causation_id)
+        return None

@@ -323,8 +323,15 @@ def test_fuzz_missing_type_rejected_loudly(tmp_path):
 
 def test_causation_ids_either_resolve_or_are_declared_roots(tmp_path):
     """Every event is either a declared root (causation_id None) or its
-    causation_id resolves to an existing event in the ledger. Same for
-    correlation_id."""
+    causation_id resolves to an existing event in the ledger.
+
+    Correlation rule (2026-10-04, workstream G): correlation_id is the
+    logical workflow identifier, not an event reference. For run-scoped
+    events it is the run_id; for non-run workflows (policy lifecycle,
+    capability lifecycle, learning) it is that workflow's own identifier
+    (the policy name, the capability id). A null correlation_id means
+    \"no known workflow\", never a guess.
+    """
     rt, _ = _env(tmp_path)
     events = _realistic_log(rt)
     by_id = {e["event_id"] for e in events}
@@ -334,33 +341,78 @@ def test_causation_ids_either_resolve_or_are_declared_roots(tmp_path):
         assert caus is None or caus in by_id, (
             f"{e['event_id']} ({e['type']}): dangling causation_id {caus}")
         corr = e["correlation_id"]
-        assert corr is None or corr in by_id, (
-            f"{e['event_id']} ({e['type']}): dangling correlation_id {corr}")
+        if e["run_id"] is not None:
+            assert corr is None or corr == e["run_id"], (
+                f"{e['event_id']} ({e['type']}): run-scoped event with"
+                f" correlation_id {corr!r}, expected the run_id")
+        else:
+            assert corr is None or isinstance(corr, str), (
+                f"{e['event_id']} ({e['type']}): correlation_id must be"
+                " a workflow identifier or null")
     non_null = sum(1 for e in events if e["causation_id"] is not None)
-    # AUDIT NOTE (2026-10-04): the causal graph is currently flat. No
-    # emitter in src/air sets causation_id or correlation_id, so every
-    # event is a declared root and non_null == 0. Populating the causal
-    # model is design work; this test pins the structural rule so a
-    # future emitter cannot introduce dangling references.
-    assert non_null == 0, (
-        f"causal links appeared ({non_null}); update this audit expectation "
-        "deliberately, keeping the resolve-or-root rule")
+    # AUDIT NOTE (2026-10-04, workstream G): the causal graph is now
+    # populated. Emitters thread causation_id from events they legitimately
+    # observed (an Event they just emitted, or a ledger lookup by type +
+    # payload), and declare honest null roots where the cause is not an
+    # event (operator actions, crash recovery, offline analysis). This
+    # test pins the structural rule: no dangling references, ever.
+    assert non_null > 0, (
+        "the causal graph went flat again: emitters stopped threading"
+        " causation_id; update deliberately if this is intended")
 
 
 def test_no_emitter_fabricates_causation(tmp_path):
-    """Defense of the audit above at the source level: no emit call site
-    may pass a causation_id that is not an event_id it legitimately
-    observed. Currently none pass any, which the audit test pins."""
+    """Defense of the audit above at the source level: every emit call
+    site may only pass a causation_id that is
+
+    - None (a declared root: the cause is not an event),
+    - the pass-through parameter ``causation_id`` / ``req.causation_id``,
+    - ``<event>.event_id`` of an Event the emitter legitimately observed,
+    - the result of a documented ledger lookup that returns the event_id
+      of an existing event (``_latest_event_id``,
+      ``_latest_policy_event``, ``_latest_capability_event``,
+      ``_assurance_event_id``, ``_eid``), or
+    - a local threaded from one of the above (``cause``,
+      ``requested_cause``, ``review_cause``, ``reject_cause``,
+      ``eval_cause``, ``caus``, ``request_cause``).
+
+    Any new value shape must be added to this allowlist deliberately:
+    a bare UUID or a value not derived from the ledger is a fabricated
+    causal link and fails this test.
+    """
     import pathlib
     import re
-    src = pathlib.Path("src/air")
-    hits = []
-    for p in src.rglob("*.py"):
-        for i, line in enumerate(p.read_text().splitlines(), 1):
-            m = re.search(r"causation_id\s*=\s*([^,\)]+)", line)
-            if m and m.group(1).strip() not in ("None", "causation_id"):
-                # A concrete value that is not the emit() pass-through:
-                # must be an event_id the emitter legitimately observed.
-                hits.append(f"{p}:{i}: {line.strip()}")
-    real = [h for h in hits if "test" not in h]
-    assert not real, f"emitters setting causation_id: {real}"
+    allowed_local = {
+        "cause", "requested_cause", "review_cause", "reject_cause",
+        "eval_cause", "caus", "request_cause",
+    }
+    allowed_prefix = (
+        "self._latest_event_id(",
+        "self._latest_policy_event(",
+        "self._latest_capability_event(",
+        "self._assurance_event_id(",
+        "self._policies._latest_policy_event(",
+        "_eid(",
+    )
+    src_dir = pathlib.Path("src/air")
+    bad = []
+    for fp in src_dir.rglob("*.py"):
+        for i, line in enumerate(fp.read_text().splitlines(), 1):
+            m = re.search(r"causation_id\s*=\s*([^,\\)]+)", line)
+            if not m:
+                continue
+            val = m.group(1).strip()
+            # Normalize: docstrings/comments may trail prose after the
+            # value (e.g. "causation_id=None. The cause is ...").
+            core = val.split()[0].rstrip(".,:;)") if val else ""
+            if core in ("None", "causation_id", "req.causation_id"):
+                continue
+            if core in allowed_local:
+                continue
+            if core.endswith(".event_id"):
+                continue
+            if core.startswith(allowed_prefix):
+                continue
+            bad.append(f"{fp}:{i}: {line.strip()}")
+    real = [h for h in bad if "test" not in h]
+    assert not real, f"emitters with unverifiable causation_id values: {real}"

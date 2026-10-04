@@ -173,10 +173,24 @@ hash chain.
 - `[held]` (2026-10-04 hardening: `tests/test_event_semantics.py`,
   15 tests; reducer rejects unknown schema versions loudly;
   determinism A == B verified; fuzz documents replay-order and
-  dedup rules). Known limitation, tripwired: `causation_id` /
-  `correlation_id` are not yet populated by any emitter (every
-  event is a declared root); the audit test pins the structural
-  rule so populating them later is a deliberate act.
+  dedup rules). Causation/correlation populated 2026-10-04:
+  `causation_id` is the immediately preceding event that directly
+  caused this one; `correlation_id` is the logical workflow
+  (run_id for run-scoped events; policy name / capability id /
+  connector id for non-run workflows; null means "no known
+  workflow", never a guess). Roots declare `causation_id = null`
+  explicitly; the store boundary refuses dangling references
+  loudly. Threaded chains: run.created -> run.started ->
+  agent.created -> agent.started -> tool.requested -> validated ->
+  authorized/denied -> approval_requested -> approved -> dispatched
+  -> completed/failed -> run.completed -> experience.created ->
+  evaluation.completed -> assurance.completed; capability lifecycle
+  (proposed -> validated -> promotion_reviewed -> promoted/rejected;
+  rolled_back <- promoted); policy reject/rollback chains.
+  Tests: `tests/test_causation.py` (9 tests); the two former
+  tripwires in `tests/test_event_semantics.py` were deliberately
+  rewritten to pin the correlation rule and an explicit allowlist
+  of legitimate causation_id value shapes.
 
 ## 11. Independence
 

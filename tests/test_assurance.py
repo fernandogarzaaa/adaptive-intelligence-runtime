@@ -25,9 +25,12 @@ def _env(tmp_path):
     db.migrate(find_migrations_dir())
     rt = AgentRuntime(config, db)
 
-    async def emit(type, capability_id=None, payload=None):
+    async def emit(type, capability_id=None, payload=None,
+                   causation_id=None):
         await rt.emit(type, payload={"capability_id": capability_id,
-                                     **(payload or {})})
+                                     **(payload or {})},
+                      causation_id=causation_id,
+                      correlation_id=capability_id)
 
     return rt, db, CapabilityPipeline(db.conn, emit=emit)
 

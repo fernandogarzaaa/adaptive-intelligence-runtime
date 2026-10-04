@@ -62,25 +62,54 @@ class PolicyStore:
         # post-transition state, never a contradictory hybrid.
         self._store = store
 
-    async def _event(self, type: str, payload: dict) -> None:
+    async def _event(self, type: str, payload: dict,
+                   causation_id: str | None = None) -> None:
         if self._emit:
-            await self._emit(type, payload=payload)
+            await self._emit(type, payload=payload,
+                             causation_id=causation_id)
 
-    async def _commit_event(self, commit_fn, *events: tuple[str, dict]) -> None:
+    async def _commit_event(self, commit_fn,
+                            *events: tuple) -> None:
         """Run ``commit_fn`` (domain writes, no commit) and persist the given
-        ``(type, payload)`` events atomically with those writes: one
-        transaction covers both. A crash before the commit leaves the
-        pre-transition state; a crash after leaves the post-transition state
-        plus its events. Bus fanout happens after durability, so a crash
-        there only skips live notification -- the ledger stays complete and
-        later subscribers replay it."""
+        events atomically with those writes: one transaction covers both.
+        A crash before the commit leaves the pre-transition state; a crash
+        after leaves the post-transition state plus its events. Bus fanout
+        happens after durability, so a crash there only skips live
+        notification -- the ledger stays complete and later subscribers
+        replay it.
+
+        Each event spec is ``(type, payload)`` or
+        ``(type, payload, causation_id)`` or
+        ``(type, payload, causation_id, correlation_id)``. As a special
+        case, the ``"__prev__"`` marker as the causation slot refers to
+        the previous event in the same batch (for multi-event transitions
+        like approve_rollback, where policy.activated is caused by
+        policy.rollback_approved).
+
+        Correlation rule for policy events: the policy name, taken from
+        the payload's ``policy`` key unless overridden. Policy lifecycle
+        is a workflow of its own, independent of any single run.
+        """
         if self._store is None:
             commit_fn()
             self._conn.commit()
-            for type, payload in events:
-                await self._event(type, payload)
+            for spec in events:
+                t, p = spec[0], spec[1]
+                caus = spec[2] if len(spec) > 2 and spec[2] != "__prev__" \
+                    else None
+                await self._event(t, p, causation_id=caus)
             return
-        ev_objs = [Event(type=t, payload=p or {}) for t, p in events]
+        ev_objs = []
+        for spec in events:
+            t, p = spec[0], spec[1]
+            caus = spec[2] if len(spec) > 2 else None
+            corr = spec[3] if len(spec) > 3 else None
+            if caus == "__prev__":
+                caus = ev_objs[-1].event_id if ev_objs else None
+            if corr is None:
+                corr = (p or {}).get("policy")
+            ev_objs.append(Event(type=t, payload=p or {},
+                                 causation_id=caus, correlation_id=corr))
         with self._store.atomic():
             with self._conn:
                 commit_fn()
@@ -88,6 +117,20 @@ class PolicyStore:
                     self._store.insert(ev)
         for ev in ev_objs:
             await self._store.publish(ev)
+
+    def _latest_policy_event(self, type: str, policy: str,
+                             version: str | None = None) -> str | None:
+        """Most recent event_id of a policy-lifecycle event, optionally
+        pinned to one version. Used to thread causation honestly."""
+        sql = ("SELECT event_id FROM events WHERE type=? AND "
+               "json_extract(payload, '$.policy')=?")
+        params: list = [type, policy]
+        if version is not None:
+            sql += " AND json_extract(payload, '$.version')=?"
+            params.append(version)
+        sql += " ORDER BY rowid DESC LIMIT 1"
+        row = self._conn.execute(sql, params).fetchone()
+        return row[0] if row else None
 
     def ensure(self, name: str, initial_params: dict | None = None) -> str:
         """Create the policy with a v1 if it does not exist. Returns policy id.
@@ -193,6 +236,8 @@ class PolicyStore:
 
         await self._commit_event(
             _do_propose,
+            # Declared root: the proposal derives from offline analysis of
+            # accumulated experience, not from any single event.
             ("policy.proposed",
              {"policy": name, "version": nxt, "reason": reason,
               "generated_by": generated_by, "parent_version": parent}))
@@ -251,8 +296,23 @@ class PolicyStore:
         await self._commit_event(
             _do_promote,
             ("policy.promoted",
-             {"policy": name, "version": version, "decided_by": decided_by}))
+             {"policy": name, "version": version, "decided_by": decided_by},
+             # The promotion was caused by the completed assurance gate:
+             # chain to its event so the evidence trail is traversable.
+             self._assurance_event_id(
+                 (assurance or {}).get("assurance_id"))))
         return ver
+
+    def _assurance_event_id(self, assurance_id: str | None) -> str | None:
+        """Event id of the completed assurance run, for causal threading."""
+        if not assurance_id:
+            return None
+        row = self._conn.execute(
+            "SELECT event_id FROM events WHERE type='assurance.completed'"
+            " AND json_extract(payload, '$.assurance_id')=?"
+            " ORDER BY rowid DESC LIMIT 1",
+            (assurance_id,)).fetchone()
+        return row[0] if row else None
 
     async def reject(self, name: str, version: str, reason: str) -> PolicyVersion:
         pid = self.ensure(name)
@@ -268,7 +328,9 @@ class PolicyStore:
         await self._commit_event(
             _do_reject,
             ("policy.rejected",
-             {"policy": name, "version": version, "reason": reason}))
+             {"policy": name, "version": version, "reason": reason},
+             # The rejection answers the proposal: chain to it.
+             self._latest_policy_event("policy.proposed", name, version)))
         return ver
 
     async def rollback(self, name: str,
@@ -302,6 +364,9 @@ class PolicyStore:
 
         await self._commit_event(
             _do_request,
+            # Declared root: the rollback request is operator intent, not
+            # caused by any single event (the observed regression lives in
+            # evaluation evidence, referenced in the payload).
             ("policy.rollback_requested",
              {"policy": name, "rollback_id": rb_id,
               "from_version": cur.version, "to_version": cur.parent_version,
@@ -352,19 +417,28 @@ class PolicyStore:
                 " decided_at=?, affected_runs=? WHERE id=?",
                 (approved_by, now, json.dumps(affected), rollback_id))
 
+        # The approval answers the request: chain to its event.
+        request_ev = self._conn.execute(
+            "SELECT event_id FROM events WHERE type='policy.rollback_requested'"
+            " AND json_extract(payload, '$.rollback_id')=?"
+            " ORDER BY rowid DESC LIMIT 1",
+            (rollback_id,)).fetchone()
+        request_cause = request_ev[0] if request_ev else None
         await self._commit_event(
             _do_approve,
             ("policy.rollback_approved",
              {"policy": name, "rollback_id": rollback_id,
               "from_version": from_v, "to_version": to_v,
-              "approved_by": approved_by, "affected_runs": affected}),
+              "approved_by": approved_by, "affected_runs": affected},
+             request_cause),
             ("policy.activated",
              {"policy": name, "version": to_v, "previous_version": from_v,
               "reason": reason,
               "triggering_evidence": json.loads(evidence_json or "{}"),
               "actor": approved_by,
               "evaluation_refs": failed.evaluation,
-              "assurance_refs": failed.assurance}))
+              "assurance_refs": failed.assurance},
+             "__prev__"))
         return parent
 
     def provenance_chain(self, name: str) -> dict:

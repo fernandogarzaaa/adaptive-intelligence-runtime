@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import json
+import sys
 import threading
 from pathlib import Path
 
@@ -525,7 +526,7 @@ def create_app() -> FastAPI:
     @idempotent
     async def run_evaluation(request: Request,
                              req: EvaluationRequest) -> dict:
-        return EvalService(_conn(), _rt).run(req.run_id, req.suite)
+        return await EvalService(_conn(), _rt).run(req.run_id, req.suite)
 
     @app.get("/evaluations/{evaluation_id}")
     def get_evaluation(evaluation_id: str) -> dict:
@@ -534,7 +535,7 @@ def create_app() -> FastAPI:
     @app.post("/assurance")
     @idempotent
     async def run_assurance(request: Request, evaluation_id: str) -> dict:
-        return AssuranceService(_conn(), _rt).run(evaluation_id)
+        return await AssuranceService(_conn(), _rt).run(evaluation_id)
 
     @app.get("/assurance/{assurance_id}")
     def get_assurance(assurance_id: str) -> dict:
@@ -703,9 +704,15 @@ def _serve_console(app: FastAPI) -> None:
     from fastapi.responses import FileResponse
     from fastapi.staticfiles import StaticFiles
 
-    dist = Path(__file__).resolve().parents[3] / "web" / "dist"
-    index = dist / "index.html"
-    if not index.is_file():
+    # Repo checkout layout: <repo>/web/dist. Installed layout (wheel +
+    # console deployed alongside, e.g. the Docker image): <sys.prefix>/web/dist.
+    candidates = [
+        Path(__file__).resolve().parents[3] / "web" / "dist",
+        Path(sys.prefix) / "web" / "dist",
+    ]
+    dist = next((c for c in candidates if (c / "index.html").is_file()), None)
+    index = dist / "index.html" if dist else None
+    if index is None or not index.is_file():
         return
     assets = dist / "assets"
     if assets.is_dir():

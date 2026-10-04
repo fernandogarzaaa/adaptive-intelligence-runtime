@@ -30,9 +30,22 @@ class CapabilityPipeline:
         self._emit = emit  # async callable(type, payload) or None
 
     async def _event(self, type: str, capability_id: str,
-                     payload: dict) -> None:
+                     payload: dict,
+                     causation_id: str | None = None) -> None:
         if self._emit:
-            await self._emit(type, capability_id=capability_id, payload=payload)
+            await self._emit(type, capability_id=capability_id,
+                             payload=payload, causation_id=causation_id)
+
+    def _latest_capability_event(self, type: str,
+                                 capability_id: str) -> str | None:
+        """Most recent event_id of a capability-lifecycle event for one
+        capability. Returns None when no such event exists."""
+        row = self._conn.execute(
+            "SELECT event_id FROM events WHERE type=?"
+            " AND json_extract(payload, '$.capability_id')=?"
+            " ORDER BY rowid DESC LIMIT 1",
+            (type, capability_id)).fetchone()
+        return row[0] if row else None
 
     # ------------------------------------------------------------- acquisition
     async def propose(self, name: str, description: str,
@@ -42,6 +55,9 @@ class CapabilityPipeline:
         cap = self._store.propose(name, description, effect=effect,
                                   created_from=created_from,
                                   provenance=provenance or {})
+        # Declared root: the proposal originates outside the event ledger
+        # (operator action or created_from an existing tool grant), so
+        # there is no honest causal parent.
         await self._event("capability.proposed", cap.capability_id,
                           {"name": name})
         return cap
@@ -103,9 +119,12 @@ class CapabilityPipeline:
         )
         self._conn.commit()
         self._store.set_status(capability_id, CapabilityStatus.VALIDATING)
+        # The validation answers the proposal: chain to it.
         await self._event("capability.validated", capability_id,
                           {"evaluation_id": ev_id,
-                           "verdict": agg.value})
+                           "verdict": agg.value},
+                          causation_id=self._latest_capability_event(
+                              "capability.proposed", capability_id))
         return ev_id, agg
 
     def latest_evaluation(self, capability_id: str) -> dict | None:
@@ -186,15 +205,23 @@ class CapabilityPipeline:
 
     async def promote(self, capability_id: str, decided_by: str = "operator") -> Capability:
         ok, reasons = self.promotion_gate(capability_id)
+        # The review was caused by the completed validation: chain to it.
+        review_cause = self._latest_capability_event(
+            "capability.validated", capability_id)
         await self._event("capability.promotion_reviewed", capability_id,
                           {"decided_by": decided_by, "reasons": reasons,
-                           "approved": ok})
+                           "approved": ok},
+                          causation_id=review_cause)
         if not ok:
             raise GateBlocked(reasons)
         cap = self._store.set_status(capability_id, CapabilityStatus.PROMOTED,
                                      version_note=f"promoted by {decided_by}")
+        # The promotion follows its own review: chain to the review event.
         await self._event("capability.promoted", capability_id,
-                          {"decided_by": decided_by, "reasons": reasons})
+                          {"decided_by": decided_by, "reasons": reasons},
+                          causation_id=self._latest_capability_event(
+                              "capability.promotion_reviewed",
+                              capability_id))
         return cap
 
     async def reject(self, capability_id: str, reason: str,
@@ -202,8 +229,15 @@ class CapabilityPipeline:
         cap = self._store.set_status(
             capability_id, CapabilityStatus.REJECTED,
             version_note=f"rejected by {decided_by}: {reason}")
+        # The rejection answers the proposal (or its review): chain to the
+        # nearest honest ancestor.
+        reject_cause = (self._latest_capability_event(
+                            "capability.promotion_reviewed", capability_id)
+                        or self._latest_capability_event(
+                            "capability.proposed", capability_id))
         await self._event("capability.rejected", capability_id,
-                          {"decided_by": decided_by, "reason": reason})
+                          {"decided_by": decided_by, "reason": reason},
+                          causation_id=reject_cause)
         return cap
 
     async def rollback(self, capability_id: str,
@@ -216,8 +250,13 @@ class CapabilityPipeline:
         cap = self._store.set_status(
             capability_id, CapabilityStatus.DEPRECATED,
             version_note=f"rolled back by {decided_by} at {utcnow()}")
+        # The rollback reverses the promotion: chain to it. Declared root
+        # (null) when no promotion event exists: the decision itself is
+        # operator intent, not an event.
         await self._event("capability.rolled_back", capability_id,
-                          {"decided_by": decided_by})
+                          {"decided_by": decided_by},
+                          causation_id=self._latest_capability_event(
+                              "capability.promoted", capability_id))
         return cap
 
     def record_use(self, capability_id: str, success: bool) -> None:

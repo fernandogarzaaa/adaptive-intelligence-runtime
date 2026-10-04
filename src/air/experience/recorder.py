@@ -71,11 +71,15 @@ class ExperienceRecorder:
         # atomically (see record_run).
         self._store = store
 
-    def record_run(self, run_id: str) -> tuple["ExperienceRecord", "Event | None"]:
+    def record_run(self, run_id: str,
+                   causation_id: str | None = None) -> tuple["ExperienceRecord", "Event | None"]:
         """Record the experience. Returns ``(record, event)``; when a store
         was provided, ``event`` is the persisted ``experience.created``
         event (already in the ledger -- the caller only needs to publish
-        it), otherwise ``None``."""
+        it), otherwise ``None``.
+
+        ``causation_id`` threads the causal parent (normally the
+        run.completed event that triggered recording)."""
         run = self._conn.execute(
             "SELECT goal, status, strategy, cognitive_plan, seed,"
             " policy_version, capability_versions, total_cost, total_tokens,"
@@ -251,7 +255,9 @@ class ExperienceRecorder:
             self._conn.commit()
             return exp, None
         event = Event(type="experience.created", run_id=run_id,
-                      payload={"experience_id": exp.id})
+                      payload={"experience_id": exp.id},
+                      causation_id=causation_id,
+                      correlation_id=run_id)
         with self._store.atomic():
             with self._conn:
                 self._insert_row(exp, dimensions, agent_rows, actions,

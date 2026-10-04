@@ -67,6 +67,11 @@ def reconcile(conn, store) -> dict:
                      utcnow(), call_id))
                 store.insert(Event(
                     type="tool.interrupted", run_id=run_id, agent_id=agent_id,
+                    # Declared root: the interruption was caused by the
+                    # process crash, which is not an event. No fabricated
+                    # causal parent is inserted.
+                    causation_id=None,
+                    correlation_id=run_id,
                     payload={"call_id": call_id, "tool": tool_name,
                              "reason": "restart: handler gone mid-execution"}))
             stuck_agents = conn.execute(
@@ -80,6 +85,10 @@ def reconcile(conn, store) -> dict:
                      utcnow(), agent_id))
                 store.insert(Event(
                     type="agent.failed", run_id=run_id, agent_id=agent_id,
+                    # Declared root: the failure was caused by the restart,
+                    # which is not an event. No fabricated causal parent.
+                    causation_id=None,
+                    correlation_id=run_id,
                     payload={"role": role,
                              "error": "restart: agent did not reach a"
                                       " terminal state"}))

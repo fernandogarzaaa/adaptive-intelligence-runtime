@@ -37,6 +37,23 @@ def event_hash(payload_canonical: str, prev_hash: str) -> str:
 
 
 class Event(BaseModel):
+    """The canonical event envelope.
+
+    Causation / correlation semantics (the architectural contract):
+    - ``correlation_id`` names the logical workflow the event belongs
+      to: the run_id for run-scoped events (agents, tools, messages,
+      experience, evaluation, assurance of that run); the policy name
+      for policy-lifecycle events; the capability id for
+      capability-lifecycle events; the connector server id for MCP
+      connector events. It answers "what workflow does this belong
+      to?" and is filled from context wherever the emitter knows it.
+    - ``causation_id`` is the event_id of the immediately preceding
+      event that directly caused this one. Root events (run.created,
+      policy.ensure, connector.registered, recovery events caused by
+      an external crash) declare themselves roots by leaving
+      ``causation_id`` null -- never a fabricated UUID. The store
+      refuses dangling references.
+    """
     event_id: str = Field(default_factory=lambda: uuid.uuid4().hex)
     timestamp: str = Field(default_factory=utcnow)
     run_id: str | None = None
@@ -89,7 +106,21 @@ class EventStore:
 
         The caller must hold the chain lock (via ``with store.atomic():``)
         and own the surrounding DB transaction.
+
+        Causation integrity is enforced here, at the storage boundary:
+        a non-null causation_id must resolve to an existing event in the
+        ledger. A dangling reference is refused loudly, never silently
+        chained. Roots declare causation_id=None explicitly.
         """
+        if event.causation_id is not None:
+            row = self._conn.execute(
+                "SELECT 1 FROM events WHERE event_id=?",
+                (event.causation_id,)).fetchone()
+            if row is None:
+                raise ValueError(
+                    f"dangling causation_id {event.causation_id!r} on event"
+                    f" {event.event_id!r} ({event.type}): the causal parent"
+                    " must already be in the ledger")
         prev = self._last_hash()
         body = {
             "event_id": event.event_id,

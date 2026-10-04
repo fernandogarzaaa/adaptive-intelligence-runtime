@@ -23,8 +23,10 @@ def _env(tmp_path):
     db.migrate(find_migrations_dir())
     rt = AgentRuntime(config, db)
 
-    async def emit(type, payload=None):
-        await rt.emit(type, payload=payload or {})
+    async def emit(type, payload=None, causation_id=None):
+        await rt.emit(type, payload=payload or {},
+                      causation_id=causation_id,
+                      correlation_id=(payload or {}).get("policy"))
 
     return rt, db, PolicyStore(db.conn, emit=emit)
 

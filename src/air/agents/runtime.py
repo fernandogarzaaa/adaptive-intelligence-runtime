@@ -111,21 +111,53 @@ class AgentRuntime:
         if agent is None:
             raise ValueError(f"unknown agent: {agent_id}")
         from air.tools.gateway import ToolCallRequest
+        # Causal context: the tool call is caused by the agent's execution,
+        # whose nearest event ancestor is its starting event.
         return await self.tool_gateway().execute(ToolCallRequest(
             tool_name=tool_name, args=args, agent_id=agent_id,
-            run_id=agent.root_run_id))
+            run_id=agent.root_run_id,
+            causation_id=self._latest_event_id(
+                "agent.started", agent_id=agent_id)))
 
     # ------------------------------------------------------------------ events
     async def emit(self, type: str, run_id: str | None = None,
                    agent_id: str | None = None, payload: dict | None = None,
                    causation_id: str | None = None,
                    correlation_id: str | None = None) -> Event:
+        # Correlation rule: a run-scoped event belongs to its run.
+        # Non-run workflows (policy lifecycle, capability lifecycle,
+        # learning) set correlation_id explicitly from their own
+        # identifier. A null correlation_id means "no known workflow",
+        # never a guess.
+        if correlation_id is None and run_id is not None:
+            correlation_id = run_id
         event = Event(type=type, run_id=run_id, agent_id=agent_id,
                       payload=payload or {}, causation_id=causation_id,
                       correlation_id=correlation_id)
         await self.store.append(event)
         await self.bus.publish(event)
         return event
+
+    def _latest_event_id(self, *types: str, run_id: str | None = None,
+                         agent_id: str | None = None) -> str | None:
+        """Most recent event_id among the given types, optionally scoped.
+
+        Used to thread causation where the causal parent is a real
+        ledger event but is not in hand at the emit site. Returns None
+        when no such event exists (the emitter then declares a root).
+        """
+        placeholders = ",".join("?" for _ in types)
+        sql = (f"SELECT event_id FROM events WHERE type IN ({placeholders})")
+        params: list = list(types)
+        if run_id is not None:
+            sql += " AND run_id=?"
+            params.append(run_id)
+        if agent_id is not None:
+            sql += " AND agent_id=?"
+            params.append(agent_id)
+        sql += " ORDER BY rowid DESC LIMIT 1"
+        row = self.db.conn.execute(sql, params).fetchone()
+        return row[0] if row else None
 
     # -------------------------------------------------------------------- runs
     async def create_run(self, goal: str, context: dict | None = None,
@@ -219,9 +251,16 @@ class AgentRuntime:
         # agent.created event commit atomically: a crash before the commit
         # leaves no agent row and no consumed slot; a crash after leaves all
         # of them. Never an agent row without its creation event.
+        # Causation: the agent is created as part of a started run
+        # (run.started) or in response to an approved spawn request
+        # (spawn.requested) -- whichever run-level planning event is
+        # latest. This is the nearest honest causal ancestor.
         event = Event(type="agent.created", run_id=run_id, agent_id=agent.id,
                       payload={"role": role, "parent_id": parent_id,
-                               "generation": generation, "objective": objective})
+                               "generation": generation, "objective": objective},
+                      causation_id=self._latest_event_id(
+                          "spawn.requested", "run.started", run_id=run_id),
+                      correlation_id=run_id)
         with self.store.atomic():
             with self.db.conn:
                 self._check_agent_slot(run_id)
@@ -293,19 +332,24 @@ class AgentRuntime:
                 "reason_hint": ctx.reason_hint,
             },
         }
-        await self.emit("spawn.requested", run_id=run_id, agent_id=parent_id,
-                        payload=ctx_payload)
+        # spawn.requested is a declared root within the run's workflow:
+        # the spawning *decision* (by a parent behavior or the operator)
+        # is not itself an event, so there is no honest causal parent.
+        requested_ev = await self.emit("spawn.requested", run_id=run_id,
+                                       agent_id=parent_id, payload=ctx_payload)
         if decision.decision != "SPAWN":
             await self.emit("spawn.denied", run_id=run_id, agent_id=parent_id,
                             payload={"decision_id": decision.decision_id,
-                                     "role": role, "reason": decision.reason})
+                                     "role": role, "reason": decision.reason},
+                            causation_id=requested_ev.event_id)
             return None, decision
         # Depth limit enforcement in code.
         depth_limit = (run_budget or {}).get("depth_limit") or 4
         if parent.generation + 1 > depth_limit:
             await self.emit("spawn.denied", run_id=run_id, agent_id=parent_id,
                             payload={"role": role,
-                                     "reason": f"depth limit {depth_limit} reached"})
+                                     "reason": f"depth limit {depth_limit} reached"},
+                            causation_id=requested_ev.event_id)
             decision.decision = "DENY"
             decision.reason = f"depth limit {depth_limit} reached"
             return None, decision
@@ -327,7 +371,8 @@ class AgentRuntime:
         )
         await self.emit("spawn.approved", run_id=run_id, agent_id=agent.id,
                         payload={"decision_id": decision.decision_id,
-                                 "parent_id": parent_id, "role": role})
+                                 "parent_id": parent_id, "role": role},
+                        causation_id=requested_ev.event_id)
         # An approved spawn must actually run: start_run launches its
         # agents, and a mid-run spawn is no different. Without this the
         # agent sits in CREATED forever.
@@ -343,6 +388,10 @@ class AgentRuntime:
         Scope rule: parent<->child always allowed; siblings (same parent, or
         same run root) allowed on sibling/result/evidence channels; anything
         else is denied and recorded.
+
+        Causation note: policy.blocked and agent.message declare
+        causation_id=None. The send *attempt* and the sender's *decision*
+        are not events, so there is no honest causal parent to reference.
         """
         if channel not in ("parent_child", "sibling", "evidence", "result", "broadcast"):
             raise ValueError(f"unknown channel: {channel}")
@@ -388,7 +437,9 @@ class AgentRuntime:
             "UPDATE runs SET status='RUNNING', started_at=? WHERE id=?", (utcnow(), run_id))
         self.db.conn.commit()
         await self.emit("run.started", run_id=run_id,
-                        payload={"strategy": plan["strategy"]})
+                        payload={"strategy": plan["strategy"]},
+                        causation_id=self._latest_event_id(
+                            "run.created", run_id=run_id))
         # Build the initial agent population from the cognitive plan.
         created: dict[str, Agent] = {}
         for spec in plan["agent_specs"]:
@@ -437,7 +488,14 @@ class AgentRuntime:
     async def _agent_loop(self, agent: Agent) -> None:
         try:
             self._set_status(agent, AgentStatus.RUNNING)
-            await self.emit("agent.started", run_id=agent.root_run_id, agent_id=agent.id)
+            # The started event is the causal anchor for everything this
+            # execution produces: the behavior's internal steps are not
+            # events, so the loop's terminal events chain to it rather
+            # than to a fabricated intermediate.
+            started_ev = await self.emit(
+                "agent.started", run_id=agent.root_run_id, agent_id=agent.id,
+                causation_id=self._latest_event_id(
+                    "agent.created", agent_id=agent.id))
             behavior = self._behaviors.get(agent.role)
             if behavior is None:
                 # No deterministic behavior and no model provider: honestly
@@ -450,7 +508,8 @@ class AgentRuntime:
                 await self.emit("agent.blocked", run_id=agent.root_run_id,
                                 agent_id=agent.id,
                                 payload={"reason": "MODEL_PROVIDER_UNAVAILABLE",
-                                         "role": agent.role})
+                                         "role": agent.role},
+                                causation_id=started_ev.event_id)
                 return
             result = await behavior(agent, self)
             self._consume(agent.root_run_id,
@@ -461,23 +520,28 @@ class AgentRuntime:
                                     "result", {"result": result})
             self._set_status(agent, AgentStatus.COMPLETED)
             await self.emit("agent.completed", run_id=agent.root_run_id,
-                            agent_id=agent.id, payload={"result": result})
+                            agent_id=agent.id, payload={"result": result},
+                            causation_id=started_ev.event_id)
         except BudgetExhausted as e:
             self._set_status(agent, AgentStatus.TERMINATED, f"BUDGET_EXHAUSTED: {e.what}")
             await self.emit("budget.exhausted", run_id=agent.root_run_id,
-                            agent_id=agent.id, payload={"what": e.what})
+                            agent_id=agent.id, payload={"what": e.what},
+                            causation_id=started_ev.event_id)
             await self.emit("agent.terminated", run_id=agent.root_run_id,
-                            agent_id=agent.id, payload={"reason": "budget exhausted"})
+                            agent_id=agent.id, payload={"reason": "budget exhausted"},
+                            causation_id=started_ev.event_id)
         except asyncio.CancelledError:
             self._set_status(agent, AgentStatus.CANCELLED, "cancelled by operator")
             await self.emit("agent.terminated", run_id=agent.root_run_id,
-                            agent_id=agent.id, payload={"reason": "cancelled"})
+                            agent_id=agent.id, payload={"reason": "cancelled"},
+                            causation_id=started_ev.event_id)
             raise
         except Exception as e:  # noqa: BLE001 - agent failure must be recorded
             self._set_status(agent, AgentStatus.FAILED, f"{type(e).__name__}: {e}")
             await self.emit("agent.failed", run_id=agent.root_run_id,
                             agent_id=agent.id,
-                            payload={"error": f"{type(e).__name__}: {e}"})
+                            payload={"error": f"{type(e).__name__}: {e}"},
+                            causation_id=started_ev.event_id)
         finally:
             self._tasks.pop(agent.id, None)
             await self._maybe_complete_run(agent.root_run_id)
@@ -493,7 +557,16 @@ class AgentRuntime:
         now = utcnow()
         # The COMPLETED flip and its event commit atomically: never a
         # completed run without its completion event.
-        run_event = Event(type="run.completed", run_id=run_id, payload=summary)
+        # Causation: the run completed because its agents reached terminal
+        # states; the nearest such event is the parent, falling back to
+        # run.started when no agent ran (direct strategy).
+        run_event = Event(type="run.completed", run_id=run_id, payload=summary,
+                          causation_id=self._latest_event_id(
+                              "agent.completed", "agent.failed",
+                              "agent.terminated", run_id=run_id)
+                          or self._latest_event_id("run.started",
+                                                   run_id=run_id),
+                          correlation_id=run_id)
         with self.store.atomic():
             with self.db.conn:
                 self.db.conn.execute(
@@ -507,16 +580,23 @@ class AgentRuntime:
         try:
             from air.experience.recorder import ExperienceRecorder
             exp, exp_event = ExperienceRecorder(
-                self.db.conn, store=self.store).record_run(run_id)
+                self.db.conn, store=self.store).record_run(
+                    run_id, causation_id=run_event.event_id)
             if exp_event is not None:
                 await self.store.publish(exp_event)
         except Exception as e:  # noqa: BLE001 - experience must not break runs
             await self.emit("experience.failed", run_id=run_id,
-                            payload={"error": f"{type(e).__name__}: {e}"})
+                            payload={"error": f"{type(e).__name__}: {e}"},
+                            causation_id=run_event.event_id)
 
     async def terminate_agent(self, agent_id: str, subtree: bool = True,
                               reason: str = "operator terminated") -> list[str]:
-        """Terminate an agent and optionally its whole subtree. Recorded."""
+        """Terminate an agent and optionally its whole subtree. Recorded.
+
+        Causation note: termination is an operator (or run-cancellation)
+        action, not an event, so agent.terminated declares
+        causation_id=None. The reason payload carries the why.
+        """
         terminated: list[str] = []
         queue = [agent_id]
         while queue:
@@ -542,12 +622,15 @@ class AgentRuntime:
     async def pause_run(self, run_id: str) -> None:
         self.db.conn.execute("UPDATE runs SET status='PAUSED' WHERE id=?", (run_id,))
         self.db.conn.commit()
+        # Operator action: no honest causal parent.
         await self.emit("run.paused", run_id=run_id)
 
     async def resume_run(self, run_id: str) -> None:
         self.db.conn.execute("UPDATE runs SET status='RUNNING' WHERE id=?", (run_id,))
         self.db.conn.commit()
-        await self.emit("run.started", run_id=run_id, payload={"resumed": True})
+        await self.emit("run.started", run_id=run_id, payload={"resumed": True},
+                        causation_id=self._latest_event_id(
+                            "run.paused", run_id=run_id))
 
     async def cancel_run(self, run_id: str) -> None:
         agents = self.db.conn.execute(
@@ -558,6 +641,7 @@ class AgentRuntime:
             "UPDATE runs SET status='CANCELLED', completed_at=? WHERE id=?",
             (utcnow(), run_id))
         self.db.conn.commit()
+        # Operator action: no honest causal parent.
         await self.emit("run.failed", run_id=run_id, payload={"reason": "cancelled"})
 
     # ---------------------------------------------------------------- budgets
