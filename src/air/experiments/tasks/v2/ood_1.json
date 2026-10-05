@@ -1,0 +1,2407 @@
+{
+ "version": "ood-1",
+ "tasks": [
+  {
+   "id": "ood_p01",
+   "goal": "Assemble the deployment bundle for staging.",
+   "artifacts": [
+    "bundle-a.tar",
+    "bundle-b.tar",
+    "bundle-c.tar"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bundle-a.tar",
+      "content": "c1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bundle-b.tar",
+      "content": "c2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bundle-c.tar",
+      "content": "c3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p01-c0",
+     "phase": "produce",
+     "description": "bundle-a.tar materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bundle-a.tar"
+     ]
+    },
+    {
+     "id": "ood_p01-c1",
+     "phase": "produce",
+     "description": "bundle-b.tar materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bundle-b.tar"
+     ]
+    },
+    {
+     "id": "ood_p01-c2",
+     "phase": "produce",
+     "description": "bundle-c.tar materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bundle-c.tar"
+     ]
+    }
+   ],
+   "raw_text_hash": "c682955951beaaee",
+   "mechanical_features_hash": "7dd48605908ac650"
+  },
+  {
+   "id": "ood_p02",
+   "goal": "Prepare release artifacts for the QA environment.",
+   "artifacts": [
+    "qa-build.zip",
+    "qa-notes.md"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "qa-build.zip",
+      "content": "q1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "qa-notes.md",
+      "content": "q2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p02-c0",
+     "phase": "produce",
+     "description": "qa-build.zip materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "qa-build.zip"
+     ]
+    },
+    {
+     "id": "ood_p02-c1",
+     "phase": "produce",
+     "description": "qa-notes.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "qa-notes.md"
+     ]
+    }
+   ],
+   "raw_text_hash": "af3adf891ce08e5e",
+   "mechanical_features_hash": "bde16526dfd82a52"
+  },
+  {
+   "id": "ood_p03",
+   "goal": "Render invoice copies for the accounting period.",
+   "artifacts": [
+    "inv-001.pdf",
+    "inv-002.pdf",
+    "inv-003.pdf",
+    "inv-004.pdf"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inv-001.pdf",
+      "content": "a"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inv-002.pdf",
+      "content": "b"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inv-003.pdf",
+      "content": "c"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inv-004.pdf",
+      "content": "d"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p03-c0",
+     "phase": "produce",
+     "description": "inv-001.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inv-001.pdf"
+     ]
+    },
+    {
+     "id": "ood_p03-c1",
+     "phase": "produce",
+     "description": "inv-002.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inv-002.pdf"
+     ]
+    },
+    {
+     "id": "ood_p03-c2",
+     "phase": "produce",
+     "description": "inv-003.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inv-003.pdf"
+     ]
+    },
+    {
+     "id": "ood_p03-c3",
+     "phase": "produce",
+     "description": "inv-004.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inv-004.pdf"
+     ]
+    }
+   ],
+   "raw_text_hash": "60e2fedb3cf8c6b8",
+   "mechanical_features_hash": "d25542d880e791c1"
+  },
+  {
+   "id": "ood_p04",
+   "goal": "Package migration scripts for the database upgrade.",
+   "artifacts": [
+    "mig-01.sql",
+    "mig-02.sql"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "mig-01.sql",
+      "content": "m1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "mig-02.sql",
+      "content": "m2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p04-c0",
+     "phase": "produce",
+     "description": "mig-01.sql materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "mig-01.sql"
+     ]
+    },
+    {
+     "id": "ood_p04-c1",
+     "phase": "produce",
+     "description": "mig-02.sql materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "mig-02.sql"
+     ]
+    }
+   ],
+   "raw_text_hash": "13c38817179df392",
+   "mechanical_features_hash": "bde16526dfd82a52"
+  },
+  {
+   "id": "ood_p05",
+   "goal": "Compile the configuration set for production.",
+   "artifacts": [
+    "prod.cfg",
+    "prod.secrets",
+    "prod.routes"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "prod.cfg",
+      "content": "x"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "prod.secrets",
+      "content": "y"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "prod.routes",
+      "content": "z"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p05-c0",
+     "phase": "produce",
+     "description": "prod.cfg materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "prod.cfg"
+     ]
+    },
+    {
+     "id": "ood_p05-c1",
+     "phase": "produce",
+     "description": "prod.secrets materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "prod.secrets"
+     ]
+    },
+    {
+     "id": "ood_p05-c2",
+     "phase": "produce",
+     "description": "prod.routes materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "prod.routes"
+     ]
+    }
+   ],
+   "raw_text_hash": "bd217cbff344ef34",
+   "mechanical_features_hash": "7dd48605908ac650"
+  },
+  {
+   "id": "ood_p06",
+   "goal": "Draft onboarding packets for new hires.",
+   "artifacts": [
+    "onboard-eng.md",
+    "onboard-ops.md"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "onboard-eng.md",
+      "content": "e1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "onboard-ops.md",
+      "content": "e2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p06-c0",
+     "phase": "produce",
+     "description": "onboard-eng.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "onboard-eng.md"
+     ]
+    },
+    {
+     "id": "ood_p06-c1",
+     "phase": "produce",
+     "description": "onboard-ops.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "onboard-ops.md"
+     ]
+    }
+   ],
+   "raw_text_hash": "e1a328b77d18a4c8",
+   "mechanical_features_hash": "bde16526dfd82a52"
+  },
+  {
+   "id": "ood_p07",
+   "goal": "Build test fixtures for the payment module.",
+   "artifacts": [
+    "fix-pay-1.json",
+    "fix-pay-2.json",
+    "fix-pay-3.json"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "fix-pay-1.json",
+      "content": "p1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "fix-pay-2.json",
+      "content": "p2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "fix-pay-3.json",
+      "content": "p3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p07-c0",
+     "phase": "produce",
+     "description": "fix-pay-1.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "fix-pay-1.json"
+     ]
+    },
+    {
+     "id": "ood_p07-c1",
+     "phase": "produce",
+     "description": "fix-pay-2.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "fix-pay-2.json"
+     ]
+    },
+    {
+     "id": "ood_p07-c2",
+     "phase": "produce",
+     "description": "fix-pay-3.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "fix-pay-3.json"
+     ]
+    }
+   ],
+   "raw_text_hash": "5bec9b39a225ab5d",
+   "mechanical_features_hash": "7dd48605908ac650"
+  },
+  {
+   "id": "ood_p08",
+   "goal": "Finalize audit trail entries for compliance.",
+   "artifacts": [
+    "audit-q3.log",
+    "audit-q4.log"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "audit-q3.log",
+      "content": "l1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "audit-q4.log",
+      "content": "l2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p08-c0",
+     "phase": "produce",
+     "description": "audit-q3.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "audit-q3.log"
+     ]
+    },
+    {
+     "id": "ood_p08-c1",
+     "phase": "produce",
+     "description": "audit-q4.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "audit-q4.log"
+     ]
+    }
+   ],
+   "raw_text_hash": "02a261f06b819f1e",
+   "mechanical_features_hash": "bde16526dfd82a52"
+  },
+  {
+   "id": "ood_p09",
+   "goal": "Emit status beacons for the monitoring dashboard.",
+   "artifacts": [
+    "beacon-a.json",
+    "beacon-b.json",
+    "beacon-c.json"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "beacon-a.json",
+      "content": "s1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "beacon-b.json",
+      "content": "s2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "beacon-c.json",
+      "content": "s3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p09-c0",
+     "phase": "produce",
+     "description": "beacon-a.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "beacon-a.json"
+     ]
+    },
+    {
+     "id": "ood_p09-c1",
+     "phase": "produce",
+     "description": "beacon-b.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "beacon-b.json"
+     ]
+    },
+    {
+     "id": "ood_p09-c2",
+     "phase": "produce",
+     "description": "beacon-c.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "beacon-c.json"
+     ]
+    }
+   ],
+   "raw_text_hash": "cbdbfa2442adc346",
+   "mechanical_features_hash": "7dd48605908ac650"
+  },
+  {
+   "id": "ood_p10",
+   "goal": "Stamp version markers across the release branch.",
+   "artifacts": [
+    "ver-2.1.tag",
+    "ver-2.2.tag"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "ver-2.1.tag",
+      "content": "v1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "ver-2.2.tag",
+      "content": "v2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p10-c0",
+     "phase": "produce",
+     "description": "ver-2.1.tag materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "ver-2.1.tag"
+     ]
+    },
+    {
+     "id": "ood_p10-c1",
+     "phase": "produce",
+     "description": "ver-2.2.tag materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "ver-2.2.tag"
+     ]
+    }
+   ],
+   "raw_text_hash": "4c941018a9c0a7f9",
+   "mechanical_features_hash": "bde16526dfd82a52"
+  },
+  {
+   "id": "ood_p11",
+   "goal": "Provision TLS certificates for the edge nodes.",
+   "artifacts": [
+    "edge-1.pem",
+    "edge-2.pem",
+    "edge-3.pem"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "edge-1.pem",
+      "content": "t1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "edge-2.pem",
+      "content": "t2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "edge-3.pem",
+      "content": "t3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p11-c0",
+     "phase": "produce",
+     "description": "edge-1.pem materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "edge-1.pem"
+     ]
+    },
+    {
+     "id": "ood_p11-c1",
+     "phase": "produce",
+     "description": "edge-2.pem materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "edge-2.pem"
+     ]
+    },
+    {
+     "id": "ood_p11-c2",
+     "phase": "produce",
+     "description": "edge-3.pem materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "edge-3.pem"
+     ]
+    }
+   ],
+   "raw_text_hash": "12b26fa916725fb1",
+   "mechanical_features_hash": "7dd48605908ac650"
+  },
+  {
+   "id": "ood_p12",
+   "goal": "Seed the demo tenant with sample records.",
+   "artifacts": [
+    "demo-users.csv",
+    "demo-orders.csv"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "demo-users.csv",
+      "content": "d1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "demo-orders.csv",
+      "content": "d2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p12-c0",
+     "phase": "produce",
+     "description": "demo-users.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "demo-users.csv"
+     ]
+    },
+    {
+     "id": "ood_p12-c1",
+     "phase": "produce",
+     "description": "demo-orders.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "demo-orders.csv"
+     ]
+    }
+   ],
+   "raw_text_hash": "f97015efbc25ada2",
+   "mechanical_features_hash": "bde16526dfd82a52"
+  },
+  {
+   "id": "ood_p13",
+   "goal": "Archive log rotations for the incident window.",
+   "artifacts": [
+    "inc-2026-10-01.log",
+    "inc-2026-10-02.log",
+    "inc-2026-10-03.log"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inc-2026-10-01.log",
+      "content": "r1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inc-2026-10-02.log",
+      "content": "r2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inc-2026-10-03.log",
+      "content": "r3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p13-c0",
+     "phase": "produce",
+     "description": "inc-2026-10-01.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inc-2026-10-01.log"
+     ]
+    },
+    {
+     "id": "ood_p13-c1",
+     "phase": "produce",
+     "description": "inc-2026-10-02.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inc-2026-10-02.log"
+     ]
+    },
+    {
+     "id": "ood_p13-c2",
+     "phase": "produce",
+     "description": "inc-2026-10-03.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inc-2026-10-03.log"
+     ]
+    }
+   ],
+   "raw_text_hash": "978ecf94a4f88d2d",
+   "mechanical_features_hash": "7dd48605908ac650"
+  },
+  {
+   "id": "ood_p14",
+   "goal": "Publish the changelog digest for stakeholders.",
+   "artifacts": [
+    "digest-oct.md",
+    "digest-nov.md"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "digest-oct.md",
+      "content": "g1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "digest-nov.md",
+      "content": "g2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p14-c0",
+     "phase": "produce",
+     "description": "digest-oct.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "digest-oct.md"
+     ]
+    },
+    {
+     "id": "ood_p14-c1",
+     "phase": "produce",
+     "description": "digest-nov.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "digest-nov.md"
+     ]
+    }
+   ],
+   "raw_text_hash": "6931ae8dbd3e8735",
+   "mechanical_features_hash": "bde16526dfd82a52"
+  },
+  {
+   "id": "ood_p15",
+   "goal": "Mint API tokens for the integration partners.",
+   "artifacts": [
+    "tok-acme.key",
+    "tok-globex.key",
+    "tok-initech.key"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "tok-acme.key",
+      "content": "k1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "tok-globex.key",
+      "content": "k2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "tok-initech.key",
+      "content": "k3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p15-c0",
+     "phase": "produce",
+     "description": "tok-acme.key materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "tok-acme.key"
+     ]
+    },
+    {
+     "id": "ood_p15-c1",
+     "phase": "produce",
+     "description": "tok-globex.key materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "tok-globex.key"
+     ]
+    },
+    {
+     "id": "ood_p15-c2",
+     "phase": "produce",
+     "description": "tok-initech.key materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "tok-initech.key"
+     ]
+    }
+   ],
+   "raw_text_hash": "1cfc68dff1859066",
+   "mechanical_features_hash": "7dd48605908ac650"
+  },
+  {
+   "id": "ood_p16",
+   "goal": "Snapshot the feature flags for rollback safety.",
+   "artifacts": [
+    "flags-before.json",
+    "flags-after.json"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "flags-before.json",
+      "content": "f1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "flags-after.json",
+      "content": "f2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_p16-c0",
+     "phase": "produce",
+     "description": "flags-before.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "flags-before.json"
+     ]
+    },
+    {
+     "id": "ood_p16-c1",
+     "phase": "produce",
+     "description": "flags-after.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "flags-after.json"
+     ]
+    }
+   ],
+   "raw_text_hash": "cbb95e2a846d7712",
+   "mechanical_features_hash": "bde16526dfd82a52"
+  },
+  {
+   "id": "ood_r01",
+   "goal": "Survey the dependency declarations for outdated pins.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "dep-a.txt"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "dep-b.txt"
+     }
+    }
+   ],
+   "seed_files": {
+    "dep-a.txt": "d1 d2",
+    "dep-b.txt": "d3 d4"
+   },
+   "claims": [
+    {
+     "id": "ood_r01-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r01-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "96b9dea3019faccc",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r02",
+   "goal": "Peruse the access logs for anomalous patterns.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "acc-01.log"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "acc-02.log"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "acc-03.log"
+     }
+    }
+   ],
+   "seed_files": {
+    "acc-01.log": "l1",
+    "acc-02.log": "l2",
+    "acc-03.log": "l3"
+   },
+   "claims": [
+    {
+     "id": "ood_r02-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r02-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r02-c2",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "7be83d91947f8998",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r03",
+   "goal": "Study the schema definitions for migration planning.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "sch-v1.json"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "sch-v2.json"
+     }
+    }
+   ],
+   "seed_files": {
+    "sch-v1.json": "s1",
+    "sch-v2.json": "s2"
+   },
+   "claims": [
+    {
+     "id": "ood_r03-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r03-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "897ed7065443fdcd",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r04",
+   "goal": "Scan the incident timeline for root-cause clues.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "tl-01.md"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "tl-02.md"
+     }
+    }
+   ],
+   "seed_files": {
+    "tl-01.md": "t1",
+    "tl-02.md": "t2"
+   },
+   "claims": [
+    {
+     "id": "ood_r04-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r04-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "6b72b853309a41e1",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r05",
+   "goal": "Browse the vendor catalog for pricing updates.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "cat-q3.csv"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "cat-q4.csv"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "cat-q1.csv"
+     }
+    }
+   ],
+   "seed_files": {
+    "cat-q3.csv": "c1",
+    "cat-q4.csv": "c2",
+    "cat-q1.csv": "c3"
+   },
+   "claims": [
+    {
+     "id": "ood_r05-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r05-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r05-c2",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "38ee2f14c07a46d8",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r06",
+   "goal": "Look over the test coverage summaries.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "cov-api.txt"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "cov-ui.txt"
+     }
+    }
+   ],
+   "seed_files": {
+    "cov-api.txt": "v1",
+    "cov-ui.txt": "v2"
+   },
+   "claims": [
+    {
+     "id": "ood_r06-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r06-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "59c2d7cc845b0114",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r07",
+   "goal": "Go through the onboarding feedback forms.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "fb-01.txt"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "fb-02.txt"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "fb-03.txt"
+     }
+    }
+   ],
+   "seed_files": {
+    "fb-01.txt": "f1",
+    "fb-02.txt": "f2",
+    "fb-03.txt": "f3"
+   },
+   "claims": [
+    {
+     "id": "ood_r07-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r07-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r07-c2",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "8a7a9724c3544857",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r08",
+   "goal": "Leaf through the architecture decision records.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "adr-001.md"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "adr-002.md"
+     }
+    }
+   ],
+   "seed_files": {
+    "adr-001.md": "a1",
+    "adr-002.md": "a2"
+   },
+   "claims": [
+    {
+     "id": "ood_r08-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r08-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "bef9c34d0e0608c4",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r09",
+   "goal": "Parse the deployment manifests for drift.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "dep-staging.yaml"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "dep-prod.yaml"
+     }
+    }
+   ],
+   "seed_files": {
+    "dep-staging.yaml": "y1",
+    "dep-prod.yaml": "y2"
+   },
+   "claims": [
+    {
+     "id": "ood_r09-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r09-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "bde4f841e6ad11e7",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r10",
+   "goal": "Skim the customer transcripts for feature requests.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "tr-101.txt"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "tr-102.txt"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "tr-103.txt"
+     }
+    }
+   ],
+   "seed_files": {
+    "tr-101.txt": "x1",
+    "tr-102.txt": "x2",
+    "tr-103.txt": "x3"
+   },
+   "claims": [
+    {
+     "id": "ood_r10-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r10-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r10-c2",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "a5e3dd4221902493",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r11",
+   "goal": "Audit the permission grants for overprivileged roles.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "perm-a.json"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "perm-b.json"
+     }
+    }
+   ],
+   "seed_files": {
+    "perm-a.json": "p1",
+    "perm-b.json": "p2"
+   },
+   "claims": [
+    {
+     "id": "ood_r11-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r11-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "3bd57ea28b3a4e77",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r12",
+   "goal": "Canvass the status pages for outage notices.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "st-oct.html"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "st-nov.html"
+     }
+    }
+   ],
+   "seed_files": {
+    "st-oct.html": "h1",
+    "st-nov.html": "h2"
+   },
+   "claims": [
+    {
+     "id": "ood_r12-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r12-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "3c2d43331a93989a",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r13",
+   "goal": "Sift the error budgets for burn-rate anomalies.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "eb-01.csv"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "eb-02.csv"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "eb-03.csv"
+     }
+    }
+   ],
+   "seed_files": {
+    "eb-01.csv": "e1",
+    "eb-02.csv": "e2",
+    "eb-03.csv": "e3"
+   },
+   "claims": [
+    {
+     "id": "ood_r13-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r13-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r13-c2",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "c67fca0a547afa47",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r14",
+   "goal": "Delve into the runbook procedures for failover steps.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "rb-01.md"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "rb-02.md"
+     }
+    }
+   ],
+   "seed_files": {
+    "rb-01.md": "r1",
+    "rb-02.md": "r2"
+   },
+   "claims": [
+    {
+     "id": "ood_r14-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r14-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "e9cdc6dc08b216c2",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r15",
+   "goal": "Glance at the sprint retrospectives for action items.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "retro-12.md"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "retro-13.md"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "retro-14.md"
+     }
+    }
+   ],
+   "seed_files": {
+    "retro-12.md": "m1",
+    "retro-13.md": "m2",
+    "retro-14.md": "m3"
+   },
+   "claims": [
+    {
+     "id": "ood_r15-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r15-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r15-c2",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "7aba2282c8c19125",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_r16",
+   "goal": "Pore over the contract amendments for renewal terms.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "ctr-a.pdf.txt"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "ctr-b.pdf.txt"
+     }
+    }
+   ],
+   "seed_files": {
+    "ctr-a.pdf.txt": "z1",
+    "ctr-b.pdf.txt": "z2"
+   },
+   "claims": [
+    {
+     "id": "ood_r16-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_r16-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "4fe28dcfde3683a4",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_m1a",
+   "goal": "Handle the multiple outbound batches for delivery.",
+   "artifacts": [
+    "out-1.pkg",
+    "out-2.pkg"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "out-1.pkg",
+      "content": "p1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "out-2.pkg",
+      "content": "p2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_m1a-c0",
+     "phase": "produce",
+     "description": "out-1.pkg materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "out-1.pkg"
+     ]
+    },
+    {
+     "id": "ood_m1a-c1",
+     "phase": "produce",
+     "description": "out-2.pkg materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "out-2.pkg"
+     ]
+    }
+   ],
+   "raw_text_hash": "2941d6985c28288e",
+   "mechanical_features_hash": "bde16526dfd82a52"
+  },
+  {
+   "id": "ood_m1b",
+   "goal": "Handle the multiple inbound batches for triage.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "in-1.pkg"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "in-2.pkg"
+     }
+    }
+   ],
+   "seed_files": {
+    "in-1.pkg": "i1",
+    "in-2.pkg": "i2"
+   },
+   "claims": [
+    {
+     "id": "ood_m1b-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_m1b-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "2756010f9370b93d",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_m2a",
+   "goal": "Process the several quarterly statements for distribution.",
+   "artifacts": [
+    "q3-stmt.pdf",
+    "q4-stmt.pdf"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "q3-stmt.pdf",
+      "content": "s3"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "q4-stmt.pdf",
+      "content": "s4"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_m2a-c0",
+     "phase": "produce",
+     "description": "q3-stmt.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "q3-stmt.pdf"
+     ]
+    },
+    {
+     "id": "ood_m2a-c1",
+     "phase": "produce",
+     "description": "q4-stmt.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "q4-stmt.pdf"
+     ]
+    }
+   ],
+   "raw_text_hash": "e50038371ec63a57",
+   "mechanical_features_hash": "bde16526dfd82a52"
+  },
+  {
+   "id": "ood_m2b",
+   "goal": "Process the several quarterly surveys for analysis.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "q3-surv.csv"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "q4-surv.csv"
+     }
+    }
+   ],
+   "seed_files": {
+    "q3-surv.csv": "v3",
+    "q4-surv.csv": "v4"
+   },
+   "claims": [
+    {
+     "id": "ood_m2b-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_m2b-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "ac72f9e487f47545",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_l1a",
+   "goal": "Turn out the monthly summaries for the leadership sync.",
+   "artifacts": [
+    "sum-oct.md",
+    "sum-nov.md"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "sum-oct.md",
+      "content": "o"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "sum-nov.md",
+      "content": "n"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_l1a-c0",
+     "phase": "produce",
+     "description": "sum-oct.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "sum-oct.md"
+     ]
+    },
+    {
+     "id": "ood_l1a-c1",
+     "phase": "produce",
+     "description": "sum-nov.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "sum-nov.md"
+     ]
+    }
+   ],
+   "raw_text_hash": "ff83b3471f843269",
+   "mechanical_features_hash": "bde16526dfd82a52"
+  },
+  {
+   "id": "ood_l1b",
+   "goal": "Crank through the per-diem expense bundles ahead of audit.",
+   "artifacts": [
+    "exp-w42.zip",
+    "exp-w43.zip"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "exp-w42.zip",
+      "content": "e1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "exp-w43.zip",
+      "content": "e2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ood_l1b-c0",
+     "phase": "produce",
+     "description": "exp-w42.zip materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "exp-w42.zip"
+     ]
+    },
+    {
+     "id": "ood_l1b-c1",
+     "phase": "produce",
+     "description": "exp-w43.zip materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "exp-w43.zip"
+     ]
+    }
+   ],
+   "raw_text_hash": "65ca1903a1d8e1b7",
+   "mechanical_features_hash": "bde16526dfd82a52"
+  },
+  {
+   "id": "ood_l2a",
+   "goal": "Reconstruct the timeline from the fragmented event logs.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "ev-01.log"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "ev-02.log"
+     }
+    }
+   ],
+   "seed_files": {
+    "ev-01.log": "a",
+    "ev-02.log": "b"
+   },
+   "claims": [
+    {
+     "id": "ood_l2a-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_l2a-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "111b7b6bfb2d0b7b",
+   "mechanical_features_hash": "81c349fec8141ced"
+  },
+  {
+   "id": "ood_l2b",
+   "goal": "Piece together what happened from the scattered debug traces.",
+   "artifacts": [],
+   "effects": [
+    "observe"
+   ],
+   "operations": [
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "dbg-01.txt"
+     }
+    },
+    {
+     "phase": "prepare",
+     "tool": "fs.read",
+     "args": {
+      "path": "dbg-02.txt"
+     }
+    }
+   ],
+   "seed_files": {
+    "dbg-01.txt": "x",
+    "dbg-02.txt": "y"
+   },
+   "claims": [
+    {
+     "id": "ood_l2b-c0",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    },
+    {
+     "id": "ood_l2b-c1",
+     "phase": "prepare",
+     "description": "inputs observed",
+     "effects": [
+      "observe"
+     ],
+     "artifacts": []
+    }
+   ],
+   "raw_text_hash": "19709d800913b1d5",
+   "mechanical_features_hash": "81c349fec8141ced"
+  }
+ ]
+}

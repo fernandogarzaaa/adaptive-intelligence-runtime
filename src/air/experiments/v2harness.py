@@ -183,6 +183,43 @@ def choose_strategy(task: dict, rules: list[AllocationRule]) -> str:
     return sorted(adjusted, key=lambda n: (-adjusted[n], n))[0]
 
 
+def decision_decomposition(task: dict, rules: list[AllocationRule]) -> dict:
+    """Full causal provenance for one allocation decision (OOD-1 audit).
+
+    Returns v1 base scores, pv2 mechanical adjustments, final scores,
+    both choices, decision delta, and which rules fired. The task's
+    raw_text_hash and mechanical_features_hash are included for the
+    L-pair/M-pair hash audit.
+    """
+    features = extract_features(task)
+    v1_scores = base_scores(task["goal"])
+    resolved = resolve_rules(rules, features)
+    adjustments = resolved["adjustments"]
+    feasible = _feasible(STRATEGY_NAMES, resolved["requirements"])
+    if not feasible:
+        final_scores = {}
+        pv2_choice = INCOHERENT
+    else:
+        final_scores = {n: round(v1_scores[n] + adjustments.get(n, 0.0), 4)
+                        for n in feasible}
+        pv2_choice = sorted(final_scores,
+                            key=lambda n: (-final_scores[n], n))[0]
+    v1_choice = sorted(v1_scores, key=lambda n: (-v1_scores[n], n))[0]
+    return {
+        "task_id": task["id"],
+        "raw_text_hash": task.get("raw_text_hash"),
+        "mechanical_features_hash": task.get("mechanical_features_hash"),
+        "v1_base_scores": v1_scores,
+        "pv2_adjustments": adjustments,
+        "pv2_final_scores": final_scores,
+        "v1_choice": v1_choice,
+        "pv2_choice": pv2_choice,
+        "decision_delta": v1_choice != pv2_choice,
+        "fired_rules": resolved["applicable_rules"],
+        "rule_log": resolved["log"],
+    }
+
+
 def parent_choose(task: dict) -> str:
     return choose_strategy(task, [])
 
@@ -1404,6 +1441,55 @@ def _rebuild_evaluation_v2_2(data: dict):
 # Register v2.2 commands (defined above, after COMMANDS dict).
 COMMANDS["run-s1-v2-2"] = cmd_run_s1_v2_2
 COMMANDS["promote-1-v2-2"] = cmd_promote_1_v2_2
+
+
+# ---------------------------------------------------------------------------
+# OOD-1: frozen pv2 vs v1 on adversarial lexical-shift tasks.
+# No learning, no promotion. Diagnostic only.
+# ---------------------------------------------------------------------------
+
+def cmd_run_ood_1():
+    """Run OOD-1: frozen pv2 (active) vs v1 parent on 40 OOD tasks.
+
+    Records decision decompositions (v1 scores, pv2 adjustments, final)
+    for every task. Runs are phase='ood-1', excluded from all learning.
+    """
+    # OOD-1 requires the D-series to be closed (pv2 frozen).
+    require_steps("dseries-closure")
+    if step_done("ood-1"):
+        print("ood-1 already recorded; skipping")
+        return
+    rules, version = _active_rules()
+    assert version == "v2", f"OOD-1 requires frozen pv2, got {version}"
+    tasks = load_tasks("ood_1")
+    print(f"ood-1: {len(tasks)} tasks, policy={version} "
+          f"({len(rules)} rules, frozen)")
+
+    async def go():
+        runner = Runner("ood-1")
+        for task in tasks:
+            # Record decision decomposition BEFORE execution (frozen audit)
+            decomp = decision_decomposition(task, rules)
+            ledger_append("ood1_decomposition", decomp)
+            for label, rl in (("active", rules), ("parent", [])):
+                strat = choose_strategy(task, rl)
+                if strat == INCOHERENT:
+                    ledger_append("incoherence", {
+                        "phase": "ood-1", "task_id": task["id"],
+                        "policy": label,
+                        "note": "policy incoherent on ood-1 task"})
+                    continue
+                seed = derive_seed("ood-1", task["id"], label)
+                rec = await runner.drive_run(task, strat, label, seed)
+                ledger_append("run", rec)
+
+    asyncio.run(go())
+    ledger_append("step_complete", {"step": "ood-1",
+                                    "n_tasks": len(tasks)})
+    print(f"ood-1: {len(tasks)} tasks x 2 policies complete")
+
+
+COMMANDS["run-ood-1"] = cmd_run_ood_1
 
 
 if __name__ == "__main__":
