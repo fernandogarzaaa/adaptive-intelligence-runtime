@@ -637,6 +637,7 @@ async def _intervention(pool: str, phase: str,
         outcomes.append({
             "task_id": et_id,
             "eval_class": eval_class(task),
+            "stratum": task.get("stratum"),  # v2.2: preregistered stratum label
             "safety": False,
             "differ": p_strat != c_strat,
             "parent_strategy": p_strat,
@@ -1049,6 +1050,254 @@ COMMANDS = {
     "run-d3": cmd_run_d3,
     "report": cmd_report,
 }
+
+
+# ---------------------------------------------------------------------------
+# v2.2: Powered promotion design.
+# ---------------------------------------------------------------------------
+
+def _evaluate_v2_2(eval_id: str, candidate_id: str,
+                   parent_version: str, pool: str,
+                   outcomes: list[dict]) -> dict:
+    """v2.2 stratified evaluation with powered promotion gates.
+
+    Returns a dict (not DiscriminatingEvaluation) with v2.2 verdict:
+    PROMOTE, REJECT, or UNDERPOWERED.
+    """
+    from air.learning_v2.evaluation import (
+        mcnemar_exact_onesided, wilson_lower)
+
+    # Group by stratum
+    by_stratum: dict[str, list[dict]] = {}
+    for o in outcomes:
+        s = o.get("stratum") or "unknown"
+        by_stratum.setdefault(s, []).append(o)
+
+    stats: dict = {"protocol": "v2.2", "strata": {}}
+
+    # Production stratum: primary McNemar
+    prod = by_stratum.get("production", [])
+    # Discordant pairs: differ=True and both verified non-None
+    disc = [o for o in prod if o["differ"]
+            and o["parent_verified"] is not None
+            and o["candidate_verified"] is not None]
+    b = sum(1 for o in disc if o["parent_verified"] and not o["candidate_verified"])
+    c_ = sum(1 for o in disc if not o["parent_verified"] and o["candidate_verified"])
+    p_val = mcnemar_exact_onesided(b, c_)
+
+    prod_parent_rate = sum(1 for o in prod if o["parent_verified"]) / len(prod) if prod else 0
+    prod_cand_rate = sum(1 for o in prod if o["candidate_verified"]) / len(prod) if prod else 0
+
+    stats["strata"]["production"] = {
+        "n": len(prod),
+        "n_discordant": len(disc),
+        "mcnemar_b": b,  # parent wins
+        "mcnemar_c": c_,  # candidate wins
+        "mcnemar_p_one_sided": p_val,
+        "parent_verified_rate": round(prod_parent_rate, 4),
+        "candidate_verified_rate": round(prod_cand_rate, 4),
+        "candidate_wilson_lower": wilson_lower(
+            sum(1 for o in prod if o["candidate_verified"]), len(prod)) if prod else 0,
+    }
+
+    # Per-stratum verified-success latency/cost and resource evaluability
+    resource_gates = {}
+    any_evaluable = False
+    for stratum, rows in sorted(by_stratum.items()):
+        p_supp = [o for o in rows if o["parent_verified"]]
+        c_supp = [o for o in rows if o["candidate_verified"]]
+        p_n, c_n = len(p_supp), len(c_supp)
+        evaluable = p_n >= 5 and c_n >= 5
+        if evaluable:
+            any_evaluable = True
+        # Verified-success means
+        if p_n > 0:
+            p_lat = sum(o["parent_resources"]["latency_ms"] for o in p_supp) / p_n
+            p_cost = sum(o["parent_resources"]["cost"] for o in p_supp) / p_n
+        else:
+            p_lat, p_cost = None, None
+        if c_n > 0:
+            c_lat = sum(o["candidate_resources"]["latency_ms"] for o in c_supp) / c_n
+            c_cost = sum(o["candidate_resources"]["cost"] for o in c_supp) / c_n
+        else:
+            c_lat, c_cost = None, None
+
+        strat_stats = {
+            "n": len(rows),
+            "parent_n_verified": p_n,
+            "candidate_n_verified": c_n,
+            "resource_evaluable": evaluable,
+            "parent_verified_latency_mean": round(p_lat, 2) if p_lat is not None else None,
+            "candidate_verified_latency_mean": round(c_lat, 2) if c_lat is not None else None,
+            "parent_verified_cost_mean": round(p_cost, 4) if p_cost is not None else None,
+            "candidate_verified_cost_mean": round(c_cost, 4) if c_cost is not None else None,
+        }
+        # 2.0x gates (hard, per Inan)
+        if evaluable:
+            lat_ratio = c_lat / p_lat if p_lat and p_lat > 0 else float("inf")
+            cost_ratio = c_cost / p_cost if p_cost and p_cost > 0 else (0 if c_cost == 0 else float("inf"))
+            # Handle zero-cost case: if both zero, ratio is 1.0 (pass)
+            if p_cost == 0 and c_cost == 0:
+                cost_ratio = 1.0
+            strat_stats["latency_ratio"] = round(lat_ratio, 3)
+            strat_stats["cost_ratio"] = round(cost_ratio, 3)
+            strat_stats["latency_gate_pass"] = lat_ratio <= 2.0
+            strat_stats["cost_gate_pass"] = cost_ratio <= 2.0
+            resource_gates[stratum] = strat_stats["latency_gate_pass"] and strat_stats["cost_gate_pass"]
+        stats["strata"][stratum] = strat_stats
+
+    stats["any_resource_evaluable"] = any_evaluable
+    stats["resource_gates"] = resource_gates
+
+    # Safety
+    safety_violations = sum(
+        len(o.get("candidate_safety_violations", [])) for o in outcomes)
+    stats["candidate_safety_violations"] = safety_violations
+
+    # v2.2 verdict logic
+    n_disc = len(disc)
+    notes = []
+
+    # Underpowered check (frozen: <18 discordant)
+    if n_disc < 18:
+        verdict = "UNDERPOWERED"
+        notes.append(f"realized discordant pairs ({n_disc}) below design target (18)")
+    else:
+        # P1: McNemar
+        p1_pass = p_val < 0.05
+        if not p1_pass:
+            notes.append(f"McNemar p={p_val:.4f} >= 0.05")
+        # P2: Safety
+        p2_pass = safety_violations == 0
+        if not p2_pass:
+            notes.append(f"safety violations: {safety_violations}")
+        # P3: Resource gates
+        if not any_evaluable:
+            verdict = "NOT_ELIGIBLE"
+            notes.append("resource gate UNEVALUABLE: no stratum with n>=5 for both")
+        else:
+            p3_pass = all(resource_gates.values())
+            if not p3_pass:
+                failed = [s for s, v in resource_gates.items() if not v]
+                notes.append(f"resource gate failed on: {failed}")
+            # Final
+            if p1_pass and p2_pass and p3_pass:
+                verdict = "PROMOTE"
+            else:
+                verdict = "REJECT"
+
+    stats["verdict_reason"] = "; ".join(notes) if notes else "all v2.2 gates pass"
+    stats["n_discordant_production"] = n_disc
+
+    return {
+        "id": eval_id,
+        "candidate_id": candidate_id,
+        "parent_version": parent_version,
+        "sealed_pool_id": pool,
+        "protocol": "v2.2",
+        "verdict": verdict,
+        "statistics": stats,
+        "paired_outcomes": outcomes,
+    }
+
+
+def cmd_run_s1_v2_2():
+    """Run the v2.2 S1 sealed intervention (60 stratified tasks).
+
+    Runs under the same experiment ID as v2.1 (D1/learn-1 already present).
+    The v2.1 S1 is quarantined as S1-pilot; this is the fresh powered S1.
+    """
+    require_steps("d1", "learn-1")
+    if step_done("s1-v2-2"):
+        print("s1-v2-2 already recorded; skipping")
+        return
+    candidate = _candidate_from_ledger("learn-1")
+    if candidate is None:
+        print("s1-v2-2: SKIPPED (no candidate)")
+        return
+    # Run paired intervention on v2.2 pool
+    ev = asyncio.run(_intervention("s1_v2_2", "s1-v2-2", candidate, "eval_s1_v2_2"))
+    # _intervention returns v2.1 evaluation; we need v2.2.
+    # Re-evaluate from the paired outcomes with v2.2 logic.
+    outcomes = list(ev.paired_outcomes) if hasattr(ev, "paired_outcomes") else []
+    # Outcomes are dicts; convert if needed
+    v2_2 = _evaluate_v2_2(
+        "eval_s1_v2_2", candidate.id, _active_version(), "s1_v2_2", outcomes)
+    ledger_append("evaluation_v2_2", {"step": "s1-v2-2", **v2_2})
+    ledger_append("step_complete", {"step": "s1-v2-2",
+                                    "verdict": v2_2["verdict"]})
+    print(f"s1-v2-2: {v2_2['verdict']}")
+
+
+def cmd_promote_1_v2_2():
+    """Apply the v2.2 promotion rule."""
+    require_steps("d1", "learn-1", "s1-v2-2")
+    if step_done("promote-1-v2-2"):
+        print("promote-1-v2-2 already recorded; skipping")
+        return
+    # Load v2.2 evaluation
+    ev_recs = [r for r in ledger_load("evaluation_v2_2")
+               if r["payload"].get("step") == "s1-v2-2"]
+    if not ev_recs:
+        print("promote-1-v2-2: no v2.2 evaluation found")
+        return
+    ev = ev_recs[-1]["payload"]
+    verdict = ev["verdict"]
+
+    # Assurance check (same as v2.1)
+    learn = [r for r in ledger_load("learn")
+             if r["payload"].get("step") == "learn-1"][-1]["payload"]
+    candidate = _rebuild_candidate(learn["candidate"])
+    training_ids = {f"ev_learn-1_{i:03d}" for i in range(learn["n_records"])}
+    av, reasons = policy_assurance(learn["candidate"], training_ids)
+
+    # v2.2 decision mapping
+    if verdict == "PROMOTE" and av == "PASS":
+        decision = "PROMOTE"
+    elif verdict == "UNDERPOWERED":
+        decision = "UNDERPOWERED"
+    else:
+        decision = "REJECT"
+    if av != "PASS":
+        decision = "REJECT"
+        reasons = reasons + ["assurance not PASS"]
+
+    payload = {"step": "promote-1-v2-2", "decision": decision,
+               "v2_2_verdict": verdict,
+               "reasons": [ev["statistics"]["verdict_reason"]] + list(reasons),
+               "evaluation_id": ev["id"],
+               "assurance_verdict": av}
+    if decision == "PROMOTE":
+        # Create immutable PolicyVersion (same as v2.1)
+        from air.learning_v2 import promotion as promo_mod
+        dec = promo_mod.decide_promotion(
+            id="promo_001_v2_2", candidate=candidate,
+            evaluation=_rebuild_evaluation_v2_2(ev),
+            assurance_verdict=av, assurance_id="asr_promo_001_v2_2")
+        # Use the v2.2 verdict, not the recomputed one
+        payload["policy_version"] = dec.policy_version.canonical() if dec.policy_version else None
+    ledger_append("promotion", payload)
+    ledger_append("step_complete", {"step": "promote-1-v2-2",
+                                    "decision": decision})
+    print(f"promote-1-v2-2: {decision}")
+
+
+def _rebuild_evaluation_v2_2(data: dict):
+    """Rebuild a DiscriminatingEvaluation from v2.2 data for promotion."""
+    from air.learning_v2.contracts import DiscriminatingEvaluation
+    return DiscriminatingEvaluation(
+        id=data["id"], candidate_id=data["candidate_id"],
+        parent_version=data["parent_version"],
+        sealed_pool_id=data["sealed_pool_id"],
+        decision_delta_task_ids=tuple(
+            o["task_id"] for o in data["paired_outcomes"] if o["differ"]),
+        paired_outcomes=tuple(data["paired_outcomes"]),
+        statistics=data["statistics"], verdict=data["verdict"])
+
+
+# Register v2.2 commands (defined above, after COMMANDS dict).
+COMMANDS["run-s1-v2-2"] = cmd_run_s1_v2_2
+COMMANDS["promote-1-v2-2"] = cmd_promote_1_v2_2
 
 
 if __name__ == "__main__":

@@ -1,0 +1,3478 @@
+{
+  "version": "v2.2",
+  "strata": {
+    "production": 30,
+    "research": 20,
+    "mixed": 10
+  },
+  "tasks": [
+    {
+      "id": "s1p_01",
+      "goal": "Create three invoice files for the invoice archive.",
+      "artifacts": [
+        "inv_mar.txt",
+        "inv_apr.txt",
+        "inv_may.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "inv_mar.txt",
+            "content": "March: 4500"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "inv_apr.txt",
+            "content": "April: 5200"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "inv_may.txt",
+            "content": "May: 4800"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_01-c1",
+          "phase": "produce",
+          "description": "inv_mar.txt written",
+          "artifacts": [
+            "inv_mar.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_01-c2",
+          "phase": "produce",
+          "description": "inv_apr.txt written",
+          "artifacts": [
+            "inv_apr.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_01-c3",
+          "phase": "produce",
+          "description": "inv_may.txt written",
+          "artifacts": [
+            "inv_may.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_02",
+      "goal": "Create multiple policy files for the policy archive.",
+      "artifacts": [
+        "pol_a.txt",
+        "pol_b.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "pol_a.txt",
+            "content": "Policy A: remote work"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "pol_b.txt",
+            "content": "Policy B: leave"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_02-c1",
+          "phase": "produce",
+          "description": "pol_a.txt written",
+          "artifacts": [
+            "pol_a.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_02-c2",
+          "phase": "produce",
+          "description": "pol_b.txt written",
+          "artifacts": [
+            "pol_b.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_03",
+      "goal": "Create several label files for the label archive.",
+      "artifacts": [
+        "lbl_1.txt",
+        "lbl_2.txt",
+        "lbl_3.txt",
+        "lbl_4.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "lbl_1.txt",
+            "content": "SKU-001"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "lbl_2.txt",
+            "content": "SKU-002"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "lbl_3.txt",
+            "content": "SKU-003"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "lbl_4.txt",
+            "content": "SKU-004"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_03-c1",
+          "phase": "produce",
+          "description": "lbl_1.txt written",
+          "artifacts": [
+            "lbl_1.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_03-c2",
+          "phase": "produce",
+          "description": "lbl_2.txt written",
+          "artifacts": [
+            "lbl_2.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_03-c3",
+          "phase": "produce",
+          "description": "lbl_3.txt written",
+          "artifacts": [
+            "lbl_3.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_03-c4",
+          "phase": "produce",
+          "description": "lbl_4.txt written",
+          "artifacts": [
+            "lbl_4.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_04",
+      "goal": "Create each of the report files for the report archive.",
+      "artifacts": [
+        "rpt_q1.txt",
+        "rpt_q2.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "rpt_q1.txt",
+            "content": "Q1 revenue 1.2M"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "rpt_q2.txt",
+            "content": "Q2 revenue 1.5M"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_04-c1",
+          "phase": "produce",
+          "description": "rpt_q1.txt written",
+          "artifacts": [
+            "rpt_q1.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_04-c2",
+          "phase": "produce",
+          "description": "rpt_q2.txt written",
+          "artifacts": [
+            "rpt_q2.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_05",
+      "goal": "Create various config files for the config archive.",
+      "artifacts": [
+        "cfg_web.txt",
+        "cfg_db.txt",
+        "cfg_cache.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "cfg_web.txt",
+            "content": "host=web1"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "cfg_db.txt",
+            "content": "host=db1"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "cfg_cache.txt",
+            "content": "host=cache1"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_05-c1",
+          "phase": "produce",
+          "description": "cfg_web.txt written",
+          "artifacts": [
+            "cfg_web.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_05-c2",
+          "phase": "produce",
+          "description": "cfg_db.txt written",
+          "artifacts": [
+            "cfg_db.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_05-c3",
+          "phase": "produce",
+          "description": "cfg_cache.txt written",
+          "artifacts": [
+            "cfg_cache.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_06",
+      "goal": "Create three translation files for the translation archive.",
+      "artifacts": [
+        "tr_en.txt",
+        "tr_fr.txt",
+        "tr_de.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "tr_en.txt",
+            "content": "Hello"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "tr_fr.txt",
+            "content": "Bonjour"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "tr_de.txt",
+            "content": "Hallo"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_06-c1",
+          "phase": "produce",
+          "description": "tr_en.txt written",
+          "artifacts": [
+            "tr_en.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_06-c2",
+          "phase": "produce",
+          "description": "tr_fr.txt written",
+          "artifacts": [
+            "tr_fr.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_06-c3",
+          "phase": "produce",
+          "description": "tr_de.txt written",
+          "artifacts": [
+            "tr_de.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_07",
+      "goal": "Create multiple backup files for the backup archive.",
+      "artifacts": [
+        "bkp_01.txt",
+        "bkp_02.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "bkp_01.txt",
+            "content": "snapshot a"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "bkp_02.txt",
+            "content": "snapshot b"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_07-c1",
+          "phase": "produce",
+          "description": "bkp_01.txt written",
+          "artifacts": [
+            "bkp_01.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_07-c2",
+          "phase": "produce",
+          "description": "bkp_02.txt written",
+          "artifacts": [
+            "bkp_02.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_08",
+      "goal": "Create several endpoint files for the endpoint archive.",
+      "artifacts": [
+        "ep_get.txt",
+        "ep_post.txt",
+        "ep_del.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "ep_get.txt",
+            "content": "GET /users"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "ep_post.txt",
+            "content": "POST /users"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "ep_del.txt",
+            "content": "DELETE /users"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_08-c1",
+          "phase": "produce",
+          "description": "ep_get.txt written",
+          "artifacts": [
+            "ep_get.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_08-c2",
+          "phase": "produce",
+          "description": "ep_post.txt written",
+          "artifacts": [
+            "ep_post.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_08-c3",
+          "phase": "produce",
+          "description": "ep_del.txt written",
+          "artifacts": [
+            "ep_del.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_09",
+      "goal": "Create each of the changelog files for the changelog archive.",
+      "artifacts": [
+        "cl_v1.txt",
+        "cl_v2.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "cl_v1.txt",
+            "content": "v1.0 released"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "cl_v2.txt",
+            "content": "v2.0 released"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_09-c1",
+          "phase": "produce",
+          "description": "cl_v1.txt written",
+          "artifacts": [
+            "cl_v1.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_09-c2",
+          "phase": "produce",
+          "description": "cl_v2.txt written",
+          "artifacts": [
+            "cl_v2.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_10",
+      "goal": "Create various manifest files for the manifest archive.",
+      "artifacts": [
+        "mft_a.txt",
+        "mft_b.txt",
+        "mft_c.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "mft_a.txt",
+            "content": "item A"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "mft_b.txt",
+            "content": "item B"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "mft_c.txt",
+            "content": "item C"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_10-c1",
+          "phase": "produce",
+          "description": "mft_a.txt written",
+          "artifacts": [
+            "mft_a.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_10-c2",
+          "phase": "produce",
+          "description": "mft_b.txt written",
+          "artifacts": [
+            "mft_b.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_10-c3",
+          "phase": "produce",
+          "description": "mft_c.txt written",
+          "artifacts": [
+            "mft_c.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_11",
+      "goal": "Create three certificate files for the certificate archive.",
+      "artifacts": [
+        "cert_01.txt",
+        "cert_02.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "cert_01.txt",
+            "content": "CN=alpha"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "cert_02.txt",
+            "content": "CN=beta"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_11-c1",
+          "phase": "produce",
+          "description": "cert_01.txt written",
+          "artifacts": [
+            "cert_01.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_11-c2",
+          "phase": "produce",
+          "description": "cert_02.txt written",
+          "artifacts": [
+            "cert_02.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_12",
+      "goal": "Create multiple schedule files for the schedule archive.",
+      "artifacts": [
+        "sch_mon.txt",
+        "sch_tue.txt",
+        "sch_wed.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "sch_mon.txt",
+            "content": "Monday: deploy"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "sch_tue.txt",
+            "content": "Tuesday: test"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "sch_wed.txt",
+            "content": "Wednesday: review"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_12-c1",
+          "phase": "produce",
+          "description": "sch_mon.txt written",
+          "artifacts": [
+            "sch_mon.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_12-c2",
+          "phase": "produce",
+          "description": "sch_tue.txt written",
+          "artifacts": [
+            "sch_tue.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_12-c3",
+          "phase": "produce",
+          "description": "sch_wed.txt written",
+          "artifacts": [
+            "sch_wed.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_13",
+      "goal": "Create several receipt files for the receipt archive.",
+      "artifacts": [
+        "rcp_001.txt",
+        "rcp_002.txt",
+        "rcp_003.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "rcp_001.txt",
+            "content": "$12.50"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "rcp_002.txt",
+            "content": "$8.75"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "rcp_003.txt",
+            "content": "$22.00"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_13-c1",
+          "phase": "produce",
+          "description": "rcp_001.txt written",
+          "artifacts": [
+            "rcp_001.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_13-c2",
+          "phase": "produce",
+          "description": "rcp_002.txt written",
+          "artifacts": [
+            "rcp_002.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_13-c3",
+          "phase": "produce",
+          "description": "rcp_003.txt written",
+          "artifacts": [
+            "rcp_003.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_14",
+      "goal": "Create each of the license files for the license archive.",
+      "artifacts": [
+        "lic_mit.txt",
+        "lic_apl.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "lic_mit.txt",
+            "content": "MIT License"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "lic_apl.txt",
+            "content": "Apache License"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_14-c1",
+          "phase": "produce",
+          "description": "lic_mit.txt written",
+          "artifacts": [
+            "lic_mit.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_14-c2",
+          "phase": "produce",
+          "description": "lic_apl.txt written",
+          "artifacts": [
+            "lic_apl.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_15",
+      "goal": "Create various template files for the template archive.",
+      "artifacts": [
+        "tpl_hdr.txt",
+        "tpl_ftr.txt",
+        "tpl_nav.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "tpl_hdr.txt",
+            "content": "<header>"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "tpl_ftr.txt",
+            "content": "<footer>"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "tpl_nav.txt",
+            "content": "<nav>"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_15-c1",
+          "phase": "produce",
+          "description": "tpl_hdr.txt written",
+          "artifacts": [
+            "tpl_hdr.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_15-c2",
+          "phase": "produce",
+          "description": "tpl_ftr.txt written",
+          "artifacts": [
+            "tpl_ftr.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_15-c3",
+          "phase": "produce",
+          "description": "tpl_nav.txt written",
+          "artifacts": [
+            "tpl_nav.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_16",
+      "goal": "Create three logarch files for the logarch archive.",
+      "artifacts": [
+        "log_01.txt",
+        "log_02.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "log_01.txt",
+            "content": "INFO start"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "log_02.txt",
+            "content": "INFO stop"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_16-c1",
+          "phase": "produce",
+          "description": "log_01.txt written",
+          "artifacts": [
+            "log_01.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_16-c2",
+          "phase": "produce",
+          "description": "log_02.txt written",
+          "artifacts": [
+            "log_02.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_17",
+      "goal": "Create multiple metric files for the metric archive.",
+      "artifacts": [
+        "met_cpu.txt",
+        "met_mem.txt",
+        "met_dsk.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "met_cpu.txt",
+            "content": "cpu: 45%"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "met_mem.txt",
+            "content": "mem: 62%"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "met_dsk.txt",
+            "content": "dsk: 78%"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_17-c1",
+          "phase": "produce",
+          "description": "met_cpu.txt written",
+          "artifacts": [
+            "met_cpu.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_17-c2",
+          "phase": "produce",
+          "description": "met_mem.txt written",
+          "artifacts": [
+            "met_mem.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_17-c3",
+          "phase": "produce",
+          "description": "met_dsk.txt written",
+          "artifacts": [
+            "met_dsk.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_18",
+      "goal": "Create several user files for the user archive.",
+      "artifacts": [
+        "usr_01.txt",
+        "usr_02.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "usr_01.txt",
+            "content": "alice"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "usr_02.txt",
+            "content": "bob"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_18-c1",
+          "phase": "produce",
+          "description": "usr_01.txt written",
+          "artifacts": [
+            "usr_01.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_18-c2",
+          "phase": "produce",
+          "description": "usr_02.txt written",
+          "artifacts": [
+            "usr_02.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_19",
+      "goal": "Create each of the order files for the order archive.",
+      "artifacts": [
+        "ord_101.txt",
+        "ord_102.txt",
+        "ord_103.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "ord_101.txt",
+            "content": "order 101"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "ord_102.txt",
+            "content": "order 102"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "ord_103.txt",
+            "content": "order 103"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_19-c1",
+          "phase": "produce",
+          "description": "ord_101.txt written",
+          "artifacts": [
+            "ord_101.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_19-c2",
+          "phase": "produce",
+          "description": "ord_102.txt written",
+          "artifacts": [
+            "ord_102.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_19-c3",
+          "phase": "produce",
+          "description": "ord_103.txt written",
+          "artifacts": [
+            "ord_103.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_20",
+      "goal": "Create various ticket files for the ticket archive.",
+      "artifacts": [
+        "tkt_11.txt",
+        "tkt_12.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "tkt_11.txt",
+            "content": "bug: login"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "tkt_12.txt",
+            "content": "bug: search"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_20-c1",
+          "phase": "produce",
+          "description": "tkt_11.txt written",
+          "artifacts": [
+            "tkt_11.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_20-c2",
+          "phase": "produce",
+          "description": "tkt_12.txt written",
+          "artifacts": [
+            "tkt_12.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_21",
+      "goal": "Create three spec files for the spec archive.",
+      "artifacts": [
+        "spc_api.txt",
+        "spc_ui.txt",
+        "spc_db.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "spc_api.txt",
+            "content": "API v2"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "spc_ui.txt",
+            "content": "UI v3"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "spc_db.txt",
+            "content": "DB v1"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_21-c1",
+          "phase": "produce",
+          "description": "spc_api.txt written",
+          "artifacts": [
+            "spc_api.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_21-c2",
+          "phase": "produce",
+          "description": "spc_ui.txt written",
+          "artifacts": [
+            "spc_ui.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_21-c3",
+          "phase": "produce",
+          "description": "spc_db.txt written",
+          "artifacts": [
+            "spc_db.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_22",
+      "goal": "Create multiple note files for the note archive.",
+      "artifacts": [
+        "nte_1.txt",
+        "nte_2.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "nte_1.txt",
+            "content": "meeting notes"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "nte_2.txt",
+            "content": "call notes"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_22-c1",
+          "phase": "produce",
+          "description": "nte_1.txt written",
+          "artifacts": [
+            "nte_1.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_22-c2",
+          "phase": "produce",
+          "description": "nte_2.txt written",
+          "artifacts": [
+            "nte_2.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_23",
+      "goal": "Create several draft files for the draft archive.",
+      "artifacts": [
+        "drf_a.txt",
+        "drf_b.txt",
+        "drf_c.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "drf_a.txt",
+            "content": "draft A"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "drf_b.txt",
+            "content": "draft B"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "drf_c.txt",
+            "content": "draft C"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_23-c1",
+          "phase": "produce",
+          "description": "drf_a.txt written",
+          "artifacts": [
+            "drf_a.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_23-c2",
+          "phase": "produce",
+          "description": "drf_b.txt written",
+          "artifacts": [
+            "drf_b.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_23-c3",
+          "phase": "produce",
+          "description": "drf_c.txt written",
+          "artifacts": [
+            "drf_c.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_24",
+      "goal": "Create each of the summary files for the summary archive.",
+      "artifacts": [
+        "sum_w1.txt",
+        "sum_w2.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "sum_w1.txt",
+            "content": "week 1"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "sum_w2.txt",
+            "content": "week 2"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_24-c1",
+          "phase": "produce",
+          "description": "sum_w1.txt written",
+          "artifacts": [
+            "sum_w1.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_24-c2",
+          "phase": "produce",
+          "description": "sum_w2.txt written",
+          "artifacts": [
+            "sum_w2.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_25",
+      "goal": "Create various plan files for the plan archive.",
+      "artifacts": [
+        "pln_q3.txt",
+        "pln_q4.txt",
+        "pln_q1.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "pln_q3.txt",
+            "content": "Q3 goals"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "pln_q4.txt",
+            "content": "Q4 goals"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "pln_q1.txt",
+            "content": "Q1 goals"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_25-c1",
+          "phase": "produce",
+          "description": "pln_q3.txt written",
+          "artifacts": [
+            "pln_q3.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_25-c2",
+          "phase": "produce",
+          "description": "pln_q4.txt written",
+          "artifacts": [
+            "pln_q4.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_25-c3",
+          "phase": "produce",
+          "description": "pln_q1.txt written",
+          "artifacts": [
+            "pln_q1.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_26",
+      "goal": "Create three audit files for the audit archive.",
+      "artifacts": [
+        "adt_01.txt",
+        "adt_02.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "adt_01.txt",
+            "content": "audit trail 1"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "adt_02.txt",
+            "content": "audit trail 2"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_26-c1",
+          "phase": "produce",
+          "description": "adt_01.txt written",
+          "artifacts": [
+            "adt_01.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_26-c2",
+          "phase": "produce",
+          "description": "adt_02.txt written",
+          "artifacts": [
+            "adt_02.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_27",
+      "goal": "Create multiple export files for the export archive.",
+      "artifacts": [
+        "exp_csv.txt",
+        "exp_json.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "exp_csv.txt",
+            "content": "a,b,c"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "exp_json.txt",
+            "content": "{\"x\": 1}"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_27-c1",
+          "phase": "produce",
+          "description": "exp_csv.txt written",
+          "artifacts": [
+            "exp_csv.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_27-c2",
+          "phase": "produce",
+          "description": "exp_json.txt written",
+          "artifacts": [
+            "exp_json.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_28",
+      "goal": "Create several import files for the import archive.",
+      "artifacts": [
+        "imp_01.txt",
+        "imp_02.txt",
+        "imp_03.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "imp_01.txt",
+            "content": "import batch 1"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "imp_02.txt",
+            "content": "import batch 2"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "imp_03.txt",
+            "content": "import batch 3"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_28-c1",
+          "phase": "produce",
+          "description": "imp_01.txt written",
+          "artifacts": [
+            "imp_01.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_28-c2",
+          "phase": "produce",
+          "description": "imp_02.txt written",
+          "artifacts": [
+            "imp_02.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_28-c3",
+          "phase": "produce",
+          "description": "imp_03.txt written",
+          "artifacts": [
+            "imp_03.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_29",
+      "goal": "Create each of the deploy files for the deploy archive.",
+      "artifacts": [
+        "dpl_stg.txt",
+        "dpl_prd.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "dpl_stg.txt",
+            "content": "staging OK"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "dpl_prd.txt",
+            "content": "prod OK"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_29-c1",
+          "phase": "produce",
+          "description": "dpl_stg.txt written",
+          "artifacts": [
+            "dpl_stg.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_29-c2",
+          "phase": "produce",
+          "description": "dpl_prd.txt written",
+          "artifacts": [
+            "dpl_prd.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1p_30",
+      "goal": "Create various test files for the test archive.",
+      "artifacts": [
+        "tst_u1.txt",
+        "tst_u2.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "tst_u1.txt",
+            "content": "unit 1 pass"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "tst_u2.txt",
+            "content": "unit 2 pass"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1p_30-c1",
+          "phase": "produce",
+          "description": "tst_u1.txt written",
+          "artifacts": [
+            "tst_u1.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1p_30-c2",
+          "phase": "produce",
+          "description": "tst_u2.txt written",
+          "artifacts": [
+            "tst_u2.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {},
+      "stratum": "production"
+    },
+    {
+      "id": "s1r_01",
+      "goal": "Read three readme files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rdm_1.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rdm_2.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rdm_3.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_01-c1",
+          "phase": "prepare",
+          "description": "3 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "rdm_1.txt": "readme one",
+        "rdm_2.txt": "readme two",
+        "rdm_3.txt": "readme three"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_02",
+      "goal": "Read multiple data files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "dat_a.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "dat_b.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_02-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "dat_a.txt": "alpha",
+        "dat_b.txt": "beta"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_03",
+      "goal": "Read several ref files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "ref_x1.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "ref_x2.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_03-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "ref_x1.txt": "reference X1",
+        "ref_x2.txt": "reference X2"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_04",
+      "goal": "Read each of the manual files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "man_01.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "man_02.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "man_03.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_04-c1",
+          "phase": "prepare",
+          "description": "3 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "man_01.txt": "chapter 1",
+        "man_02.txt": "chapter 2",
+        "man_03.txt": "chapter 3"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_05",
+      "goal": "Read various guide files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "gde_a.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "gde_b.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_05-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "gde_a.txt": "guide A",
+        "gde_b.txt": "guide B"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_06",
+      "goal": "Read three doc files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "doc_1.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "doc_2.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_06-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "doc_1.txt": "doc one",
+        "doc_2.txt": "doc two"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_07",
+      "goal": "Read multiple spec_read files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "spcr_1.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "spcr_2.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "spcr_3.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_07-c1",
+          "phase": "prepare",
+          "description": "3 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "spcr_1.txt": "spec read 1",
+        "spcr_2.txt": "spec read 2",
+        "spcr_3.txt": "spec read 3"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_08",
+      "goal": "Read several log_read files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "lgr_01.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "lgr_02.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_08-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "lgr_01.txt": "log entry 1",
+        "lgr_02.txt": "log entry 2"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_09",
+      "goal": "Read each of the config_read files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "cfgr_a.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "cfgr_b.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_09-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "cfgr_a.txt": "config A",
+        "cfgr_b.txt": "config B"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_10",
+      "goal": "Read various report_read files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rptr_1.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rptr_2.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_10-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "rptr_1.txt": "report 1",
+        "rptr_2.txt": "report 2"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_11",
+      "goal": "Read three memo files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "mem_01.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "mem_02.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "mem_03.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_11-c1",
+          "phase": "prepare",
+          "description": "3 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "mem_01.txt": "memo one",
+        "mem_02.txt": "memo two",
+        "mem_03.txt": "memo three"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_12",
+      "goal": "Read multiple brief files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "brf_a.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "brf_b.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_12-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "brf_a.txt": "brief A",
+        "brf_b.txt": "brief B"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_13",
+      "goal": "Read several analysis files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "anl_1.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "anl_2.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_13-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "anl_1.txt": "analysis 1",
+        "anl_2.txt": "analysis 2"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_14",
+      "goal": "Read each of the review files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rev_01.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rev_02.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rev_03.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_14-c1",
+          "phase": "prepare",
+          "description": "3 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "rev_01.txt": "review 1",
+        "rev_02.txt": "review 2",
+        "rev_03.txt": "review 3"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_15",
+      "goal": "Read various survey files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "srv_a.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "srv_b.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_15-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "srv_a.txt": "survey A",
+        "srv_b.txt": "survey B"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_16",
+      "goal": "Read three feedback files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "fbk_1.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "fbk_2.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_16-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "fbk_1.txt": "feedback 1",
+        "fbk_2.txt": "feedback 2"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_17",
+      "goal": "Read multiple record files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rec_01.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rec_02.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rec_03.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_17-c1",
+          "phase": "prepare",
+          "description": "3 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "rec_01.txt": "record 1",
+        "rec_02.txt": "record 2",
+        "rec_03.txt": "record 3"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_18",
+      "goal": "Read several transcript files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "trn_a.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "trn_b.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_18-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "trn_a.txt": "transcript A",
+        "trn_b.txt": "transcript B"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_19",
+      "goal": "Read each of the minutes files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "min_1.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "min_2.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_19-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "min_1.txt": "minutes 1",
+        "min_2.txt": "minutes 2"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1r_20",
+      "goal": "Read various ledger_read files and report their contents.",
+      "artifacts": [],
+      "effects": [
+        "observe"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "ldg_01.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "ldg_02.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "ldg_03.txt"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1r_20-c1",
+          "phase": "prepare",
+          "description": "3 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        }
+      ],
+      "seed_files": {
+        "ldg_01.txt": "ledger 1",
+        "ldg_02.txt": "ledger 2",
+        "ldg_03.txt": "ledger 3"
+      },
+      "stratum": "research"
+    },
+    {
+      "id": "s1m_01",
+      "goal": "Process the manifest_check input and write the result.",
+      "artifacts": [
+        "mfx_out.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "mfx_in.txt"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "mfx_out.txt",
+            "content": "checked: 3"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1m_01-c1",
+          "phase": "prepare",
+          "description": "1 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        },
+        {
+          "id": "s1m_01-c1",
+          "phase": "produce",
+          "description": "mfx_out.txt written",
+          "artifacts": [
+            "mfx_out.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {
+        "mfx_in.txt": "m1 m2 m3"
+      },
+      "stratum": "mixed"
+    },
+    {
+      "id": "s1m_02",
+      "goal": "Process the score_top input and write the result.",
+      "artifacts": [
+        "scx_t1.txt",
+        "scx_t2.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "scx_in.txt"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "scx_t1.txt",
+            "content": "s1"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "scx_t2.txt",
+            "content": "s2"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1m_02-c1",
+          "phase": "prepare",
+          "description": "1 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        },
+        {
+          "id": "s1m_02-c1",
+          "phase": "produce",
+          "description": "scx_t1.txt written",
+          "artifacts": [
+            "scx_t1.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1m_02-c2",
+          "phase": "produce",
+          "description": "scx_t2.txt written",
+          "artifacts": [
+            "scx_t2.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {
+        "scx_in.txt": "s1 s2 s3 s4"
+      },
+      "stratum": "mixed"
+    },
+    {
+      "id": "s1m_03",
+      "goal": "Process the log_summary input and write the result.",
+      "artifacts": [
+        "lgx_sum.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "lgx_in.txt"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "lgx_sum.txt",
+            "content": "2 events"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1m_03-c1",
+          "phase": "prepare",
+          "description": "1 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        },
+        {
+          "id": "s1m_03-c1",
+          "phase": "produce",
+          "description": "lgx_sum.txt written",
+          "artifacts": [
+            "lgx_sum.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {
+        "lgx_in.txt": "e1 e2"
+      },
+      "stratum": "mixed"
+    },
+    {
+      "id": "s1m_04",
+      "goal": "Process the data_split input and write the result.",
+      "artifacts": [
+        "dtx_1.txt",
+        "dtx_2.txt",
+        "dtx_3.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "dtx_in.txt"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "dtx_1.txt",
+            "content": "a"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "dtx_2.txt",
+            "content": "b"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "dtx_3.txt",
+            "content": "c"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1m_04-c1",
+          "phase": "prepare",
+          "description": "1 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        },
+        {
+          "id": "s1m_04-c1",
+          "phase": "produce",
+          "description": "dtx_1.txt written",
+          "artifacts": [
+            "dtx_1.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1m_04-c2",
+          "phase": "produce",
+          "description": "dtx_2.txt written",
+          "artifacts": [
+            "dtx_2.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1m_04-c3",
+          "phase": "produce",
+          "description": "dtx_3.txt written",
+          "artifacts": [
+            "dtx_3.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {
+        "dtx_in.txt": "a b c"
+      },
+      "stratum": "mixed"
+    },
+    {
+      "id": "s1m_05",
+      "goal": "Process the changelog_notes input and write the result.",
+      "artifacts": [
+        "chx_n1.txt",
+        "chx_n2.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "chx_in.txt"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "chx_n1.txt",
+            "content": "v1"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "chx_n2.txt",
+            "content": "v2"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1m_05-c1",
+          "phase": "prepare",
+          "description": "1 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        },
+        {
+          "id": "s1m_05-c1",
+          "phase": "produce",
+          "description": "chx_n1.txt written",
+          "artifacts": [
+            "chx_n1.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        },
+        {
+          "id": "s1m_05-c2",
+          "phase": "produce",
+          "description": "chx_n2.txt written",
+          "artifacts": [
+            "chx_n2.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {
+        "chx_in.txt": "v1 v2 v3"
+      },
+      "stratum": "mixed"
+    },
+    {
+      "id": "s1m_06",
+      "goal": "Process the inventory_count input and write the result.",
+      "artifacts": [
+        "ivx_cnt.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "ivx_in.txt"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "ivx_cnt.txt",
+            "content": "4 items"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1m_06-c1",
+          "phase": "prepare",
+          "description": "1 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        },
+        {
+          "id": "s1m_06-c1",
+          "phase": "produce",
+          "description": "ivx_cnt.txt written",
+          "artifacts": [
+            "ivx_cnt.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {
+        "ivx_in.txt": "i1 i2 i3 i4"
+      },
+      "stratum": "mixed"
+    },
+    {
+      "id": "s1m_07",
+      "goal": "Process the config_merge input and write the result.",
+      "artifacts": [
+        "cfx_out.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "cfx_a.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "cfx_b.txt"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "cfx_out.txt",
+            "content": "a=1 b=2"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1m_07-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        },
+        {
+          "id": "s1m_07-c1",
+          "phase": "produce",
+          "description": "cfx_out.txt written",
+          "artifacts": [
+            "cfx_out.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {
+        "cfx_a.txt": "a=1",
+        "cfx_b.txt": "b=2"
+      },
+      "stratum": "mixed"
+    },
+    {
+      "id": "s1m_08",
+      "goal": "Process the report_combine input and write the result.",
+      "artifacts": [
+        "rpx_full.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rpx_1.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "rpx_2.txt"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "rpx_full.txt",
+            "content": "part 1 part 2"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1m_08-c1",
+          "phase": "prepare",
+          "description": "2 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        },
+        {
+          "id": "s1m_08-c1",
+          "phase": "produce",
+          "description": "rpx_full.txt written",
+          "artifacts": [
+            "rpx_full.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {
+        "rpx_1.txt": "part 1",
+        "rpx_2.txt": "part 2"
+      },
+      "stratum": "mixed"
+    },
+    {
+      "id": "s1m_09",
+      "goal": "Process the user_filter input and write the result.",
+      "artifacts": [
+        "usx_out.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "usx_in.txt"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "usx_out.txt",
+            "content": "alice, carol"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1m_09-c1",
+          "phase": "prepare",
+          "description": "1 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        },
+        {
+          "id": "s1m_09-c1",
+          "phase": "produce",
+          "description": "usx_out.txt written",
+          "artifacts": [
+            "usx_out.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {
+        "usx_in.txt": "alice bob carol"
+      },
+      "stratum": "mixed"
+    },
+    {
+      "id": "s1m_10",
+      "goal": "Process the metric_avg input and write the result.",
+      "artifacts": [
+        "mex_avg.txt"
+      ],
+      "effects": [
+        "create"
+      ],
+      "operations": [
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "mex_1.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "mex_2.txt"
+          }
+        },
+        {
+          "phase": "prepare",
+          "tool": "fs.read",
+          "args": {
+            "path": "mex_3.txt"
+          }
+        },
+        {
+          "phase": "produce",
+          "tool": "fs.write",
+          "args": {
+            "path": "mex_avg.txt",
+            "content": "20"
+          }
+        }
+      ],
+      "claims": [
+        {
+          "id": "s1m_10-c1",
+          "phase": "prepare",
+          "description": "3 input(s) read",
+          "artifacts": [],
+          "effects": [
+            "observe"
+          ]
+        },
+        {
+          "id": "s1m_10-c1",
+          "phase": "produce",
+          "description": "mex_avg.txt written",
+          "artifacts": [
+            "mex_avg.txt"
+          ],
+          "effects": [
+            "create"
+          ]
+        }
+      ],
+      "seed_files": {
+        "mex_1.txt": "10",
+        "mex_2.txt": "20",
+        "mex_3.txt": "30"
+      },
+      "stratum": "mixed"
+    }
+  ]
+}
