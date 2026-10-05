@@ -1076,13 +1076,37 @@ def _evaluate_v2_2(eval_id: str, candidate_id: str,
     stats: dict = {"protocol": "v2.2", "strata": {}}
 
     # Production stratum: primary McNemar
+    # v2.2 discordant pair definition (frozen):
+    # - Strategies differ AND
+    # - At least one side has a definitive outcome, where:
+    #   * SUPPORTED (True) beats INCONCLUSIVE (None) beats FALSIFIED (False)
+    #   * INCONCLUSIVE (None) vs SUPPORTED (True) = candidate win
+    #     (candidate produced verified outcome where parent could not)
+    #   * Both None = not informative, excluded
     prod = by_stratum.get("production", [])
-    # Discordant pairs: differ=True and both verified non-None
-    disc = [o for o in prod if o["differ"]
-            and o["parent_verified"] is not None
-            and o["candidate_verified"] is not None]
-    b = sum(1 for o in disc if o["parent_verified"] and not o["candidate_verified"])
-    c_ = sum(1 for o in disc if not o["parent_verified"] and o["candidate_verified"])
+    disc = []
+    b = 0  # parent wins
+    c_ = 0  # candidate wins
+    for o in prod:
+        if not o["differ"]:
+            continue
+        pv = o["parent_verified"]
+        cv = o["candidate_verified"]
+        # Both None: not informative
+        if pv is None and cv is None:
+            continue
+        # Candidate win: candidate True and parent not True
+        # (parent False or None)
+        if cv is True and pv is not True:
+            disc.append(o)
+            c_ += 1
+        # Parent win: parent True and candidate not True
+        # (candidate False or None)
+        elif pv is True and cv is not True:
+            disc.append(o)
+            b += 1
+        # Both True or both False: concordant, not discordant
+        # (but still counts for rates)
     p_val = mcnemar_exact_onesided(b, c_)
 
     prod_parent_rate = sum(1 for o in prod if o["parent_verified"]) / len(prod) if prod else 0
@@ -1132,6 +1156,13 @@ def _evaluate_v2_2(eval_id: str, candidate_id: str,
             "parent_verified_cost_mean": round(p_cost, 4) if p_cost is not None else None,
             "candidate_verified_cost_mean": round(c_cost, 4) if c_cost is not None else None,
         }
+        # Preserve McNemar stats for production stratum (set earlier)
+        if stratum == "production" and stratum in stats["strata"]:
+            for k in ("n_discordant", "mcnemar_b", "mcnemar_c",
+                      "mcnemar_p_one_sided", "parent_verified_rate",
+                      "candidate_verified_rate", "candidate_wilson_lower"):
+                if k in stats["strata"][stratum]:
+                    strat_stats[k] = stats["strata"][stratum][k]
         # 2.0x gates (hard, per Inan)
         if evaluable:
             lat_ratio = c_lat / p_lat if p_lat and p_lat > 0 else float("inf")
@@ -1252,15 +1283,18 @@ def cmd_promote_1_v2_2():
     av, reasons = policy_assurance(learn["candidate"], training_ids)
 
     # v2.2 decision mapping
-    if verdict == "PROMOTE" and av == "PASS":
+    # v2.2 verdict PROMOTE + assurance SOUND => PROMOTE
+    # v2.2 verdict UNDERPOWERED => UNDERPOWERED (not REJECT)
+    # Otherwise => REJECT
+    if verdict == "PROMOTE" and av == "SOUND":
         decision = "PROMOTE"
     elif verdict == "UNDERPOWERED":
         decision = "UNDERPOWERED"
     else:
         decision = "REJECT"
-    if av != "PASS":
+    if av != "SOUND":
         decision = "REJECT"
-        reasons = reasons + ["assurance not PASS"]
+        reasons = reasons + ["assurance not SOUND"]
 
     payload = {"step": "promote-1-v2-2", "decision": decision,
                "v2_2_verdict": verdict,
@@ -1285,6 +1319,11 @@ def cmd_promote_1_v2_2():
 def _rebuild_evaluation_v2_2(data: dict):
     """Rebuild a DiscriminatingEvaluation from v2.2 data for promotion."""
     from air.learning_v2.contracts import DiscriminatingEvaluation
+    # Map v2.2 verdict to v2.1-compatible verdict for decide_promotion
+    # v2.2 PROMOTE => PASS (evaluation passed, ready for promotion)
+    # v2.2 REJECT/UNDERPOWERED => FAIL (should not happen here, but map safely)
+    v2_2_verdict = data["verdict"]
+    compat_verdict = "PASS" if v2_2_verdict == "PROMOTE" else "FAIL"
     return DiscriminatingEvaluation(
         id=data["id"], candidate_id=data["candidate_id"],
         parent_version=data["parent_version"],
@@ -1292,7 +1331,7 @@ def _rebuild_evaluation_v2_2(data: dict):
         decision_delta_task_ids=tuple(
             o["task_id"] for o in data["paired_outcomes"] if o["differ"]),
         paired_outcomes=tuple(data["paired_outcomes"]),
-        statistics=data["statistics"], verdict=data["verdict"])
+        statistics=data["statistics"], verdict=compat_verdict)
 
 
 # Register v2.2 commands (defined above, after COMMANDS dict).
