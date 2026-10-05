@@ -31,6 +31,9 @@ ORG_PROPERTY_SCHEMA_VERSION = "org-properties/v1"
 RULE_SCHEMA_VERSION = "allocation-rule/v1"
 POLICY_SEMANTICS_VERSION = "policy-semantics/v1"
 EVIDENCE_STRENGTH_VERSION = "evidence-strength/v1"
+# v2.1: the learning-outcome interpretation layer. Bumped when the mapping
+# from evaluator verdicts to directional learning signal changes.
+LEARNING_SCHEMA_VERSION = "learning-schema/v2.1"
 
 
 # ---------------------------------------------------------------------------
@@ -186,31 +189,184 @@ class OrganizationProperties:
 # Learning eligibility (docs/LEARNING_REDESIGN.md section 4).
 # Binds the assurance verdict: an UNSOUND evaluator's verdicts, positive
 # or negative, are excluded from learning.
+#
+# Schema v2.1: eligibility is derived from the interpreted LearningOutcome,
+# not directly from the raw evaluator verdict. The evaluator verdict is
+# preserved on the record; the outcome layer is a separate, deterministic
+# interpretation (see interpret_learning_outcome).
 # ---------------------------------------------------------------------------
 
 class Eligibility(str, Enum):
-    POSITIVE = "positive"            # SUPPORTED + SOUND
-    NEGATIVE = "negative"            # FALSIFIED + SOUND
-    NONDIRECTIONAL = "nondirectional"  # INCONCLUSIVE
+    POSITIVE = "positive"            # directional success signal
+    NEGATIVE = "negative"            # directional failure signal
+    NONDIRECTIONAL = "nondirectional"  # no directional signal
     EXCLUDED = "excluded"            # anything else
 
 
-def eligibility_for(evaluation_verdict: str, assurance_verdict: str) -> Eligibility:
-    ev = evaluation_verdict.upper()
+class LearningOutcome(str, Enum):
+    """The learning signal interpreted from a run's verified outputs.
+
+    Distinct from the evaluator's verdict: the evaluator reports what the
+    evidence establishes about the run's DECLARED outcomes; the learning
+    outcome reports what the run establishes about ORGANIZATION-TASK FIT
+    for the learner's contrast. Both are preserved on LearningEvidence.
+    """
+
+    POSITIVE = "POSITIVE"                # evaluator SUPPORTED + SOUND
+    NEGATIVE = "NEGATIVE"                # evaluator FALSIFIED + SOUND
+    NEGATIVE_OUTCOME = "NEGATIVE_OUTCOME"  # certified required-outcome
+                                           # failure (evaluator verdict
+                                           # preserved, typically
+                                           # INCONCLUSIVE)
+    EXCLUDED = "EXCLUDED"                # nondirectional, unsound, invalid
+
+
+# Outcome basis: WHY the learning outcome was assigned. The basis is part
+# of the auditable record; NEGATIVE_OUTCOME is only ever paired with
+# BASIS_REQUIRED_EFFECT_NOT_SATISFIED.
+BASIS_EVALUATOR_SUPPORTED = "EVALUATOR_SUPPORTED"
+BASIS_EVALUATOR_FALSIFIED = "EVALUATOR_FALSIFIED"
+BASIS_REQUIRED_EFFECT_NOT_SATISFIED = "REQUIRED_EFFECT_NOT_SATISFIED"
+BASIS_UNSOUND_ASSURANCE = "UNSOUND_ASSURANCE"
+BASIS_NO_EXPLICIT_REQUIREMENT = "NO_EXPLICIT_REQUIREMENT"
+BASIS_INSUFFICIENT_EVIDENCE_BASE = "INSUFFICIENT_EVIDENCE_BASE"
+BASIS_OUTCOME_SATISFIED_BUT_UNGROUNDED = "OUTCOME_SATISFIED_BUT_UNGROUNDED"
+BASIS_INVALID_EVALUATION = "INVALID_EVALUATION"
+BASIS_EVALUATOR_UNCERTAIN = "EVALUATOR_UNCERTAIN"
+
+
+def interpret_learning_outcome(
+    *,
+    evaluation_verdict: str,
+    assurance_verdict: str,
+    required_effects: list[str],
+    required_targets: list[str],
+    observed_effects: list[str],
+    targets_satisfied: dict[str, bool],
+    run_completed: bool,
+    agents_completed: int,
+) -> tuple[LearningOutcome, str, dict | None]:
+    """Deterministic learning-outcome interpretation (schema v2.1).
+
+    Maps a run's verified outputs to the directional signal the learner
+    may consume. The evaluator verdict is NEVER rewritten: it is preserved
+    on the record and returned untouched by this function.
+
+    INVARIANT (protocol v2.1): an evaluator INCONCLUSIVE verdict may
+    generate negative learning evidence ONLY through the certified
+    outcome-failure path below. Absence of evidence, absence of declared
+    outcomes, or evaluator uncertainty alone can NEVER constitute
+    negative learning evidence.
+
+    The certified path requires ALL of:
+      1. an explicitly specified required outcome (non-empty required
+         effects AND non-empty required targets, from the task's claims);
+      2. execution evidence (the run completed with at least one agent
+         completed: the organization had the opportunity to produce);
+      3. a sufficient evidence base (the run's evidence was examined;
+         required targets were positively checked, not merely absent
+         from the declared outcomes);
+      4. mechanical non-satisfaction: the required effects are not a
+         subset of the observed effects, or at least one required
+         target is not satisfied.
+
+    When the outcome IS satisfied but the evaluator remains INCONCLUSIVE
+    (e.g. produced but ungrounded), the result is EXCLUDED, not negative:
+    the organization succeeded at the outcome; the uncertainty is the
+    evaluator's, not the organization's failure.
+    """
     av = assurance_verdict.upper()
-    if ev == "SUPPORTED" and av == "SOUND":
+    ev = evaluation_verdict.upper()
+
+    # Assurance binds everything: unsound verdicts carry no signal.
+    if av != "SOUND":
+        return (LearningOutcome.EXCLUDED, BASIS_UNSOUND_ASSURANCE, None)
+
+    if ev == "SUPPORTED":
+        return (LearningOutcome.POSITIVE, BASIS_EVALUATOR_SUPPORTED, None)
+    if ev == "FALSIFIED":
+        return (LearningOutcome.NEGATIVE, BASIS_EVALUATOR_FALSIFIED, None)
+    if ev in ("INVALID", "UNTESTED"):
+        return (LearningOutcome.EXCLUDED, BASIS_INVALID_EVALUATION, None)
+    if ev != "INCONCLUSIVE":
+        return (LearningOutcome.EXCLUDED, BASIS_EVALUATOR_UNCERTAIN, None)
+
+    # --- Certified outcome-failure path (the ONLY negative path for
+    # --- INCONCLUSIVE). Each guard below is load-bearing.
+    if not required_effects or not required_targets:
+        # No explicitly specified required outcome: nothing to certify.
+        return (LearningOutcome.EXCLUDED,
+                BASIS_NO_EXPLICIT_REQUIREMENT, None)
+    if not run_completed or agents_completed < 1:
+        # The organization never executed: absence of evidence, not
+        # evidence of outcome failure.
+        return (LearningOutcome.EXCLUDED,
+                BASIS_INSUFFICIENT_EVIDENCE_BASE, None)
+
+    # Every required target must have been POSITIVELY checked (present in
+    # targets_satisfied). An unchecked target defaults to nothing: it
+    # excludes, it never certifies. This is what keeps "zero declared
+    # outcomes" from becoming negative evidence on its own.
+    if not set(required_targets) <= set(targets_satisfied):
+        return (LearningOutcome.EXCLUDED,
+                BASIS_INSUFFICIENT_EVIDENCE_BASE, None)
+
+    observed = set(observed_effects)
+    effect_ok = all(e in observed for e in required_effects)
+    targets_ok = all(targets_satisfied.get(t, False)
+                     for t in required_targets)
+    satisfied = effect_ok and targets_ok
+
+    certificate: dict = {
+        "required_effects": sorted(required_effects),
+        "required_targets": sorted(required_targets),
+        "observed_effects": sorted(observed_effects),
+        "targets_satisfied": {t: bool(targets_satisfied.get(t, False))
+                              for t in sorted(required_targets)},
+        "effect_satisfied": effect_ok,
+        "targets_all_satisfied": targets_ok,
+        "required_effect_satisfied": satisfied,
+        "run_completed": bool(run_completed),
+        "agents_completed": int(agents_completed),
+        "evaluator_verdict_preserved": "INCONCLUSIVE",
+    }
+    if not satisfied:
+        return (LearningOutcome.NEGATIVE_OUTCOME,
+                BASIS_REQUIRED_EFFECT_NOT_SATISFIED, certificate)
+    # The required outcome was produced; the evaluator's INCONCLUSIVE is
+    # about grounding/evidence, not about organizational failure.
+    return (LearningOutcome.EXCLUDED,
+            BASIS_OUTCOME_SATISFIED_BUT_UNGROUNDED, certificate)
+
+
+def eligibility_for(learning_outcome: LearningOutcome,
+                   outcome_basis: str = "") -> Eligibility:
+    """Eligibility from the interpreted learning outcome (schema v2.1).
+
+    NEGATIVE_OUTCOME is directional negative: it is certified
+    organizational failure, not evaluator uncertainty. Within EXCLUDED,
+    untrusted inputs (unsound assurance, invalid evaluation) stay
+    EXCLUDED; the rest are nondirectional.
+    """
+    if learning_outcome is LearningOutcome.POSITIVE:
         return Eligibility.POSITIVE
-    if ev == "FALSIFIED" and av == "SOUND":
+    if learning_outcome in (LearningOutcome.NEGATIVE,
+                            LearningOutcome.NEGATIVE_OUTCOME):
         return Eligibility.NEGATIVE
-    if ev == "INCONCLUSIVE":
-        return Eligibility.NONDIRECTIONAL
-    return Eligibility.EXCLUDED
+    if outcome_basis in (BASIS_UNSOUND_ASSURANCE, BASIS_INVALID_EVALUATION):
+        return Eligibility.EXCLUDED
+    return Eligibility.NONDIRECTIONAL
 
 
 # ---------------------------------------------------------------------------
 # LearningEvidence: the ONLY thing the learner may consume.
 # Deliberately has no run-status/completion field: there is no shortcut
 # back to run.status == COMPLETED. Reward comes from verdicts alone.
+#
+# Schema v2.1: carries BOTH the evaluator's verdict (preserved exactly as
+# the evaluator returned it) AND the interpreted learning outcome (the
+# directional signal). The learner consumes learning_outcome; the
+# evaluator_verdict is retained for audit and must never be rewritten.
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
@@ -220,11 +376,15 @@ class LearningEvidence:
     allocation: dict                       # strategy, scores at decision time
     organization: OrganizationProperties
     resources: dict                        # cost, latency_ms, agent_count...
-    evaluation_verdict: str
+    evaluation_verdict: str                # preserved evaluator verdict
     assurance_verdict: str
-    eligibility: Eligibility
+    learning_outcome: LearningOutcome      # interpreted signal (v2.1)
+    outcome_basis: str                     # why (BASIS_* constant)
+    failure_certificate: dict | None      # mechanical cert, if any
+    eligibility: Eligibility               # derived from learning_outcome
     feature_schema_version: str = TASK_FEATURE_SCHEMA_VERSION
     org_property_schema_version: str = ORG_PROPERTY_SCHEMA_VERSION
+    learning_schema_version: str = LEARNING_SCHEMA_VERSION
 
     def __post_init__(self) -> None:
         unknown = set(self.task_features) - set(TASK_FEATURES_V1)
@@ -233,6 +393,20 @@ class LearningEvidence:
                 f"LearningEvidence carries non-class-A features {sorted(unknown)}; "
                 "the learner must never see them"
             )
+        # The outcome layer is coherent: NEGATIVE_OUTCOME is only ever
+        # paired with its certifying basis.
+        if self.learning_outcome is LearningOutcome.NEGATIVE_OUTCOME:
+            if self.outcome_basis != BASIS_REQUIRED_EFFECT_NOT_SATISFIED:
+                raise ValueError(
+                    "NEGATIVE_OUTCOME requires basis "
+                    f"{BASIS_REQUIRED_EFFECT_NOT_SATISFIED}, got "
+                    f"{self.outcome_basis!r}"
+                )
+            if not self.failure_certificate:
+                raise ValueError(
+                    "NEGATIVE_OUTCOME requires a mechanical failure "
+                    "certificate; refusing to certify without one"
+                )
 
     @property
     def is_positive(self) -> bool:
@@ -251,9 +425,13 @@ class LearningEvidence:
             "resources": self.resources,
             "evaluation_verdict": self.evaluation_verdict,
             "assurance_verdict": self.assurance_verdict,
+            "learning_outcome": self.learning_outcome.value,
+            "outcome_basis": self.outcome_basis,
+            "failure_certificate": self.failure_certificate,
             "eligibility": self.eligibility.value,
             "feature_schema_version": self.feature_schema_version,
             "org_property_schema_version": self.org_property_schema_version,
+            "learning_schema_version": self.learning_schema_version,
         }
 
 

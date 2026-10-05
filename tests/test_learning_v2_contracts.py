@@ -7,6 +7,7 @@ from air.learning_v2.contracts import (
     AtomicCondition,
     Eligibility,
     LearningEvidence,
+    LearningOutcome,
     Operator,
     OrganizationProperties,
     PolicyCandidate,
@@ -15,6 +16,7 @@ from air.learning_v2.contracts import (
     RuleThen,
     canonical_hash,
     eligibility_for,
+    interpret_learning_outcome,
     resolve_rules,
 )
 
@@ -141,16 +143,21 @@ def test_promotion_decision_coherence():
 
 
 def test_eligibility_matrix():
-    assert eligibility_for("SUPPORTED", "SOUND") is Eligibility.POSITIVE
-    assert eligibility_for("FALSIFIED", "SOUND") is Eligibility.NEGATIVE
-    # The blocking fix: unsound evaluators contribute nothing, either way.
-    assert eligibility_for("SUPPORTED", "UNSOUND") is Eligibility.EXCLUDED
-    assert eligibility_for("FALSIFIED", "UNSOUND") is Eligibility.EXCLUDED
-    assert eligibility_for("SUPPORTED", "NOT_RUN") is Eligibility.EXCLUDED
-    assert eligibility_for("INCONCLUSIVE", "SOUND") is \
+    # Schema v2.1: eligibility derives from the interpreted learning
+    # outcome, not the raw evaluator verdict.
+    assert eligibility_for(LearningOutcome.POSITIVE) is Eligibility.POSITIVE
+    assert eligibility_for(LearningOutcome.NEGATIVE) is Eligibility.NEGATIVE
+    # Certified outcome-failure is directional negative.
+    assert eligibility_for(LearningOutcome.NEGATIVE_OUTCOME) is \
+        Eligibility.NEGATIVE
+    # Untrusted inputs stay EXCLUDED; the rest are nondirectional.
+    assert eligibility_for(LearningOutcome.EXCLUDED,
+                           "UNSOUND_ASSURANCE") is Eligibility.EXCLUDED
+    assert eligibility_for(LearningOutcome.EXCLUDED,
+                           "INVALID_EVALUATION") is Eligibility.EXCLUDED
+    assert eligibility_for(LearningOutcome.EXCLUDED,
+                           "EVALUATOR_UNCERTAIN") is \
         Eligibility.NONDIRECTIONAL
-    assert eligibility_for("INVALID", "SOUND") is Eligibility.EXCLUDED
-    assert eligibility_for("UNTESTED", "SOUND") is Eligibility.EXCLUDED
 
 
 def test_canonical_hash_stable_across_key_order():

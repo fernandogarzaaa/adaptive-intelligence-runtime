@@ -23,9 +23,11 @@ from __future__ import annotations
 from air.learning_v2.contracts import (
     Eligibility,
     LearningEvidence,
+    LearningOutcome,
     OrganizationProperties,
     TASK_FEATURES_V1,
     eligibility_for,
+    interpret_learning_outcome,
 )
 
 _ASSURANCE_MAP = {
@@ -60,6 +62,14 @@ def extract_experience(
     resources: dict,
     evaluation_verdict: str,
     assurance_verdict: str,
+    # --- Schema v2.1 outcome-certification inputs. When omitted, the
+    # --- certified path is unavailable and INCONCLUSIVE stays EXCLUDED.
+    required_effects: list[str] | None = None,
+    required_targets: list[str] | None = None,
+    observed_effects: list[str] | None = None,
+    targets_satisfied: dict[str, bool] | None = None,
+    run_completed: bool = False,
+    agents_completed: int = 0,
 ) -> LearningEvidence:
     """Build one LearningEvidence record from verified outputs.
 
@@ -67,6 +77,11 @@ def extract_experience(
     the allocation decision, the organization that executed, measured
     resources, and the evaluation + assurance verdicts. Run completion
     status is not accepted and not represented.
+
+    Schema v2.1: the optional certification inputs let the extractor
+    mechanically establish required-outcome non-satisfaction (see
+    interpret_learning_outcome). The evaluator verdict is preserved
+    exactly; the learning outcome is a separate interpreted layer.
     """
     unknown = set(task_features) - set(TASK_FEATURES_V1)
     if unknown:
@@ -86,6 +101,16 @@ def extract_experience(
         capabilities=frozenset(organization.get("capabilities", ())),
         topology=str(organization.get("topology", "unknown")),
     )
+    outcome, basis, certificate = interpret_learning_outcome(
+        evaluation_verdict=ev,
+        assurance_verdict=av,
+        required_effects=list(required_effects or []),
+        required_targets=list(required_targets or []),
+        observed_effects=list(observed_effects or []),
+        targets_satisfied=dict(targets_satisfied or {}),
+        run_completed=bool(run_completed),
+        agents_completed=int(agents_completed),
+    )
     return LearningEvidence(
         id=id,
         task_features=dict(task_features),
@@ -94,13 +119,17 @@ def extract_experience(
         resources=dict(resources),
         evaluation_verdict=ev,
         assurance_verdict=av,
-        eligibility=eligibility_for(ev, av),
+        learning_outcome=outcome,
+        outcome_basis=basis,
+        failure_certificate=certificate,
+        eligibility=eligibility_for(outcome, basis),
     )
 
 
 def eligible_for_learning(records: list[LearningEvidence]) -> list[LearningEvidence]:
     """The learning dataset: only records with directional eligibility.
-    INCONCLUSIVE is nondirectional, INVALID/UNTESTED and anything from an
-    unsound evaluator are excluded outright."""
+    INCONCLUSIVE without a certified outcome-failure is nondirectional;
+    INVALID/UNTESTED and anything from an unsound evaluator are excluded
+    outright. Certified NEGATIVE_OUTCOME records are directional negative."""
     return [r for r in records
             if r.eligibility in (Eligibility.POSITIVE, Eligibility.NEGATIVE)]
