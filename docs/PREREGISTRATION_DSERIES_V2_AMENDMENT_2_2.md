@@ -1,6 +1,6 @@
 # Protocol Amendment v2.2: Powered Promotion Design
 
-**Status:** DRAFT (pending Inan approval, freeze, and push)  
+**Status:** FROZEN (Inan approved 2026-10-05, GitHub 3f2db32)  
 **Date:** 2026-10-05  
 **Amends:** Protocol v2.1 (learning-schema/v2.1)
 
