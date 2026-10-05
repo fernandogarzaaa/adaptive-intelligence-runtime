@@ -642,22 +642,38 @@ def cmd_learn_1():
 
 async def _intervention(pool: str, phase: str,
                         candidate: PolicyCandidate | None,
-                        step_name: str):
-    """Sealed promotion intervention: parent vs candidate on the same
+                        step_name: str,
+                        baseline: str = "v1"):
+    """Sealed promotion intervention: baseline vs candidate on the same
     sealed tasks, paired outcomes, exact label pairing (no
-    strategy-guessing in the oracle)."""
+    strategy-guessing in the oracle).
+
+    baseline: "v1" for original parent, "active" for currently active policy.
+    S1 uses v1; S2 uses active (per preregistered protocol).
+    """
     tasks = load_tasks(pool)
     by_id = {t["id"]: t for t in tasks}
     cand_rules = list(candidate.rules) if candidate else []
+
+    # Determine baseline strategy function
+    if baseline == "active":
+        active_rules, _ = _active_rules()
+        def baseline_choose(task):
+            return choose_strategy(task, active_rules)
+        baseline_label = "active"
+    else:
+        def baseline_choose(task):
+            return parent_choose(task)
+        baseline_label = "parent"
 
     runner = Runner(phase)
     # results[(task_id, label)] -> run record or {"incoherent": True}
     results: dict[tuple[str, str], dict] = {}
     for task in tasks:
-        p_strat = parent_choose(task)
+        p_strat = baseline_choose(task)
         c_strat = (choose_strategy(task, cand_rules)
                    if candidate is not None else p_strat)
-        for label, strat in (("parent", p_strat), ("candidate", c_strat)):
+        for label, strat in ((baseline_label, p_strat), ("candidate", c_strat)):
             if strat == INCOHERENT:
                 results[(task["id"], label)] = {"incoherent": True,
                                                 "task_id": task["id"]}
@@ -674,10 +690,10 @@ async def _intervention(pool: str, phase: str,
     outcomes = []
     for task in tasks:
         et_id = task["id"]
-        p_strat = parent_choose(task)
+        p_strat = baseline_choose(task)
         c_strat = (choose_strategy(task, cand_rules)
                    if candidate is not None else p_strat)
-        p_rec = results[(et_id, "parent")]
+        p_rec = results[(et_id, baseline_label)]
         c_rec = results[(et_id, "candidate")]
         outcomes.append({
             "task_id": et_id,
@@ -948,7 +964,10 @@ def cmd_run_s2():
         ledger_append("step_complete", {"step": "s2", "verdict": "SKIPPED"})
         print("s2: SKIPPED (no candidate)")
         return
-    ev = asyncio.run(_intervention("s2", "s2", candidate, "eval_s2"))
+    # S2 compares candidate-2 against the currently active policy (pv2),
+    # per preregistered protocol. Not against v1 parent.
+    ev = asyncio.run(_intervention("s2", "s2", candidate, "eval_s2",
+                                   baseline="active"))
     ledger_append("evaluation", {"step": "s2", **ev.canonical()})
     ledger_append("step_complete", {"step": "s2", "verdict": ev.verdict})
     print(f"s2: {ev.verdict}")
