@@ -884,7 +884,10 @@ def _rebuild_evaluation(data: dict):
 
 
 def cmd_run_d2():
-    require_steps("d1", "learn-1", "s1", "promote-1")
+    # v2.2: D2 follows the v2.2 S1 promotion (s1-v2-2, promote-1-v2-2).
+    # The v2.1 s1/promote-1 steps are quarantined and do not gate D2.
+    require_steps("d1", "learn-1", "s1-v2-2", "promote-1-v2-2",
+                  "s1-v2-2-closure")
     if step_done("d2"):
         print("d2 already recorded; skipping")
         return
@@ -915,7 +918,7 @@ def cmd_run_d2():
 
 
 def cmd_learn_2():
-    require_steps("d1", "learn-1", "s1", "promote-1", "d2")
+    require_steps("d1", "learn-1", "s1-v2-2", "promote-1-v2-2", "s1-v2-2-closure", "d2")
     if step_done("learn-2"):
         print("learn-2 already recorded; skipping")
         return
@@ -934,7 +937,7 @@ def cmd_learn_2():
 
 
 def cmd_run_s2():
-    require_steps("d1", "learn-1", "s1", "promote-1", "d2", "learn-2")
+    require_steps("d1", "learn-1", "s1-v2-2", "promote-1-v2-2", "s1-v2-2-closure", "d2", "learn-2")
     if step_done("s2"):
         print("s2 already recorded; skipping")
         return
@@ -952,7 +955,7 @@ def cmd_run_s2():
 
 
 def cmd_promote_2():
-    require_steps("d1", "learn-1", "s1", "promote-1", "d2", "learn-2",
+    require_steps("d1", "learn-1", "s1-v2-2", "promote-1-v2-2", "s1-v2-2-closure", "d2", "learn-2",
                   "s2")
     if step_done("promote-2"):
         print("promote-2 already recorded; skipping")
@@ -1000,7 +1003,7 @@ def cmd_promote_2():
 
 
 def cmd_run_d3():
-    require_steps("d1", "learn-1", "s1", "promote-1", "d2", "learn-2",
+    require_steps("d1", "learn-1", "s1-v2-2", "promote-1-v2-2", "s1-v2-2-closure", "d2", "learn-2",
                   "s2", "promote-2")
     if step_done("d3"):
         print("d3 already recorded; skipping")
