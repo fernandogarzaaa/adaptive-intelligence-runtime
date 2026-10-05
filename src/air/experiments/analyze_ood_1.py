@@ -51,8 +51,32 @@ def main():
             p = r["payload"]
             runs[(p["task_id"], p["policy"])] = p
 
-    # Load metadata (expected groups)
-    meta = json.load(open("/tmp/ood_1_metadata.json"))
+    # Load metadata: derived deterministically from frozen task ID
+    # naming conventions (repair 2026-10-05: eliminated /tmp dependency;
+    # see ood1_defect ledger record). Pair structure is frozen in the
+    # task pool and protocol doc Section 4.1.
+    def _meta_for(tid):
+        if tid.startswith("ood_p"):
+            return {"pair": None, "pair_type": None,
+                    "expected_organization": "single_agent"}
+        if tid.startswith("ood_r"):
+            return {"pair": None, "pair_type": None,
+                    "expected_organization": None}
+        # Minimal pairs: ood_m1a, ood_m1b, ood_m2a, ...
+        # ood_l1a, ood_l1b, ood_l2a, ...
+        kind = tid[4]  # 'm' or 'l'
+        pair = tid[4:6].upper()  # M1, M2, L1, L2
+        member = tid[6]  # 'a' or 'b'
+        if kind == "m":
+            exp = "single_agent" if member == "a" else "parallel_agents"
+            return {"pair": pair, "pair_type": "mechanical-contrast",
+                    "expected_organization": exp}
+        else:
+            exp = "single_agent" if pair == "L1" else None
+            return {"pair": pair, "pair_type": "lexical-contrast",
+                    "expected_organization": exp}
+
+    meta = {t: _meta_for(t) for t in decomps}
 
     def group(tid):
         if tid.startswith("ood_p"):
