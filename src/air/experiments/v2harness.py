@@ -575,8 +575,53 @@ def _active_rules() -> tuple[list[AllocationRule], str]:
     if not promos:
         return [], "v1"
     last = promos[-1]["payload"]
-    cand = _rebuild_candidate(last["candidate"])
-    return list(cand.rules), last["version"]
+    # v2.2 format: policy_version dict with rules
+    # v2.1 format: candidate dict with rules, version string
+    if "policy_version" in last and isinstance(last["policy_version"], dict):
+        pv = last["policy_version"]
+        rules = _rebuild_rules(pv["rules"])
+        return rules, pv["version"]
+    else:
+        cand = _rebuild_candidate(last["candidate"])
+        return list(cand.rules), last["version"]
+
+
+def _rebuild_rules(rules_data: list[dict]) -> list:
+    """Rebuild AllocationRule objects from serialized rule dicts."""
+    from air.learning_v2.contracts import (
+        AllocationRule, AtomicCondition, Operator, RuleAction, RuleThen)
+    rules = []
+    for r in rules_data:
+        # Handle both serialized formats (with nested condition dicts)
+        def _cond(c):
+            if isinstance(c, dict):
+                return AtomicCondition(c["feature"], Operator(c["op"]), c["value"])
+            return c
+        when = r["when"]
+        # Check if when contains dicts or already-formed conditions
+        if when and isinstance(when[0], dict):
+            when_t = tuple(_cond(c) for c in when)
+        else:
+            when_t = tuple(when)
+        scope = r["scope"]
+        if scope and isinstance(scope[0], dict):
+            scope_t = tuple(_cond(c) for c in scope)
+        else:
+            scope_t = tuple(scope)
+        then_d = r["then"]
+        if isinstance(then_d, dict):
+            then = RuleThen(RuleAction(then_d["action"]), then_d["target"],
+                            delta=then_d.get("delta", 0.0))
+        else:
+            then = then_d
+        rules.append(AllocationRule(
+            id=r["id"], when=when_t, then=then, scope=scope_t,
+            evidence=tuple(r["evidence"]),
+            evidence_strength=r["evidence_strength"],
+            uncertainty=r["uncertainty"],
+            constraints=r["constraints"],
+            priority=r["priority"]))
+    return rules
 
 
 def cmd_learn_1():
