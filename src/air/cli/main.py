@@ -111,7 +111,14 @@ def cmd_start(args: argparse.Namespace) -> int:
 
 def cmd_run(args: argparse.Namespace) -> int:
     """Submit a goal to the running backend."""
+    import time
     import urllib.request
+
+    # Show the allocation plan first (works without backend)
+    from air._lib import allocate_strategy, allocation_explanation
+    print("Allocation plan:")
+    print(allocation_explanation(args.goal))
+    print()
 
     body = json.dumps({
         "goal": args.goal,
@@ -122,11 +129,39 @@ def cmd_run(args: argparse.Namespace) -> int:
                                  headers={"Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
-            print(json.dumps(json.loads(resp.read()), indent=2))
+            run = json.loads(resp.read())
     except Exception as e:  # noqa: BLE001
         print(f"error: {e} (is the backend running? `air start`)",
               file=sys.stderr)
         return 1
+
+    run_id = run.get("id", "?")
+    print(f"Run {run_id} submitted. Watching...")
+    print()
+
+    # Poll for completion with progress display
+    last_status = None
+    for _ in range(60):  # up to ~5 minutes
+        try:
+            with urllib.request.urlopen(f"{_api_base()}/runs/{run_id}",
+                                        timeout=30) as resp:
+                status_data = json.loads(resp.read())
+        except Exception:
+            break
+        status = status_data.get("status", "unknown")
+        if status != last_status:
+            print(f"  [{status}]")
+            last_status = status
+        if status in ("completed", "failed", "cancelled"):
+            print()
+            print(f"Run {run_id}: {status}")
+            result = status_data.get("result") or status_data.get("output")
+            if result:
+                print(f"Result: {result}")
+            return 0 if status == "completed" else 1
+        time.sleep(5)
+
+    print(f"Run {run_id} still in progress. Check with: air runs")
     return 0
 
 
@@ -178,10 +213,76 @@ def cmd_config(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_init(args: argparse.Namespace) -> int:
+    """Guided first-time setup: data dir, provider, sanity check."""
+    from pathlib import Path
+
+    print("AIR setup")
+    print("=========")
+    print()
+
+    # 1. Data directory
+    data_dir = Path.home() / ".air"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    print(f"[ok] data directory: {data_dir}")
+
+    # 2. Provider selection
+    print()
+    print("Choose a model provider (for agent execution):")
+    print("  1) ollama   - local models, no API key needed")
+    print("  2) nebius   - cloud, NVIDIA open models (needs API key)")
+    print("  3) skip     - allocation only, no execution")
+    choice = (input("Choice [1]: ").strip() or "1") if not args.yes else "1"
+
+    env_file = data_dir / "provider.env"
+    if choice == "1":
+        env_file.write_text("AIR_PROVIDER=ollama\n")
+        print("[ok] provider=ollama (make sure `ollama serve` is running)")
+    elif choice == "2":
+        key = input("Nebius API key: ").strip() if not args.yes else ""
+        if key:
+            env_file.write_text(f"AIR_PROVIDER=nebius\nNEBIUS_API_KEY={key}\n")
+            print("[ok] provider=nebius configured")
+        else:
+            print("[skip] no key provided; set NEBIUS_API_KEY later")
+    else:
+        print("[skip] execution disabled; allocation still works")
+
+    # 3. Sanity check: allocation works without any provider
+    print()
+    print("Sanity check (allocation, no provider needed):")
+    from air._lib import allocate_strategy
+    demo = allocate_strategy("Research three competitors and compare pricing")
+    print(f"  goal: 'Research three competitors and compare pricing'")
+    print(f"  -> {demo}")
+
+    print()
+    print("Done. Try:")
+    print("  air allocate \"Your goal here\"   # see the cognitive plan")
+    print("  air doctor                       # check environment")
+    return 0
+
+
+def cmd_allocate(args: argparse.Namespace) -> int:
+    """Show the allocation decision for a goal (no execution)."""
+    from air._lib import allocation_explanation
+    print(allocation_explanation(args.goal))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="air",
                                 description="Adaptive Intelligence Runtime")
     sub = p.add_subparsers(dest="cmd", required=True)
+
+    sp = sub.add_parser("init", help="guided first-time setup")
+    sp.add_argument("-y", "--yes", action="store_true",
+                    help="non-interactive, accept defaults")
+    sp.set_defaults(fn=cmd_init)
+
+    sp = sub.add_parser("allocate", help="show allocation plan for a goal (no execution)")
+    sp.add_argument("goal")
+    sp.set_defaults(fn=cmd_allocate)
 
     sp = sub.add_parser("doctor", help="check the runtime environment")
     sp.set_defaults(fn=cmd_doctor)

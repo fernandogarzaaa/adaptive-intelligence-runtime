@@ -1,0 +1,740 @@
+{
+  "version": "v2",
+  "rules": [
+    {
+      "constraints": {
+        "attribution_id": "attr_0086",
+        "evidence_strength_version": "evidence-strength/v1",
+        "max_strategy_delta": 0.3
+      },
+      "evidence": [
+        "ev_learn-1_000",
+        "ev_learn-1_001",
+        "ev_learn-1_002",
+        "ev_learn-1_003",
+        "ev_learn-1_004",
+        "ev_learn-1_005",
+        "ev_learn-1_006",
+        "ev_learn-1_007",
+        "ev_learn-1_008",
+        "ev_learn-1_033",
+        "ev_learn-1_034",
+        "ev_learn-1_035"
+      ],
+      "evidence_strength": 0.5625,
+      "feature_schema_version": "task-features/v1",
+      "id": "rule_0001",
+      "org_property_schema_version": "org-properties/v1",
+      "policy_semantics_version": "policy-semantics/v1",
+      "priority": 0,
+      "rule_hash": "405075f683fa0c234db2104c5ad53a0f516cefaa441f35adcf6f4391c42672d8",
+      "rule_schema_version": "allocation-rule/v1",
+      "scope": [
+        {
+          "feature": "independent_work_unit_count",
+          "op": "gt",
+          "value": 1
+        }
+      ],
+      "then": {
+        "action": "penalize_strategy",
+        "delta": -0.1,
+        "target": "parallel_agents"
+      },
+      "uncertainty": {
+        "effect_estimate": -0.75,
+        "n_treated": 4,
+        "n_untreated": 8,
+        "overlap": {
+          "treated_negatives": 3,
+          "treated_positives": 1,
+          "untreated_negatives": 0,
+          "untreated_positives": 8
+        },
+        "p_value_fisher_exact": 0.018182
+      },
+      "when": [
+        {
+          "feature": "independent_work_unit_count",
+          "op": "gt",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "attribution_id": "attr_0093",
+        "evidence_strength_version": "evidence-strength/v1",
+        "max_strategy_delta": 0.3
+      },
+      "evidence": [
+        "ev_learn-1_000",
+        "ev_learn-1_001",
+        "ev_learn-1_002",
+        "ev_learn-1_003",
+        "ev_learn-1_004",
+        "ev_learn-1_005",
+        "ev_learn-1_006",
+        "ev_learn-1_007",
+        "ev_learn-1_008",
+        "ev_learn-1_033",
+        "ev_learn-1_034",
+        "ev_learn-1_035"
+      ],
+      "evidence_strength": 0.5625,
+      "feature_schema_version": "task-features/v1",
+      "id": "rule_0002",
+      "org_property_schema_version": "org-properties/v1",
+      "policy_semantics_version": "policy-semantics/v1",
+      "priority": 0,
+      "rule_hash": "4b1eedb9d1d31331c8a0590ea42bcc3b197825479a4ea26e21cc4afd2309a63e",
+      "rule_schema_version": "allocation-rule/v1",
+      "scope": [
+        {
+          "feature": "independent_work_unit_count",
+          "op": "gt",
+          "value": 1
+        }
+      ],
+      "then": {
+        "action": "require_capability",
+        "delta": 0.0,
+        "target": "EXECUTE"
+      },
+      "uncertainty": {
+        "effect_estimate": 0.75,
+        "n_treated": 8,
+        "n_untreated": 4,
+        "overlap": {
+          "treated_negatives": 0,
+          "treated_positives": 8,
+          "untreated_negatives": 3,
+          "untreated_positives": 1
+        },
+        "p_value_fisher_exact": 0.018182
+      },
+      "when": [
+        {
+          "feature": "independent_work_unit_count",
+          "op": "gt",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "attribution_id": "attr_0095",
+        "evidence_strength_version": "evidence-strength/v1",
+        "max_strategy_delta": 0.3
+      },
+      "evidence": [
+        "ev_learn-1_000",
+        "ev_learn-1_001",
+        "ev_learn-1_002",
+        "ev_learn-1_003",
+        "ev_learn-1_004",
+        "ev_learn-1_005",
+        "ev_learn-1_006",
+        "ev_learn-1_007",
+        "ev_learn-1_008",
+        "ev_learn-1_033",
+        "ev_learn-1_034",
+        "ev_learn-1_035"
+      ],
+      "evidence_strength": 0.5625,
+      "feature_schema_version": "task-features/v1",
+      "id": "rule_0003",
+      "org_property_schema_version": "org-properties/v1",
+      "policy_semantics_version": "policy-semantics/v1",
+      "priority": 0,
+      "rule_hash": "9061d83523a982c0e4c2fec5893fc9b247b2598c27f98349af5a407e391d7375",
+      "rule_schema_version": "allocation-rule/v1",
+      "scope": [
+        {
+          "feature": "independent_work_unit_count",
+          "op": "gt",
+          "value": 1
+        }
+      ],
+      "then": {
+        "action": "require_capability",
+        "delta": 0.0,
+        "target": "WRITE"
+      },
+      "uncertainty": {
+        "effect_estimate": 0.75,
+        "n_treated": 8,
+        "n_untreated": 4,
+        "overlap": {
+          "treated_negatives": 0,
+          "treated_positives": 8,
+          "untreated_negatives": 3,
+          "untreated_positives": 1
+        },
+        "p_value_fisher_exact": 0.018182
+      },
+      "when": [
+        {
+          "feature": "independent_work_unit_count",
+          "op": "gt",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "attribution_id": "attr_0100",
+        "evidence_strength_version": "evidence-strength/v1",
+        "max_strategy_delta": 0.3
+      },
+      "evidence": [
+        "ev_learn-1_009",
+        "ev_learn-1_010",
+        "ev_learn-1_011",
+        "ev_learn-1_012",
+        "ev_learn-1_013",
+        "ev_learn-1_014",
+        "ev_learn-1_027",
+        "ev_learn-1_028",
+        "ev_learn-1_030",
+        "ev_learn-1_031"
+      ],
+      "evidence_strength": 0.7143,
+      "feature_schema_version": "task-features/v1",
+      "id": "rule_0005",
+      "org_property_schema_version": "org-properties/v1",
+      "policy_semantics_version": "policy-semantics/v1",
+      "priority": 0,
+      "rule_hash": "7d021199c9b6ca779949f22056dcc3082379dfc9ecf424159533872b12ec0838",
+      "rule_schema_version": "allocation-rule/v1",
+      "scope": [
+        {
+          "feature": "multi_step",
+          "op": "eq",
+          "value": false
+        }
+      ],
+      "then": {
+        "action": "penalize_strategy",
+        "delta": -0.1,
+        "target": "parallel_agents"
+      },
+      "uncertainty": {
+        "effect_estimate": -1.0,
+        "n_treated": 2,
+        "n_untreated": 8,
+        "overlap": {
+          "treated_negatives": 2,
+          "treated_positives": 0,
+          "untreated_negatives": 0,
+          "untreated_positives": 8
+        },
+        "p_value_fisher_exact": 0.022222
+      },
+      "when": [
+        {
+          "feature": "multi_step",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "attribution_id": "attr_0107",
+        "evidence_strength_version": "evidence-strength/v1",
+        "max_strategy_delta": 0.3
+      },
+      "evidence": [
+        "ev_learn-1_009",
+        "ev_learn-1_010",
+        "ev_learn-1_011",
+        "ev_learn-1_012",
+        "ev_learn-1_013",
+        "ev_learn-1_014",
+        "ev_learn-1_027",
+        "ev_learn-1_028",
+        "ev_learn-1_030",
+        "ev_learn-1_031"
+      ],
+      "evidence_strength": 0.7143,
+      "feature_schema_version": "task-features/v1",
+      "id": "rule_0006",
+      "org_property_schema_version": "org-properties/v1",
+      "policy_semantics_version": "policy-semantics/v1",
+      "priority": 0,
+      "rule_hash": "b5929878447f19d9753000bc529ed360f74bb706c9a56069f49b0093c69f94f6",
+      "rule_schema_version": "allocation-rule/v1",
+      "scope": [
+        {
+          "feature": "multi_step",
+          "op": "eq",
+          "value": false
+        }
+      ],
+      "then": {
+        "action": "require_capability",
+        "delta": 0.0,
+        "target": "EXECUTE"
+      },
+      "uncertainty": {
+        "effect_estimate": 1.0,
+        "n_treated": 8,
+        "n_untreated": 2,
+        "overlap": {
+          "treated_negatives": 0,
+          "treated_positives": 8,
+          "untreated_negatives": 2,
+          "untreated_positives": 0
+        },
+        "p_value_fisher_exact": 0.022222
+      },
+      "when": [
+        {
+          "feature": "multi_step",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "attribution_id": "attr_0109",
+        "evidence_strength_version": "evidence-strength/v1",
+        "max_strategy_delta": 0.3
+      },
+      "evidence": [
+        "ev_learn-1_009",
+        "ev_learn-1_010",
+        "ev_learn-1_011",
+        "ev_learn-1_012",
+        "ev_learn-1_013",
+        "ev_learn-1_014",
+        "ev_learn-1_027",
+        "ev_learn-1_028",
+        "ev_learn-1_030",
+        "ev_learn-1_031"
+      ],
+      "evidence_strength": 0.7143,
+      "feature_schema_version": "task-features/v1",
+      "id": "rule_0007",
+      "org_property_schema_version": "org-properties/v1",
+      "policy_semantics_version": "policy-semantics/v1",
+      "priority": 0,
+      "rule_hash": "4cc6340e94598626732970c7c213fccf3b322d890a2fa21aeb5dc881d858591b",
+      "rule_schema_version": "allocation-rule/v1",
+      "scope": [
+        {
+          "feature": "multi_step",
+          "op": "eq",
+          "value": false
+        }
+      ],
+      "then": {
+        "action": "require_capability",
+        "delta": 0.0,
+        "target": "WRITE"
+      },
+      "uncertainty": {
+        "effect_estimate": 1.0,
+        "n_treated": 8,
+        "n_untreated": 2,
+        "overlap": {
+          "treated_negatives": 0,
+          "treated_positives": 8,
+          "untreated_negatives": 2,
+          "untreated_positives": 0
+        },
+        "p_value_fisher_exact": 0.022222
+      },
+      "when": [
+        {
+          "feature": "multi_step",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "attribution_id": "attr_0156",
+        "evidence_strength_version": "evidence-strength/v1",
+        "max_strategy_delta": 0.3
+      },
+      "evidence": [
+        "ev_learn-1_000",
+        "ev_learn-1_001",
+        "ev_learn-1_002",
+        "ev_learn-1_003",
+        "ev_learn-1_004",
+        "ev_learn-1_005",
+        "ev_learn-1_006",
+        "ev_learn-1_007",
+        "ev_learn-1_008",
+        "ev_learn-1_033",
+        "ev_learn-1_034",
+        "ev_learn-1_035"
+      ],
+      "evidence_strength": 0.5625,
+      "feature_schema_version": "task-features/v1",
+      "id": "rule_0009",
+      "org_property_schema_version": "org-properties/v1",
+      "policy_semantics_version": "policy-semantics/v1",
+      "priority": 0,
+      "rule_hash": "1dda0d52eebd751f1f6d1cea7d69f30de39626b7e0c01eb2f2058bd48385fd4b",
+      "rule_schema_version": "allocation-rule/v1",
+      "scope": [
+        {
+          "feature": "output_artifact_count",
+          "op": "gt",
+          "value": 1
+        }
+      ],
+      "then": {
+        "action": "penalize_strategy",
+        "delta": -0.1,
+        "target": "parallel_agents"
+      },
+      "uncertainty": {
+        "effect_estimate": -0.75,
+        "n_treated": 4,
+        "n_untreated": 8,
+        "overlap": {
+          "treated_negatives": 3,
+          "treated_positives": 1,
+          "untreated_negatives": 0,
+          "untreated_positives": 8
+        },
+        "p_value_fisher_exact": 0.018182
+      },
+      "when": [
+        {
+          "feature": "output_artifact_count",
+          "op": "gt",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "attribution_id": "attr_0163",
+        "evidence_strength_version": "evidence-strength/v1",
+        "max_strategy_delta": 0.3
+      },
+      "evidence": [
+        "ev_learn-1_000",
+        "ev_learn-1_001",
+        "ev_learn-1_002",
+        "ev_learn-1_003",
+        "ev_learn-1_004",
+        "ev_learn-1_005",
+        "ev_learn-1_006",
+        "ev_learn-1_007",
+        "ev_learn-1_008",
+        "ev_learn-1_033",
+        "ev_learn-1_034",
+        "ev_learn-1_035"
+      ],
+      "evidence_strength": 0.5625,
+      "feature_schema_version": "task-features/v1",
+      "id": "rule_0010",
+      "org_property_schema_version": "org-properties/v1",
+      "policy_semantics_version": "policy-semantics/v1",
+      "priority": 0,
+      "rule_hash": "0f1fc2cfbc05cb56ef621052b83a0ff410d5d575ff6d54edcfc56f75b4b50923",
+      "rule_schema_version": "allocation-rule/v1",
+      "scope": [
+        {
+          "feature": "output_artifact_count",
+          "op": "gt",
+          "value": 1
+        }
+      ],
+      "then": {
+        "action": "require_capability",
+        "delta": 0.0,
+        "target": "EXECUTE"
+      },
+      "uncertainty": {
+        "effect_estimate": 0.75,
+        "n_treated": 8,
+        "n_untreated": 4,
+        "overlap": {
+          "treated_negatives": 0,
+          "treated_positives": 8,
+          "untreated_negatives": 3,
+          "untreated_positives": 1
+        },
+        "p_value_fisher_exact": 0.018182
+      },
+      "when": [
+        {
+          "feature": "output_artifact_count",
+          "op": "gt",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "attribution_id": "attr_0165",
+        "evidence_strength_version": "evidence-strength/v1",
+        "max_strategy_delta": 0.3
+      },
+      "evidence": [
+        "ev_learn-1_000",
+        "ev_learn-1_001",
+        "ev_learn-1_002",
+        "ev_learn-1_003",
+        "ev_learn-1_004",
+        "ev_learn-1_005",
+        "ev_learn-1_006",
+        "ev_learn-1_007",
+        "ev_learn-1_008",
+        "ev_learn-1_033",
+        "ev_learn-1_034",
+        "ev_learn-1_035"
+      ],
+      "evidence_strength": 0.5625,
+      "feature_schema_version": "task-features/v1",
+      "id": "rule_0011",
+      "org_property_schema_version": "org-properties/v1",
+      "policy_semantics_version": "policy-semantics/v1",
+      "priority": 0,
+      "rule_hash": "fc99f2febfc1eb36b106fc02abaf491f6be0792751ba2db56bac3a76a199450f",
+      "rule_schema_version": "allocation-rule/v1",
+      "scope": [
+        {
+          "feature": "output_artifact_count",
+          "op": "gt",
+          "value": 1
+        }
+      ],
+      "then": {
+        "action": "require_capability",
+        "delta": 0.0,
+        "target": "WRITE"
+      },
+      "uncertainty": {
+        "effect_estimate": 0.75,
+        "n_treated": 8,
+        "n_untreated": 4,
+        "overlap": {
+          "treated_negatives": 0,
+          "treated_positives": 8,
+          "untreated_negatives": 3,
+          "untreated_positives": 1
+        },
+        "p_value_fisher_exact": 0.018182
+      },
+      "when": [
+        {
+          "feature": "output_artifact_count",
+          "op": "gt",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "attribution_id": "attr_0196",
+        "evidence_strength_version": "evidence-strength/v1",
+        "max_strategy_delta": 0.3
+      },
+      "evidence": [
+        "ev_learn-1_000",
+        "ev_learn-1_001",
+        "ev_learn-1_002",
+        "ev_learn-1_003",
+        "ev_learn-1_004",
+        "ev_learn-1_005",
+        "ev_learn-1_006",
+        "ev_learn-1_007",
+        "ev_learn-1_008",
+        "ev_learn-1_009",
+        "ev_learn-1_010",
+        "ev_learn-1_011",
+        "ev_learn-1_012",
+        "ev_learn-1_013",
+        "ev_learn-1_014",
+        "ev_learn-1_027",
+        "ev_learn-1_028",
+        "ev_learn-1_030",
+        "ev_learn-1_031"
+      ],
+      "evidence_strength": 0.8261,
+      "feature_schema_version": "task-features/v1",
+      "id": "rule_0013",
+      "org_property_schema_version": "org-properties/v1",
+      "policy_semantics_version": "policy-semantics/v1",
+      "priority": 0,
+      "rule_hash": "2c80130ddb0b5bf746066927e7f91a7f99b23b8245ce9a2833b177a8ce75bb91",
+      "rule_schema_version": "allocation-rule/v1",
+      "scope": [
+        {
+          "feature": "requested_read_effect",
+          "op": "eq",
+          "value": false
+        }
+      ],
+      "then": {
+        "action": "penalize_strategy",
+        "delta": -0.1,
+        "target": "parallel_agents"
+      },
+      "uncertainty": {
+        "effect_estimate": -1.0,
+        "n_treated": 5,
+        "n_untreated": 14,
+        "overlap": {
+          "treated_negatives": 5,
+          "treated_positives": 0,
+          "untreated_negatives": 0,
+          "untreated_positives": 14
+        },
+        "p_value_fisher_exact": 8.6e-05
+      },
+      "when": [
+        {
+          "feature": "requested_read_effect",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "attribution_id": "attr_0203",
+        "evidence_strength_version": "evidence-strength/v1",
+        "max_strategy_delta": 0.3
+      },
+      "evidence": [
+        "ev_learn-1_000",
+        "ev_learn-1_001",
+        "ev_learn-1_002",
+        "ev_learn-1_003",
+        "ev_learn-1_004",
+        "ev_learn-1_005",
+        "ev_learn-1_006",
+        "ev_learn-1_007",
+        "ev_learn-1_008",
+        "ev_learn-1_009",
+        "ev_learn-1_010",
+        "ev_learn-1_011",
+        "ev_learn-1_012",
+        "ev_learn-1_013",
+        "ev_learn-1_014",
+        "ev_learn-1_027",
+        "ev_learn-1_028",
+        "ev_learn-1_030",
+        "ev_learn-1_031"
+      ],
+      "evidence_strength": 0.8261,
+      "feature_schema_version": "task-features/v1",
+      "id": "rule_0014",
+      "org_property_schema_version": "org-properties/v1",
+      "policy_semantics_version": "policy-semantics/v1",
+      "priority": 0,
+      "rule_hash": "083e2888c2288cef3ff46ec4e3480f39b4318f48267b9cd031fc3ab1165b1a79",
+      "rule_schema_version": "allocation-rule/v1",
+      "scope": [
+        {
+          "feature": "requested_read_effect",
+          "op": "eq",
+          "value": false
+        }
+      ],
+      "then": {
+        "action": "require_capability",
+        "delta": 0.0,
+        "target": "EXECUTE"
+      },
+      "uncertainty": {
+        "effect_estimate": 1.0,
+        "n_treated": 14,
+        "n_untreated": 5,
+        "overlap": {
+          "treated_negatives": 0,
+          "treated_positives": 14,
+          "untreated_negatives": 5,
+          "untreated_positives": 0
+        },
+        "p_value_fisher_exact": 8.6e-05
+      },
+      "when": [
+        {
+          "feature": "requested_read_effect",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    },
+    {
+      "constraints": {
+        "attribution_id": "attr_0205",
+        "evidence_strength_version": "evidence-strength/v1",
+        "max_strategy_delta": 0.3
+      },
+      "evidence": [
+        "ev_learn-1_000",
+        "ev_learn-1_001",
+        "ev_learn-1_002",
+        "ev_learn-1_003",
+        "ev_learn-1_004",
+        "ev_learn-1_005",
+        "ev_learn-1_006",
+        "ev_learn-1_007",
+        "ev_learn-1_008",
+        "ev_learn-1_009",
+        "ev_learn-1_010",
+        "ev_learn-1_011",
+        "ev_learn-1_012",
+        "ev_learn-1_013",
+        "ev_learn-1_014",
+        "ev_learn-1_027",
+        "ev_learn-1_028",
+        "ev_learn-1_030",
+        "ev_learn-1_031"
+      ],
+      "evidence_strength": 0.8261,
+      "feature_schema_version": "task-features/v1",
+      "id": "rule_0015",
+      "org_property_schema_version": "org-properties/v1",
+      "policy_semantics_version": "policy-semantics/v1",
+      "priority": 0,
+      "rule_hash": "2a788e276207757a99ab724c46ccb189a661de8fc939ba09d6cfe2314de73fa5",
+      "rule_schema_version": "allocation-rule/v1",
+      "scope": [
+        {
+          "feature": "requested_read_effect",
+          "op": "eq",
+          "value": false
+        }
+      ],
+      "then": {
+        "action": "require_capability",
+        "delta": 0.0,
+        "target": "WRITE"
+      },
+      "uncertainty": {
+        "effect_estimate": 1.0,
+        "n_treated": 14,
+        "n_untreated": 5,
+        "overlap": {
+          "treated_negatives": 0,
+          "treated_positives": 14,
+          "untreated_negatives": 5,
+          "untreated_positives": 0
+        },
+        "p_value_fisher_exact": 8.6e-05
+      },
+      "when": [
+        {
+          "feature": "requested_read_effect",
+          "op": "eq",
+          "value": false
+        }
+      ]
+    }
+  ]
+}
