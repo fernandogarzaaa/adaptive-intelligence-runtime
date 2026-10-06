@@ -1,14 +1,37 @@
 # Adaptive Intelligence Runtime (AIR)
 
-AIR is an intelligence runtime that decides **how to organize cognition** for a given goal — not just what to think, but what *thinking structure* should exist. Given a task, it allocates single agents, parallel teams, or hierarchical organizations, learns from verified experience, and promotes only independently validated improvements.
+AIR decides **how to organize cognition** for a given goal — not just what to think, but what *thinking structure* should exist. Given a task, it allocates single agents, parallel teams, or hierarchical organizations using a validated policy learned from verified experience.
 
 > The runtime may change how it thinks, but it must never manufacture the evidence that proves the change was beneficial.
 
-## Status
+## Install
 
-**Research platform** (v0.1.0). AIR is an experimental system for studying adaptive cognitive organization, not a production product. It works, it's tested (277 tests), and the core allocation-learning loop is validated through preregistered experiments — but expect research-grade rough edges, not polished UX.
+```bash
+pip install adaptive-intelligence-runtime
+```
 
-**Validated through:** D-series (learning + transfer) → OOD-1 (lexical robustness) → CTC-1 (counterfactual capability sensitivity) → PV-1 (real-model validation). See `docs/RESEARCH_LOG.md`.
+**Requirements:** Python 3.12+.
+
+## Quick Start
+
+```bash
+air init                                  # guided setup (provider, sanity check)
+air allocate "Research three competitors"  # see the cognitive plan, no execution
+```
+
+Or as a Python library:
+
+```python
+import air
+
+strategy = air.allocate_strategy("Write API documentation")
+print(strategy)  # single_agent
+
+print(air.allocation_explanation("Research three competitors"))
+# v1 baseline scores, pv2 adjustments, chosen strategy, rules fired
+```
+
+See `docs/QUICKSTART.md` for the 5-minute guide and `examples/library_usage.py` for more.
 
 ## What It Does
 
@@ -19,73 +42,38 @@ Most AI systems use a fixed architecture: one model, one prompt, one shot. AIR t
 - **Assurance:** An independent evaluator verifies outcomes. The learner never grades its own homework.
 - **Multi-model:** The allocation policy is model-agnostic. It reasons about organizational capabilities (READ, WRITE, EXECUTE), not specific providers.
 
-## Installation
+## CLI Reference
 
-**Requirements:** Python 3.12+, git.
+| Command | What it does |
+|---------|--------------|
+| `air init` | Guided first-time setup |
+| `air allocate "goal"` | Show allocation plan (no execution) |
+| `air run "goal"` | Submit goal, show plan, watch progress |
+| `air start` | Start the backend API server |
+| `air runs` / `air agents` | List runs and agents |
+| `air capabilities` | List validated capabilities |
+| `air doctor` | Check environment |
+| `air config` | Show effective configuration |
 
-```bash
-git clone https://github.com/fernandogarzaaa/adaptive-intelligence-runtime.git
-cd adaptive-intelligence-runtime
-python3 -m venv .venv
-.venv/bin/pip install -e ".[dev]"
+## Python API
+
+```python
+import air
+
+air.allocate("goal")              # full CognitivePlan (v1 baseline)
+air.allocate_strategy("goal")     # strategy name (frozen pv2 policy)
+air.allocation_scores("goal")     # v1 vs pv2 scores, fired rules
+air.allocation_explanation("goal")# human-readable breakdown
+air.frozen_policy()               # policy metadata (v2, 12 rules)
 ```
-
-Verify:
-
-```bash
-.venv/bin/python -m air.cli.main doctor
-```
-
-You should see `[ok]` for python, data_dir, and database. Provider checks may fail if no model backend is configured — that's expected (see below).
-
-**With Docker** (for reproducibility):
-
-```bash
-docker build -f docker/Dockerfile -t air .
-docker run -p 8765:8765 air
-```
-
-> Note: the Dockerfile is provided for reproducibility but hasn't been build-verified in all environments. The venv install above is the tested path.
-
-## Quick Start
-
-### 1. Run a task (scripted mode)
-
-Without a model provider, AIR runs with deterministic scripted agents — useful for testing the allocation logic itself:
-
-```bash
-.venv/bin/python -m air.cli.main run "Write a summary of this repository's structure"
-.venv/bin/python -m air.cli.main runs    # list runs
-.venv/bin/python -m air.cli.main agents  # list agents
-```
-
-### 2. Start the API server
-
-```bash
-.venv/bin/python -m air.cli.main start
-```
-
-Open `http://127.0.0.1:8765` for the API. The web console source is in `web/` (React + TypeScript; build separately).
-
-### 3. With a real model provider
-
-AIR supports pluggable model providers. Without one, agent execution honestly reports `MODEL_PROVIDER_UNAVAILABLE` instead of faking output.
-
-Configure via environment (see `src/air/config.py` for all options):
-
-```bash
-# Example: Ollama (local)
-export AIR_PROVIDER=ollama
-export AIR_PROVIDER_BASE_URL=http://localhost:11434
-```
-
-Provider implementations live in `src/air/providers/`.
 
 ## Use Cases
 
-**For AI researchers:** Study how learned allocation policies transfer across task distributions, respond to counterfactual interventions, and behave with real vs scripted execution. The `src/air/experiments/` harness provides preregistered experiment infrastructure with frozen protocols, hash-linked artifacts, and mechanical verification.
+**For developers:** `air run "your goal"` or `import air` — let the validated policy decide how to organize the work. Override with `--strategy` when you know better.
 
-**For agent system builders:** Use AIR's allocation logic to route tasks to appropriate organizational structures. The policy (`pv2`, 12 frozen rules) demonstrates task-conditioned cognitive allocation that responds to capability requirements rather than surface cues.
+**For agent system builders:** Use AIR's allocation logic to route tasks to appropriate organizational structures. The frozen `pv2` policy (12 rules) demonstrates task-conditioned allocation that responds to capability requirements rather than surface cues.
+
+**For AI researchers:** Study how learned allocation policies transfer across task distributions, respond to counterfactual interventions, and behave with real vs scripted execution. The `src/air/experiments/` harness provides preregistered experiment infrastructure with frozen protocols, hash-linked artifacts, and mechanical verification.
 
 **For evaluation:** The independent assurance architecture (`src/air/assurance/`, `src/air/evaluation/`) provides a template for separating *doing* from *verifying* — the evaluator checks artifacts mechanically and never inspects agent reasoning.
 
@@ -105,22 +93,22 @@ Feasibility check (can each org satisfy required capabilities?)
 Strategy selection (highest feasible score)
 ```
 
-The frozen `pv2` policy (12 rules) was learned from verified experience in the D-series experiments and validated through OOD-1 (lexical shift), CTC-1 (counterfactual topology), and PV-1 (real-model execution). It is intentionally frozen — not updated — to serve as a stable reference.
+The frozen `pv2` policy (12 rules, bundled with the package) was learned from verified experience in the D-series experiments and validated through OOD-1 (lexical shift), CTC-1 (counterfactual topology), and PV-1 (real-model execution). It is intentionally frozen — not updated — to serve as a stable reference.
 
-## Project Layout
+## With a Real Model Provider
 
-- `src/air/` — Backend (FastAPI, SQLite/WAL, asyncio)
-  - `allocation/` — Strategy scoring and selection
-  - `learning_v2/` — Experience learning and rule generation
-  - `evaluation/`, `assurance/` — Independent verification
-  - `experiments/` — Preregistered experiment harness (D-series, OOD-1, CTC-1, PV-1)
-  - `providers/` — Model provider integrations
-  - `cli/` — Command-line interface
-  - `api/` — REST API
-- `web/` — React + TypeScript console (build separately)
-- `migrations/` — SQL migrations
-- `tests/` — Unit, integration, structural (277 tests)
-- `docs/` — Architecture, research protocols, experiment preregistrations
+Without a provider, agent execution honestly reports `MODEL_PROVIDER_UNAVAILABLE` instead of faking output. `air init` walks through setup.
+
+```bash
+# Ollama (local, no API key)
+export AIR_PROVIDER=ollama
+
+# Nebius (cloud, NVIDIA open models)
+export AIR_PROVIDER=nebius
+export NEBIUS_API_KEY=your-key
+```
+
+Provider implementations live in `src/air/providers/`. See `src/air/config.py` for all options.
 
 ## Research Background
 
@@ -129,7 +117,7 @@ AIR's allocation policy was developed through a preregistered experimental seque
 1. **D-series:** Learned `pv2` from verified experience. S1 showed significant improvement over baseline (p~6e-08); D2 confirmed convergence; D3 showed held-out transfer.
 2. **OOD-1:** Tested lexical robustness. pv2 retained correct allocations after D-series trigger words were removed.
 3. **CTC-1:** Counterfactual topology. With task text held byte-identical, pv2 switched allocations when organizational capabilities changed (12/12). Demonstrates sensitivity to capability structure, not just lexical cues.
-4. **PV-1:** Real-model validation. With Nebius-hosted models, pv2's allocations outperformed baseline (8/10 complete pairs).
+4. **PV-1:** Real-model validation (incomplete). Interrupted by provider infrastructure after 19/24 runs. Across 9 complete pairs, pv2 won 8, v1 won 0, 1 tied. The preregistered 9/12 threshold was not reached.
 
 Each experiment is frozen with hash-linked artifacts in `docs/PREREGISTRATION_*.md`. The full log is in `docs/RESEARCH_LOG.md`.
 
@@ -137,15 +125,31 @@ Each experiment is frozen with hash-linked artifacts in `docs/PREREGISTRATION_*.
 
 ## Honest Limitations
 
-- **Research grade.** This is an experimental platform, not a polished product. Expect sharp edges.
+- **Young product.** v0.2.0 is the first product release. The core allocation logic is validated; the UX is still maturing.
 - **Single-provider validation.** Real-model testing used one provider (Nebius). Cross-provider generality is untested.
-- **Scripted baseline.** Most experiments used scripted agents; real-model validation is limited to PV-1's 10 complete pairs.
-- **Frozen policy.** `pv2` is intentionally not updated. It's a research artifact, not a continuously improving system.
-- **No PyPI.** Install from source only. `pip install adaptive-intelligence-runtime` is not yet available.
+- **PV-1 incomplete.** Real-model validation was interrupted by infrastructure issues. Results are directional, not conclusive.
+- **Frozen policy.** `pv2` is intentionally not updated. It's a validated artifact, not a continuously improving system.
+- **Web console.** The React console in `web/` is source only; build separately.
+
+## Project Layout
+
+- `src/air/` — Runtime (FastAPI, SQLite/WAL, asyncio)
+  - `allocation/` — Strategy scoring and selection
+  - `learning_v2/` — Experience learning and rule generation
+  - `evaluation/`, `assurance/` — Independent verification
+  - `experiments/` — Preregistered experiment harness
+  - `providers/` — Model provider integrations
+  - `cli/` — Command-line interface
+  - `api/` — REST API
+  - `data/` — Bundled frozen policy
+- `web/` — React + TypeScript console (build separately)
+- `docs/` — Architecture, research protocols, quickstart
+- `examples/` — Library usage examples
+- `tests/` — 277 tests
 
 ## Contributing
 
-This is Fernando Garza's research project. Issues and PRs welcome, but the experimental protocols (`docs/PREREGISTRATION_*.md`) are frozen — don't modify sealed experiments.
+Issues and PRs welcome. The experimental protocols (`docs/PREREGISTRATION_*.md`) are frozen — don't modify sealed experiments.
 
 ## License
 
