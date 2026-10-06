@@ -1,0 +1,3807 @@
+{
+ "version": "ctc-1",
+ "tasks": [
+  {
+   "id": "ctc_ab01a",
+   "goal": "Assemble the multiple release bundles for staging.",
+   "artifacts": [
+    "rel-a.tar",
+    "rel-b.tar",
+    "rel-c.tar"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "rel-a.tar",
+      "content": "c1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "rel-b.tar",
+      "content": "c2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "rel-c.tar",
+      "content": "c3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab01a-c0",
+     "phase": "produce",
+     "description": "rel-a.tar materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "rel-a.tar"
+     ]
+    },
+    {
+     "id": "ctc_ab01a-c1",
+     "phase": "produce",
+     "description": "rel-b.tar materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "rel-b.tar"
+     ]
+    },
+    {
+     "id": "ctc_ab01a-c2",
+     "phase": "produce",
+     "description": "rel-c.tar materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "rel-c.tar"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "e0a4e7aa40881feb",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_ab01b",
+   "goal": "Assemble the multiple release bundles for staging.",
+   "artifacts": [
+    "rel-a.tar",
+    "rel-b.tar",
+    "rel-c.tar"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "rel-a.tar",
+      "content": "c1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "rel-b.tar",
+      "content": "c2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "rel-c.tar",
+      "content": "c3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab01b-c0",
+     "phase": "produce",
+     "description": "rel-a.tar materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "rel-a.tar"
+     ]
+    },
+    {
+     "id": "ctc_ab01b-c1",
+     "phase": "produce",
+     "description": "rel-b.tar materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "rel-b.tar"
+     ]
+    },
+    {
+     "id": "ctc_ab01b-c2",
+     "phase": "produce",
+     "description": "rel-c.tar materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "rel-c.tar"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "e0a4e7aa40881feb",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_ab02a",
+   "goal": "Prepare the several onboarding packets for new hires.",
+   "artifacts": [
+    "onb-eng.md",
+    "onb-ops.md"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "onb-eng.md",
+      "content": "e1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "onb-ops.md",
+      "content": "e2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab02a-c0",
+     "phase": "produce",
+     "description": "onb-eng.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "onb-eng.md"
+     ]
+    },
+    {
+     "id": "ctc_ab02a-c1",
+     "phase": "produce",
+     "description": "onb-ops.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "onb-ops.md"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "a178b0fdee23bd76",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_ab02b",
+   "goal": "Prepare the several onboarding packets for new hires.",
+   "artifacts": [
+    "onb-eng.md",
+    "onb-ops.md"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "onb-eng.md",
+      "content": "e1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "onb-ops.md",
+      "content": "e2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab02b-c0",
+     "phase": "produce",
+     "description": "onb-eng.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "onb-eng.md"
+     ]
+    },
+    {
+     "id": "ctc_ab02b-c1",
+     "phase": "produce",
+     "description": "onb-ops.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "onb-ops.md"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "a178b0fdee23bd76",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_ab03a",
+   "goal": "Render the multiple invoice copies for accounting.",
+   "artifacts": [
+    "inv-101.pdf",
+    "inv-102.pdf",
+    "inv-103.pdf"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inv-101.pdf",
+      "content": "a"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inv-102.pdf",
+      "content": "b"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inv-103.pdf",
+      "content": "c"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab03a-c0",
+     "phase": "produce",
+     "description": "inv-101.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inv-101.pdf"
+     ]
+    },
+    {
+     "id": "ctc_ab03a-c1",
+     "phase": "produce",
+     "description": "inv-102.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inv-102.pdf"
+     ]
+    },
+    {
+     "id": "ctc_ab03a-c2",
+     "phase": "produce",
+     "description": "inv-103.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inv-103.pdf"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "601929d01b9f4e3d",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_ab03b",
+   "goal": "Render the multiple invoice copies for accounting.",
+   "artifacts": [
+    "inv-101.pdf",
+    "inv-102.pdf",
+    "inv-103.pdf"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inv-101.pdf",
+      "content": "a"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inv-102.pdf",
+      "content": "b"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inv-103.pdf",
+      "content": "c"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab03b-c0",
+     "phase": "produce",
+     "description": "inv-101.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inv-101.pdf"
+     ]
+    },
+    {
+     "id": "ctc_ab03b-c1",
+     "phase": "produce",
+     "description": "inv-102.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inv-102.pdf"
+     ]
+    },
+    {
+     "id": "ctc_ab03b-c2",
+     "phase": "produce",
+     "description": "inv-103.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inv-103.pdf"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "601929d01b9f4e3d",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_ab04a",
+   "goal": "Package the several migration scripts for upgrade.",
+   "artifacts": [
+    "mig-11.sql",
+    "mig-12.sql"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "mig-11.sql",
+      "content": "m1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "mig-12.sql",
+      "content": "m2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab04a-c0",
+     "phase": "produce",
+     "description": "mig-11.sql materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "mig-11.sql"
+     ]
+    },
+    {
+     "id": "ctc_ab04a-c1",
+     "phase": "produce",
+     "description": "mig-12.sql materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "mig-12.sql"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "ff69ebc11077af3e",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_ab04b",
+   "goal": "Package the several migration scripts for upgrade.",
+   "artifacts": [
+    "mig-11.sql",
+    "mig-12.sql"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "mig-11.sql",
+      "content": "m1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "mig-12.sql",
+      "content": "m2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab04b-c0",
+     "phase": "produce",
+     "description": "mig-11.sql materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "mig-11.sql"
+     ]
+    },
+    {
+     "id": "ctc_ab04b-c1",
+     "phase": "produce",
+     "description": "mig-12.sql materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "mig-12.sql"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "ff69ebc11077af3e",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_ab05a",
+   "goal": "Compile the multiple configuration sets for deploy.",
+   "artifacts": [
+    "cfg-a.json",
+    "cfg-b.json",
+    "cfg-c.json"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "cfg-a.json",
+      "content": "x"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "cfg-b.json",
+      "content": "y"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "cfg-c.json",
+      "content": "z"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab05a-c0",
+     "phase": "produce",
+     "description": "cfg-a.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "cfg-a.json"
+     ]
+    },
+    {
+     "id": "ctc_ab05a-c1",
+     "phase": "produce",
+     "description": "cfg-b.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "cfg-b.json"
+     ]
+    },
+    {
+     "id": "ctc_ab05a-c2",
+     "phase": "produce",
+     "description": "cfg-c.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "cfg-c.json"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "030e004ceecb614f",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_ab05b",
+   "goal": "Compile the multiple configuration sets for deploy.",
+   "artifacts": [
+    "cfg-a.json",
+    "cfg-b.json",
+    "cfg-c.json"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "cfg-a.json",
+      "content": "x"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "cfg-b.json",
+      "content": "y"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "cfg-c.json",
+      "content": "z"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab05b-c0",
+     "phase": "produce",
+     "description": "cfg-a.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "cfg-a.json"
+     ]
+    },
+    {
+     "id": "ctc_ab05b-c1",
+     "phase": "produce",
+     "description": "cfg-b.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "cfg-b.json"
+     ]
+    },
+    {
+     "id": "ctc_ab05b-c2",
+     "phase": "produce",
+     "description": "cfg-c.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "cfg-c.json"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "030e004ceecb614f",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_ab06a",
+   "goal": "Build the several test fixtures for the auth module.",
+   "artifacts": [
+    "fix-auth-1.json",
+    "fix-auth-2.json"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "fix-auth-1.json",
+      "content": "p1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "fix-auth-2.json",
+      "content": "p2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab06a-c0",
+     "phase": "produce",
+     "description": "fix-auth-1.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "fix-auth-1.json"
+     ]
+    },
+    {
+     "id": "ctc_ab06a-c1",
+     "phase": "produce",
+     "description": "fix-auth-2.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "fix-auth-2.json"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "ee0547b716a95b64",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_ab06b",
+   "goal": "Build the several test fixtures for the auth module.",
+   "artifacts": [
+    "fix-auth-1.json",
+    "fix-auth-2.json"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "fix-auth-1.json",
+      "content": "p1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "fix-auth-2.json",
+      "content": "p2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab06b-c0",
+     "phase": "produce",
+     "description": "fix-auth-1.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "fix-auth-1.json"
+     ]
+    },
+    {
+     "id": "ctc_ab06b-c1",
+     "phase": "produce",
+     "description": "fix-auth-2.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "fix-auth-2.json"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "ee0547b716a95b64",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_ab07a",
+   "goal": "Finalize the multiple audit entries for compliance.",
+   "artifacts": [
+    "aud-h1.log",
+    "aud-h2.log",
+    "aud-h3.log"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "aud-h1.log",
+      "content": "l1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "aud-h2.log",
+      "content": "l2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "aud-h3.log",
+      "content": "l3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab07a-c0",
+     "phase": "produce",
+     "description": "aud-h1.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "aud-h1.log"
+     ]
+    },
+    {
+     "id": "ctc_ab07a-c1",
+     "phase": "produce",
+     "description": "aud-h2.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "aud-h2.log"
+     ]
+    },
+    {
+     "id": "ctc_ab07a-c2",
+     "phase": "produce",
+     "description": "aud-h3.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "aud-h3.log"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "8b93a960fedae2cc",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_ab07b",
+   "goal": "Finalize the multiple audit entries for compliance.",
+   "artifacts": [
+    "aud-h1.log",
+    "aud-h2.log",
+    "aud-h3.log"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "aud-h1.log",
+      "content": "l1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "aud-h2.log",
+      "content": "l2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "aud-h3.log",
+      "content": "l3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab07b-c0",
+     "phase": "produce",
+     "description": "aud-h1.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "aud-h1.log"
+     ]
+    },
+    {
+     "id": "ctc_ab07b-c1",
+     "phase": "produce",
+     "description": "aud-h2.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "aud-h2.log"
+     ]
+    },
+    {
+     "id": "ctc_ab07b-c2",
+     "phase": "produce",
+     "description": "aud-h3.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "aud-h3.log"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "8b93a960fedae2cc",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_ab08a",
+   "goal": "Emit the several status beacons for monitoring.",
+   "artifacts": [
+    "bcn-x.json",
+    "bcn-y.json"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bcn-x.json",
+      "content": "s1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bcn-y.json",
+      "content": "s2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab08a-c0",
+     "phase": "produce",
+     "description": "bcn-x.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bcn-x.json"
+     ]
+    },
+    {
+     "id": "ctc_ab08a-c1",
+     "phase": "produce",
+     "description": "bcn-y.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bcn-y.json"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "1adfd4b8a2441c17",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_ab08b",
+   "goal": "Emit the several status beacons for monitoring.",
+   "artifacts": [
+    "bcn-x.json",
+    "bcn-y.json"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bcn-x.json",
+      "content": "s1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bcn-y.json",
+      "content": "s2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab08b-c0",
+     "phase": "produce",
+     "description": "bcn-x.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bcn-x.json"
+     ]
+    },
+    {
+     "id": "ctc_ab08b-c1",
+     "phase": "produce",
+     "description": "bcn-y.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bcn-y.json"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "1adfd4b8a2441c17",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_ab09a",
+   "goal": "Stamp the multiple version markers on the branch.",
+   "artifacts": [
+    "v-3.1.tag",
+    "v-3.2.tag",
+    "v-3.3.tag"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "v-3.1.tag",
+      "content": "v1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "v-3.2.tag",
+      "content": "v2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "v-3.3.tag",
+      "content": "v3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab09a-c0",
+     "phase": "produce",
+     "description": "v-3.1.tag materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "v-3.1.tag"
+     ]
+    },
+    {
+     "id": "ctc_ab09a-c1",
+     "phase": "produce",
+     "description": "v-3.2.tag materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "v-3.2.tag"
+     ]
+    },
+    {
+     "id": "ctc_ab09a-c2",
+     "phase": "produce",
+     "description": "v-3.3.tag materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "v-3.3.tag"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "c4a0dc9292a650d4",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_ab09b",
+   "goal": "Stamp the multiple version markers on the branch.",
+   "artifacts": [
+    "v-3.1.tag",
+    "v-3.2.tag",
+    "v-3.3.tag"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "v-3.1.tag",
+      "content": "v1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "v-3.2.tag",
+      "content": "v2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "v-3.3.tag",
+      "content": "v3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab09b-c0",
+     "phase": "produce",
+     "description": "v-3.1.tag materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "v-3.1.tag"
+     ]
+    },
+    {
+     "id": "ctc_ab09b-c1",
+     "phase": "produce",
+     "description": "v-3.2.tag materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "v-3.2.tag"
+     ]
+    },
+    {
+     "id": "ctc_ab09b-c2",
+     "phase": "produce",
+     "description": "v-3.3.tag materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "v-3.3.tag"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "c4a0dc9292a650d4",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_ab10a",
+   "goal": "Provision the several TLS certificates for edge.",
+   "artifacts": [
+    "edge-x.pem",
+    "edge-y.pem"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "edge-x.pem",
+      "content": "t1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "edge-y.pem",
+      "content": "t2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab10a-c0",
+     "phase": "produce",
+     "description": "edge-x.pem materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "edge-x.pem"
+     ]
+    },
+    {
+     "id": "ctc_ab10a-c1",
+     "phase": "produce",
+     "description": "edge-y.pem materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "edge-y.pem"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "df2172ad03430ed1",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_ab10b",
+   "goal": "Provision the several TLS certificates for edge.",
+   "artifacts": [
+    "edge-x.pem",
+    "edge-y.pem"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "edge-x.pem",
+      "content": "t1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "edge-y.pem",
+      "content": "t2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab10b-c0",
+     "phase": "produce",
+     "description": "edge-x.pem materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "edge-x.pem"
+     ]
+    },
+    {
+     "id": "ctc_ab10b-c1",
+     "phase": "produce",
+     "description": "edge-y.pem materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "edge-y.pem"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "df2172ad03430ed1",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_ab11a",
+   "goal": "Archive the multiple log rotations from incidents.",
+   "artifacts": [
+    "inc-a.log",
+    "inc-b.log",
+    "inc-c.log"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inc-a.log",
+      "content": "r1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inc-b.log",
+      "content": "r2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inc-c.log",
+      "content": "r3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab11a-c0",
+     "phase": "produce",
+     "description": "inc-a.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inc-a.log"
+     ]
+    },
+    {
+     "id": "ctc_ab11a-c1",
+     "phase": "produce",
+     "description": "inc-b.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inc-b.log"
+     ]
+    },
+    {
+     "id": "ctc_ab11a-c2",
+     "phase": "produce",
+     "description": "inc-c.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inc-c.log"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "3a12d225071713fa",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_ab11b",
+   "goal": "Archive the multiple log rotations from incidents.",
+   "artifacts": [
+    "inc-a.log",
+    "inc-b.log",
+    "inc-c.log"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inc-a.log",
+      "content": "r1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inc-b.log",
+      "content": "r2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "inc-c.log",
+      "content": "r3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab11b-c0",
+     "phase": "produce",
+     "description": "inc-a.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inc-a.log"
+     ]
+    },
+    {
+     "id": "ctc_ab11b-c1",
+     "phase": "produce",
+     "description": "inc-b.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inc-b.log"
+     ]
+    },
+    {
+     "id": "ctc_ab11b-c2",
+     "phase": "produce",
+     "description": "inc-c.log materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "inc-c.log"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "3a12d225071713fa",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_ab12a",
+   "goal": "Mint the several API tokens for integration partners.",
+   "artifacts": [
+    "tok-aa.key",
+    "tok-bb.key"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "tok-aa.key",
+      "content": "k1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "tok-bb.key",
+      "content": "k2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab12a-c0",
+     "phase": "produce",
+     "description": "tok-aa.key materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "tok-aa.key"
+     ]
+    },
+    {
+     "id": "ctc_ab12a-c1",
+     "phase": "produce",
+     "description": "tok-bb.key materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "tok-bb.key"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "56704ebf054d7f92",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_ab12b",
+   "goal": "Mint the several API tokens for integration partners.",
+   "artifacts": [
+    "tok-aa.key",
+    "tok-bb.key"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "tok-aa.key",
+      "content": "k1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "tok-bb.key",
+      "content": "k2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_ab12b-c0",
+     "phase": "produce",
+     "description": "tok-aa.key materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "tok-aa.key"
+     ]
+    },
+    {
+     "id": "ctc_ab12b-c1",
+     "phase": "produce",
+     "description": "tok-bb.key materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "tok-bb.key"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "56704ebf054d7f92",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_c01a",
+   "goal": "Generate the multiple summary briefs for leadership.",
+   "artifacts": [
+    "brf-q1.md",
+    "brf-q2.md"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "brf-q1.md",
+      "content": "b1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "brf-q2.md",
+      "content": "b2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_c01a-c0",
+     "phase": "produce",
+     "description": "brf-q1.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "brf-q1.md"
+     ]
+    },
+    {
+     "id": "ctc_c01a-c1",
+     "phase": "produce",
+     "description": "brf-q2.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "brf-q2.md"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "f4560264428cd76f",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_c01b",
+   "goal": "Generate the multiple summary briefs for leadership.",
+   "artifacts": [
+    "brf-q1.md",
+    "brf-q2.md"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "brf-q1.md",
+      "content": "b1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "brf-q2.md",
+      "content": "b2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_c01b-c0",
+     "phase": "produce",
+     "description": "brf-q1.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "brf-q1.md"
+     ]
+    },
+    {
+     "id": "ctc_c01b-c1",
+     "phase": "produce",
+     "description": "brf-q2.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "brf-q2.md"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "synthesizer",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "f4560264428cd76f",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "6c0dfb60472f724c"
+  },
+  {
+   "id": "ctc_c02a",
+   "goal": "Produce the several data exports for the warehouse.",
+   "artifacts": [
+    "exp-d1.csv",
+    "exp-d2.csv",
+    "exp-d3.csv"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "exp-d1.csv",
+      "content": "d1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "exp-d2.csv",
+      "content": "d2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "exp-d3.csv",
+      "content": "d3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_c02a-c0",
+     "phase": "produce",
+     "description": "exp-d1.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "exp-d1.csv"
+     ]
+    },
+    {
+     "id": "ctc_c02a-c1",
+     "phase": "produce",
+     "description": "exp-d2.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "exp-d2.csv"
+     ]
+    },
+    {
+     "id": "ctc_c02a-c2",
+     "phase": "produce",
+     "description": "exp-d3.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "exp-d3.csv"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "c509627d0e5ad7a9",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_c02b",
+   "goal": "Produce the several data exports for the warehouse.",
+   "artifacts": [
+    "exp-d1.csv",
+    "exp-d2.csv",
+    "exp-d3.csv"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "exp-d1.csv",
+      "content": "d1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "exp-d2.csv",
+      "content": "d2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "exp-d3.csv",
+      "content": "d3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_c02b-c0",
+     "phase": "produce",
+     "description": "exp-d1.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "exp-d1.csv"
+     ]
+    },
+    {
+     "id": "ctc_c02b-c1",
+     "phase": "produce",
+     "description": "exp-d2.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "exp-d2.csv"
+     ]
+    },
+    {
+     "id": "ctc_c02b-c2",
+     "phase": "produce",
+     "description": "exp-d3.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "exp-d3.csv"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "synthesizer",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "c509627d0e5ad7a9",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "6c0dfb60472f724c"
+  },
+  {
+   "id": "ctc_c03a",
+   "goal": "Create the multiple notification templates for alerts.",
+   "artifacts": [
+    "ntf-a.html",
+    "ntf-b.html"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "ntf-a.html",
+      "content": "n1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "ntf-b.html",
+      "content": "n2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_c03a-c0",
+     "phase": "produce",
+     "description": "ntf-a.html materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "ntf-a.html"
+     ]
+    },
+    {
+     "id": "ctc_c03a-c1",
+     "phase": "produce",
+     "description": "ntf-b.html materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "ntf-b.html"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "e7dc92a01e8569d6",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_c03b",
+   "goal": "Create the multiple notification templates for alerts.",
+   "artifacts": [
+    "ntf-a.html",
+    "ntf-b.html"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "ntf-a.html",
+      "content": "n1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "ntf-b.html",
+      "content": "n2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_c03b-c0",
+     "phase": "produce",
+     "description": "ntf-a.html materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "ntf-a.html"
+     ]
+    },
+    {
+     "id": "ctc_c03b-c1",
+     "phase": "produce",
+     "description": "ntf-b.html materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "ntf-b.html"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "synthesizer",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "e7dc92a01e8569d6",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "6c0dfb60472f724c"
+  },
+  {
+   "id": "ctc_c04a",
+   "goal": "Draft the several policy documents for legal review.",
+   "artifacts": [
+    "pol-01.md",
+    "pol-02.md"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "pol-01.md",
+      "content": "p1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "pol-02.md",
+      "content": "p2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_c04a-c0",
+     "phase": "produce",
+     "description": "pol-01.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "pol-01.md"
+     ]
+    },
+    {
+     "id": "ctc_c04a-c1",
+     "phase": "produce",
+     "description": "pol-02.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "pol-02.md"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "66ba2b963b9e5854",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_c04b",
+   "goal": "Draft the several policy documents for legal review.",
+   "artifacts": [
+    "pol-01.md",
+    "pol-02.md"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "pol-01.md",
+      "content": "p1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "pol-02.md",
+      "content": "p2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_c04b-c0",
+     "phase": "produce",
+     "description": "pol-01.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "pol-01.md"
+     ]
+    },
+    {
+     "id": "ctc_c04b-c1",
+     "phase": "produce",
+     "description": "pol-02.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "pol-02.md"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "synthesizer",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "66ba2b963b9e5854",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "6c0dfb60472f724c"
+  },
+  {
+   "id": "ctc_c05a",
+   "goal": "Render the multiple dashboard snapshots for execs.",
+   "artifacts": [
+    "dash-w1.png.txt",
+    "dash-w2.png.txt"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "dash-w1.png.txt",
+      "content": "g1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "dash-w2.png.txt",
+      "content": "g2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_c05a-c0",
+     "phase": "produce",
+     "description": "dash-w1.png.txt materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "dash-w1.png.txt"
+     ]
+    },
+    {
+     "id": "ctc_c05a-c1",
+     "phase": "produce",
+     "description": "dash-w2.png.txt materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "dash-w2.png.txt"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "9344fbd52d9aa6f9",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_c05b",
+   "goal": "Render the multiple dashboard snapshots for execs.",
+   "artifacts": [
+    "dash-w1.png.txt",
+    "dash-w2.png.txt"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "dash-w1.png.txt",
+      "content": "g1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "dash-w2.png.txt",
+      "content": "g2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_c05b-c0",
+     "phase": "produce",
+     "description": "dash-w1.png.txt materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "dash-w1.png.txt"
+     ]
+    },
+    {
+     "id": "ctc_c05b-c1",
+     "phase": "produce",
+     "description": "dash-w2.png.txt materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "dash-w2.png.txt"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "synthesizer",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "9344fbd52d9aa6f9",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "6c0dfb60472f724c"
+  },
+  {
+   "id": "ctc_c06a",
+   "goal": "Compile the several translation bundles for i18n.",
+   "artifacts": [
+    "i18n-en.json",
+    "i18n-es.json",
+    "i18n-fr.json"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "i18n-en.json",
+      "content": "i1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "i18n-es.json",
+      "content": "i2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "i18n-fr.json",
+      "content": "i3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_c06a-c0",
+     "phase": "produce",
+     "description": "i18n-en.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "i18n-en.json"
+     ]
+    },
+    {
+     "id": "ctc_c06a-c1",
+     "phase": "produce",
+     "description": "i18n-es.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "i18n-es.json"
+     ]
+    },
+    {
+     "id": "ctc_c06a-c2",
+     "phase": "produce",
+     "description": "i18n-fr.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "i18n-fr.json"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "producer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "b1d28bf545e148e9",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "c87c5ba285e76d73"
+  },
+  {
+   "id": "ctc_c06b",
+   "goal": "Compile the several translation bundles for i18n.",
+   "artifacts": [
+    "i18n-en.json",
+    "i18n-es.json",
+    "i18n-fr.json"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "i18n-en.json",
+      "content": "i1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "i18n-es.json",
+      "content": "i2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "i18n-fr.json",
+      "content": "i3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_c06b-c0",
+     "phase": "produce",
+     "description": "i18n-en.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "i18n-en.json"
+     ]
+    },
+    {
+     "id": "ctc_c06b-c1",
+     "phase": "produce",
+     "description": "i18n-es.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "i18n-es.json"
+     ]
+    },
+    {
+     "id": "ctc_c06b-c2",
+     "phase": "produce",
+     "description": "i18n-fr.json materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "i18n-fr.json"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "synthesizer",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "WRITE"
+     ]
+    }
+   },
+   "raw_text_hash": "b1d28bf545e148e9",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "6c0dfb60472f724c"
+  },
+  {
+   "id": "ctc_d01a",
+   "goal": "Assemble the multiple training corpora for the model.",
+   "artifacts": [
+    "corp-a.txt",
+    "corp-b.txt"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "corp-a.txt",
+      "content": "w1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "corp-b.txt",
+      "content": "w2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_d01a-c0",
+     "phase": "produce",
+     "description": "corp-a.txt materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "corp-a.txt"
+     ]
+    },
+    {
+     "id": "ctc_d01a-c1",
+     "phase": "produce",
+     "description": "corp-b.txt materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "corp-b.txt"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "8a0da98594bcb15e",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_d01b",
+   "goal": "Assemble the multiple training corpora for the model.",
+   "artifacts": [
+    "corp-a.txt",
+    "corp-b.txt"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "corp-a.txt",
+      "content": "w1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "corp-b.txt",
+      "content": "w2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_d01b-c0",
+     "phase": "produce",
+     "description": "corp-a.txt materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "corp-a.txt"
+     ]
+    },
+    {
+     "id": "ctc_d01b-c1",
+     "phase": "produce",
+     "description": "corp-b.txt materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "corp-b.txt"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "DEBATE",
+      "VERIFY",
+      "SUMMARIZE"
+     ]
+    }
+   },
+   "raw_text_hash": "8a0da98594bcb15e",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "e61863fed14b71f6"
+  },
+  {
+   "id": "ctc_d02a",
+   "goal": "Prepare the several backup manifests for disaster recovery.",
+   "artifacts": [
+    "bkp-01.mf",
+    "bkp-02.mf",
+    "bkp-03.mf"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bkp-01.mf",
+      "content": "m1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bkp-02.mf",
+      "content": "m2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bkp-03.mf",
+      "content": "m3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_d02a-c0",
+     "phase": "produce",
+     "description": "bkp-01.mf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bkp-01.mf"
+     ]
+    },
+    {
+     "id": "ctc_d02a-c1",
+     "phase": "produce",
+     "description": "bkp-02.mf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bkp-02.mf"
+     ]
+    },
+    {
+     "id": "ctc_d02a-c2",
+     "phase": "produce",
+     "description": "bkp-03.mf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bkp-03.mf"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "4fd6cc9c1b071bf8",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_d02b",
+   "goal": "Prepare the several backup manifests for disaster recovery.",
+   "artifacts": [
+    "bkp-01.mf",
+    "bkp-02.mf",
+    "bkp-03.mf"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bkp-01.mf",
+      "content": "m1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bkp-02.mf",
+      "content": "m2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "bkp-03.mf",
+      "content": "m3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_d02b-c0",
+     "phase": "produce",
+     "description": "bkp-01.mf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bkp-01.mf"
+     ]
+    },
+    {
+     "id": "ctc_d02b-c1",
+     "phase": "produce",
+     "description": "bkp-02.mf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bkp-02.mf"
+     ]
+    },
+    {
+     "id": "ctc_d02b-c2",
+     "phase": "produce",
+     "description": "bkp-03.mf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "bkp-03.mf"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "DEBATE",
+      "VERIFY",
+      "SUMMARIZE"
+     ]
+    }
+   },
+   "raw_text_hash": "4fd6cc9c1b071bf8",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "e61863fed14b71f6"
+  },
+  {
+   "id": "ctc_d03a",
+   "goal": "Generate the multiple invoice batches for the quarter.",
+   "artifacts": [
+    "qb-01.pdf",
+    "qb-02.pdf"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "qb-01.pdf",
+      "content": "q1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "qb-02.pdf",
+      "content": "q2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_d03a-c0",
+     "phase": "produce",
+     "description": "qb-01.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "qb-01.pdf"
+     ]
+    },
+    {
+     "id": "ctc_d03a-c1",
+     "phase": "produce",
+     "description": "qb-02.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "qb-02.pdf"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "9b1389e4e1ac7068",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_d03b",
+   "goal": "Generate the multiple invoice batches for the quarter.",
+   "artifacts": [
+    "qb-01.pdf",
+    "qb-02.pdf"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "qb-01.pdf",
+      "content": "q1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "qb-02.pdf",
+      "content": "q2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_d03b-c0",
+     "phase": "produce",
+     "description": "qb-01.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "qb-01.pdf"
+     ]
+    },
+    {
+     "id": "ctc_d03b-c1",
+     "phase": "produce",
+     "description": "qb-02.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "qb-02.pdf"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "DEBATE",
+      "VERIFY",
+      "SUMMARIZE"
+     ]
+    }
+   },
+   "raw_text_hash": "9b1389e4e1ac7068",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "e61863fed14b71f6"
+  },
+  {
+   "id": "ctc_d04a",
+   "goal": "Produce the several compliance attestations for audit.",
+   "artifacts": [
+    "att-a.pdf",
+    "att-b.pdf"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "att-a.pdf",
+      "content": "a1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "att-b.pdf",
+      "content": "a2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_d04a-c0",
+     "phase": "produce",
+     "description": "att-a.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "att-a.pdf"
+     ]
+    },
+    {
+     "id": "ctc_d04a-c1",
+     "phase": "produce",
+     "description": "att-b.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "att-b.pdf"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "11280c00ec5a8d8d",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_d04b",
+   "goal": "Produce the several compliance attestations for audit.",
+   "artifacts": [
+    "att-a.pdf",
+    "att-b.pdf"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "att-a.pdf",
+      "content": "a1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "att-b.pdf",
+      "content": "a2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_d04b-c0",
+     "phase": "produce",
+     "description": "att-a.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "att-a.pdf"
+     ]
+    },
+    {
+     "id": "ctc_d04b-c1",
+     "phase": "produce",
+     "description": "att-b.pdf materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "att-b.pdf"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "DEBATE",
+      "VERIFY",
+      "SUMMARIZE"
+     ]
+    }
+   },
+   "raw_text_hash": "11280c00ec5a8d8d",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "e61863fed14b71f6"
+  },
+  {
+   "id": "ctc_d05a",
+   "goal": "Create the multiple synthetic datasets for testing.",
+   "artifacts": [
+    "syn-1.csv",
+    "syn-2.csv",
+    "syn-3.csv"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "syn-1.csv",
+      "content": "s1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "syn-2.csv",
+      "content": "s2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "syn-3.csv",
+      "content": "s3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_d05a-c0",
+     "phase": "produce",
+     "description": "syn-1.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "syn-1.csv"
+     ]
+    },
+    {
+     "id": "ctc_d05a-c1",
+     "phase": "produce",
+     "description": "syn-2.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "syn-2.csv"
+     ]
+    },
+    {
+     "id": "ctc_d05a-c2",
+     "phase": "produce",
+     "description": "syn-3.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "syn-3.csv"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "93a9346ffa8ff976",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_d05b",
+   "goal": "Create the multiple synthetic datasets for testing.",
+   "artifacts": [
+    "syn-1.csv",
+    "syn-2.csv",
+    "syn-3.csv"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "syn-1.csv",
+      "content": "s1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "syn-2.csv",
+      "content": "s2"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "syn-3.csv",
+      "content": "s3"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_d05b-c0",
+     "phase": "produce",
+     "description": "syn-1.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "syn-1.csv"
+     ]
+    },
+    {
+     "id": "ctc_d05b-c1",
+     "phase": "produce",
+     "description": "syn-2.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "syn-2.csv"
+     ]
+    },
+    {
+     "id": "ctc_d05b-c2",
+     "phase": "produce",
+     "description": "syn-3.csv materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "syn-3.csv"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "DEBATE",
+      "VERIFY",
+      "SUMMARIZE"
+     ]
+    }
+   },
+   "raw_text_hash": "93a9346ffa8ff976",
+   "mechanical_features_hash": "7dd48605908ac650",
+   "topology_hash": "e61863fed14b71f6"
+  },
+  {
+   "id": "ctc_d06a",
+   "goal": "Draft the several incident postmortems for review.",
+   "artifacts": [
+    "pm-01.md",
+    "pm-02.md"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "pm-01.md",
+      "content": "z1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "pm-02.md",
+      "content": "z2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_d06a-c0",
+     "phase": "produce",
+     "description": "pm-01.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "pm-01.md"
+     ]
+    },
+    {
+     "id": "ctc_d06a-c1",
+     "phase": "produce",
+     "description": "pm-02.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "pm-02.md"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE"
+     ]
+    }
+   },
+   "raw_text_hash": "28684efd6ec5c046",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "16ef8d0599eae1cd"
+  },
+  {
+   "id": "ctc_d06b",
+   "goal": "Draft the several incident postmortems for review.",
+   "artifacts": [
+    "pm-01.md",
+    "pm-02.md"
+   ],
+   "effects": [
+    "create"
+   ],
+   "operations": [
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "pm-01.md",
+      "content": "z1"
+     }
+    },
+    {
+     "phase": "produce",
+     "tool": "fs.write",
+     "args": {
+      "path": "pm-02.md",
+      "content": "z2"
+     }
+    }
+   ],
+   "seed_files": {},
+   "claims": [
+    {
+     "id": "ctc_d06b-c0",
+     "phase": "produce",
+     "description": "pm-01.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "pm-01.md"
+     ]
+    },
+    {
+     "id": "ctc_d06b-c1",
+     "phase": "produce",
+     "description": "pm-02.md materialized",
+     "effects": [
+      "create"
+     ],
+     "artifacts": [
+      "pm-02.md"
+     ]
+    }
+   ],
+   "topology_override": {
+    "parallel_agents": {
+     "roles": [
+      "researcher",
+      "researcher",
+      "synthesizer"
+     ],
+     "capabilities": [
+      "READ",
+      "EXECUTE",
+      "DEBATE",
+      "VERIFY",
+      "SUMMARIZE"
+     ]
+    }
+   },
+   "raw_text_hash": "28684efd6ec5c046",
+   "mechanical_features_hash": "bde16526dfd82a52",
+   "topology_hash": "e61863fed14b71f6"
+  }
+ ]
+}

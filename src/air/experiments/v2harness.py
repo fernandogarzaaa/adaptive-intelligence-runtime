@@ -151,20 +151,78 @@ def base_scores(goal: str) -> dict[str, float]:
     return {s.value: round(scores[s], 4) for s in STRATEGIES}
 
 
-def _feasible(strategies: list[str], requirements) -> list[str]:
+def _topology_override_for(task: dict, name: str):
+    """Return (capabilities, roles, source) for a strategy on a task.
+
+    CTC-1: when the task carries a topology_override for the named
+    strategy, the override's capability/role sets are used instead of
+    the global ORG_PROPS. This is environmental mechanics consulted
+    ONLY by the feasibility check — never by feature extraction
+    (T2) and never affecting v1 scoring (T1, verified structurally).
+    """
+    override = task.get("topology_override") or {}
+    if name in override:
+        spec = override[name]
+        return (frozenset(spec["capabilities"]),
+                frozenset(spec.get("roles", ())),
+                "override")
+    org = ORG_PROPS[name]
+    return org.capabilities, org.roles, "global"
+
+
+def _feasible(strategies: list[str], requirements, task: dict | None = None) -> list[str]:
     from air.learning_v2.contracts import RuleAction
     out = []
     for name in strategies:
-        org = ORG_PROPS[name]
+        if task is not None:
+            caps, roles, _ = _topology_override_for(task, name)
+        else:
+            org = ORG_PROPS[name]
+            caps, roles = org.capabilities, org.roles
         ok = True
         for req in requirements:
             if req.action is RuleAction.REQUIRE_CAPABILITY:
-                ok &= req.target in org.capabilities
+                ok &= req.target in caps
             elif req.action is RuleAction.REQUIRE_ROLE:
-                ok &= req.target in org.roles
+                ok &= req.target in roles
         if ok:
             out.append(name)
     return out
+
+
+def feasibility_detail(task: dict, requirements) -> dict:
+    """Per-strategy feasibility provenance for CTC-1 decomposition.
+
+    Returns {strategy: {feasible, infeasible_reasons,
+    capabilities_considered, topology_source}}. Makes the causal chain
+    auditable: which requirement, against which capability set,
+    eliminated which strategy.
+    """
+    from air.learning_v2.contracts import RuleAction
+    detail = {}
+    for name in STRATEGY_NAMES:
+        caps, roles, source = _topology_override_for(task, name)
+        reasons = []
+        for req in requirements:
+            if req.action is RuleAction.REQUIRE_CAPABILITY:
+                if req.target not in caps:
+                    reasons.append(
+                        f"REQUIRE_CAPABILITY {req.target} unsatisfied "
+                        f"(capabilities_considered: {sorted(caps)})"
+                    )
+            elif req.action is RuleAction.REQUIRE_ROLE:
+                if req.target not in roles:
+                    reasons.append(
+                        f"REQUIRE_ROLE {req.target} unsatisfied "
+                        f"(roles_considered: {sorted(roles)})"
+                    )
+        detail[name] = {
+            "feasible": not reasons,
+            "infeasible_reasons": reasons,
+            "capabilities_considered": sorted(caps),
+            "topology_source": source,
+        }
+    return detail
 
 
 def choose_strategy(task: dict, rules: list[AllocationRule]) -> str:
@@ -174,7 +232,7 @@ def choose_strategy(task: dict, rules: list[AllocationRule]) -> str:
     features = extract_features(task)
     scores = base_scores(task["goal"])
     resolved = resolve_rules(rules, features)
-    feasible = _feasible(STRATEGY_NAMES, resolved["requirements"])
+    feasible = _feasible(STRATEGY_NAMES, resolved["requirements"], task)
     if not feasible:
         return INCOHERENT
     adjusted = {n: scores[n] + resolved["adjustments"].get(n, 0.0)
@@ -195,7 +253,8 @@ def decision_decomposition(task: dict, rules: list[AllocationRule]) -> dict:
     v1_scores = base_scores(task["goal"])
     resolved = resolve_rules(rules, features)
     adjustments = resolved["adjustments"]
-    feasible = _feasible(STRATEGY_NAMES, resolved["requirements"])
+    feasible = _feasible(STRATEGY_NAMES, resolved["requirements"], task)
+    feasibility = feasibility_detail(task, resolved["requirements"])
     if not feasible:
         final_scores = {}
         pv2_choice = INCOHERENT
@@ -217,6 +276,7 @@ def decision_decomposition(task: dict, rules: list[AllocationRule]) -> dict:
         "decision_delta": v1_choice != pv2_choice,
         "fired_rules": resolved["applicable_rules"],
         "rule_log": resolved["log"],
+        "feasibility": feasibility,
     }
 
 
