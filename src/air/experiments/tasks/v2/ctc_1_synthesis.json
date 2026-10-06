@@ -1,0 +1,23 @@
+{
+ "artifact": "ctc-1-synthesis",
+ "version": 1,
+ "execution_ledger_sha256": "d60a1bec3a197cd66a2d5edd99d310dbb5d74fe34a3a9c41e4e42f750a416b49",
+ "primary_ab": {
+  "E1_consistent": "12/12",
+  "E2_consistent": "0/12",
+  "anomalous": "0/12",
+  "threshold_E1": ">=9/12",
+  "threshold_E2": ">=9/12",
+  "outcome": "E1_SUPPORTED"
+ },
+ "secondary_c": {
+  "capability_substitution_ok": "6/6"
+ },
+ "secondary_d": {
+  "irrelevant_invariance_held": "6/6"
+ },
+ "verified_outcomes": {
+  "pv2": "24/48",
+  "v1": "0/48"
+ }
+}

@@ -1,0 +1,194 @@
+{
+ "ctc_ab01a": {
+  "pair": "ctc_ab01",
+  "pair_type": "AB"
+ },
+ "ctc_ab01b": {
+  "pair": "ctc_ab01",
+  "pair_type": "AB"
+ },
+ "ctc_ab02a": {
+  "pair": "ctc_ab02",
+  "pair_type": "AB"
+ },
+ "ctc_ab02b": {
+  "pair": "ctc_ab02",
+  "pair_type": "AB"
+ },
+ "ctc_ab03a": {
+  "pair": "ctc_ab03",
+  "pair_type": "AB"
+ },
+ "ctc_ab03b": {
+  "pair": "ctc_ab03",
+  "pair_type": "AB"
+ },
+ "ctc_ab04a": {
+  "pair": "ctc_ab04",
+  "pair_type": "AB"
+ },
+ "ctc_ab04b": {
+  "pair": "ctc_ab04",
+  "pair_type": "AB"
+ },
+ "ctc_ab05a": {
+  "pair": "ctc_ab05",
+  "pair_type": "AB"
+ },
+ "ctc_ab05b": {
+  "pair": "ctc_ab05",
+  "pair_type": "AB"
+ },
+ "ctc_ab06a": {
+  "pair": "ctc_ab06",
+  "pair_type": "AB"
+ },
+ "ctc_ab06b": {
+  "pair": "ctc_ab06",
+  "pair_type": "AB"
+ },
+ "ctc_ab07a": {
+  "pair": "ctc_ab07",
+  "pair_type": "AB"
+ },
+ "ctc_ab07b": {
+  "pair": "ctc_ab07",
+  "pair_type": "AB"
+ },
+ "ctc_ab08a": {
+  "pair": "ctc_ab08",
+  "pair_type": "AB"
+ },
+ "ctc_ab08b": {
+  "pair": "ctc_ab08",
+  "pair_type": "AB"
+ },
+ "ctc_ab09a": {
+  "pair": "ctc_ab09",
+  "pair_type": "AB"
+ },
+ "ctc_ab09b": {
+  "pair": "ctc_ab09",
+  "pair_type": "AB"
+ },
+ "ctc_ab10a": {
+  "pair": "ctc_ab10",
+  "pair_type": "AB"
+ },
+ "ctc_ab10b": {
+  "pair": "ctc_ab10",
+  "pair_type": "AB"
+ },
+ "ctc_ab11a": {
+  "pair": "ctc_ab11",
+  "pair_type": "AB"
+ },
+ "ctc_ab11b": {
+  "pair": "ctc_ab11",
+  "pair_type": "AB"
+ },
+ "ctc_ab12a": {
+  "pair": "ctc_ab12",
+  "pair_type": "AB"
+ },
+ "ctc_ab12b": {
+  "pair": "ctc_ab12",
+  "pair_type": "AB"
+ },
+ "ctc_c01a": {
+  "pair": "ctc_c01",
+  "pair_type": "C"
+ },
+ "ctc_c01b": {
+  "pair": "ctc_c01",
+  "pair_type": "C"
+ },
+ "ctc_c02a": {
+  "pair": "ctc_c02",
+  "pair_type": "C"
+ },
+ "ctc_c02b": {
+  "pair": "ctc_c02",
+  "pair_type": "C"
+ },
+ "ctc_c03a": {
+  "pair": "ctc_c03",
+  "pair_type": "C"
+ },
+ "ctc_c03b": {
+  "pair": "ctc_c03",
+  "pair_type": "C"
+ },
+ "ctc_c04a": {
+  "pair": "ctc_c04",
+  "pair_type": "C"
+ },
+ "ctc_c04b": {
+  "pair": "ctc_c04",
+  "pair_type": "C"
+ },
+ "ctc_c05a": {
+  "pair": "ctc_c05",
+  "pair_type": "C"
+ },
+ "ctc_c05b": {
+  "pair": "ctc_c05",
+  "pair_type": "C"
+ },
+ "ctc_c06a": {
+  "pair": "ctc_c06",
+  "pair_type": "C"
+ },
+ "ctc_c06b": {
+  "pair": "ctc_c06",
+  "pair_type": "C"
+ },
+ "ctc_d01a": {
+  "pair": "ctc_d01",
+  "pair_type": "D"
+ },
+ "ctc_d01b": {
+  "pair": "ctc_d01",
+  "pair_type": "D"
+ },
+ "ctc_d02a": {
+  "pair": "ctc_d02",
+  "pair_type": "D"
+ },
+ "ctc_d02b": {
+  "pair": "ctc_d02",
+  "pair_type": "D"
+ },
+ "ctc_d03a": {
+  "pair": "ctc_d03",
+  "pair_type": "D"
+ },
+ "ctc_d03b": {
+  "pair": "ctc_d03",
+  "pair_type": "D"
+ },
+ "ctc_d04a": {
+  "pair": "ctc_d04",
+  "pair_type": "D"
+ },
+ "ctc_d04b": {
+  "pair": "ctc_d04",
+  "pair_type": "D"
+ },
+ "ctc_d05a": {
+  "pair": "ctc_d05",
+  "pair_type": "D"
+ },
+ "ctc_d05b": {
+  "pair": "ctc_d05",
+  "pair_type": "D"
+ },
+ "ctc_d06a": {
+  "pair": "ctc_d06",
+  "pair_type": "D"
+ },
+ "ctc_d06b": {
+  "pair": "ctc_d06",
+  "pair_type": "D"
+ }
+}

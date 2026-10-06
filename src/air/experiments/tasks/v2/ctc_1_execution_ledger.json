@@ -1,0 +1,615 @@
+{
+ "artifact": "ctc-1-execution-ledger",
+ "version": 1,
+ "n_pairs": 24,
+ "classifications": [
+  {
+   "pair_id": "ctc_ab01",
+   "pair_type": "AB",
+   "task_A": "ctc_ab01a",
+   "task_B": "ctc_ab01b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "switch via feasibility path (B par=0.65 > sng=0.525)"
+  },
+  {
+   "pair_id": "ctc_ab02",
+   "pair_type": "AB",
+   "task_A": "ctc_ab02a",
+   "task_B": "ctc_ab02b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "switch via feasibility path (B par=0.65 > sng=0.525)"
+  },
+  {
+   "pair_id": "ctc_ab03",
+   "pair_type": "AB",
+   "task_A": "ctc_ab03a",
+   "task_B": "ctc_ab03b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "switch via feasibility path (B par=0.65 > sng=0.525)"
+  },
+  {
+   "pair_id": "ctc_ab04",
+   "pair_type": "AB",
+   "task_A": "ctc_ab04a",
+   "task_B": "ctc_ab04b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "switch via feasibility path (B par=0.65 > sng=0.525)"
+  },
+  {
+   "pair_id": "ctc_ab05",
+   "pair_type": "AB",
+   "task_A": "ctc_ab05a",
+   "task_B": "ctc_ab05b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "switch via feasibility path (B par=0.65 > sng=0.525)"
+  },
+  {
+   "pair_id": "ctc_ab06",
+   "pair_type": "AB",
+   "task_A": "ctc_ab06a",
+   "task_B": "ctc_ab06b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "switch via feasibility path (B par=0.65 > sng=0.525)"
+  },
+  {
+   "pair_id": "ctc_ab07",
+   "pair_type": "AB",
+   "task_A": "ctc_ab07a",
+   "task_B": "ctc_ab07b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "switch via feasibility path (B par=0.65 > sng=0.525)"
+  },
+  {
+   "pair_id": "ctc_ab08",
+   "pair_type": "AB",
+   "task_A": "ctc_ab08a",
+   "task_B": "ctc_ab08b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "switch via feasibility path (B par=0.65 > sng=0.525)"
+  },
+  {
+   "pair_id": "ctc_ab09",
+   "pair_type": "AB",
+   "task_A": "ctc_ab09a",
+   "task_B": "ctc_ab09b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "switch via feasibility path (B par=0.65 > sng=0.525)"
+  },
+  {
+   "pair_id": "ctc_ab10",
+   "pair_type": "AB",
+   "task_A": "ctc_ab10a",
+   "task_B": "ctc_ab10b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "switch via feasibility path (B par=0.65 > sng=0.525)"
+  },
+  {
+   "pair_id": "ctc_ab11",
+   "pair_type": "AB",
+   "task_A": "ctc_ab11a",
+   "task_B": "ctc_ab11b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "switch via feasibility path (B par=0.65 > sng=0.525)"
+  },
+  {
+   "pair_id": "ctc_ab12",
+   "pair_type": "AB",
+   "task_A": "ctc_ab12a",
+   "task_B": "ctc_ab12b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "switch via feasibility path (B par=0.65 > sng=0.525)"
+  },
+  {
+   "pair_id": "ctc_c01",
+   "pair_type": "C",
+   "task_A": "ctc_c01a",
+   "task_B": "ctc_c01b",
+   "pv2_choice_A": "parallel_agents",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": true,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": false,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "both parallel, capability substitution OK"
+  },
+  {
+   "pair_id": "ctc_c02",
+   "pair_type": "C",
+   "task_A": "ctc_c02a",
+   "task_B": "ctc_c02b",
+   "pv2_choice_A": "parallel_agents",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": true,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": false,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "both parallel, capability substitution OK"
+  },
+  {
+   "pair_id": "ctc_c03",
+   "pair_type": "C",
+   "task_A": "ctc_c03a",
+   "task_B": "ctc_c03b",
+   "pv2_choice_A": "parallel_agents",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": true,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": false,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "both parallel, capability substitution OK"
+  },
+  {
+   "pair_id": "ctc_c04",
+   "pair_type": "C",
+   "task_A": "ctc_c04a",
+   "task_B": "ctc_c04b",
+   "pv2_choice_A": "parallel_agents",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": true,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": false,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "both parallel, capability substitution OK"
+  },
+  {
+   "pair_id": "ctc_c05",
+   "pair_type": "C",
+   "task_A": "ctc_c05a",
+   "task_B": "ctc_c05b",
+   "pv2_choice_A": "parallel_agents",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": true,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": false,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "both parallel, capability substitution OK"
+  },
+  {
+   "pair_id": "ctc_c06",
+   "pair_type": "C",
+   "task_A": "ctc_c06a",
+   "task_B": "ctc_c06b",
+   "pv2_choice_A": "parallel_agents",
+   "pv2_choice_B": "parallel_agents",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": true,
+   "parallel_feasible_B": true,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65,
+    "single_agent": 0.525
+   },
+   "verified_A": false,
+   "verified_B": false,
+   "classification": "E1_SUPPORTED",
+   "classification_detail": "both parallel, capability substitution OK"
+  },
+  {
+   "pair_id": "ctc_d01",
+   "pair_type": "D",
+   "task_A": "ctc_d01a",
+   "task_B": "ctc_d01b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "single_agent",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": false,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": true,
+   "classification": "INVARIANT_HELD",
+   "classification_detail": "both single, irrelevant caps ignored"
+  },
+  {
+   "pair_id": "ctc_d02",
+   "pair_type": "D",
+   "task_A": "ctc_d02a",
+   "task_B": "ctc_d02b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "single_agent",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": false,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": true,
+   "classification": "INVARIANT_HELD",
+   "classification_detail": "both single, irrelevant caps ignored"
+  },
+  {
+   "pair_id": "ctc_d03",
+   "pair_type": "D",
+   "task_A": "ctc_d03a",
+   "task_B": "ctc_d03b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "single_agent",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": false,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": true,
+   "classification": "INVARIANT_HELD",
+   "classification_detail": "both single, irrelevant caps ignored"
+  },
+  {
+   "pair_id": "ctc_d04",
+   "pair_type": "D",
+   "task_A": "ctc_d04a",
+   "task_B": "ctc_d04b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "single_agent",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": false,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": true,
+   "classification": "INVARIANT_HELD",
+   "classification_detail": "both single, irrelevant caps ignored"
+  },
+  {
+   "pair_id": "ctc_d05",
+   "pair_type": "D",
+   "task_A": "ctc_d05a",
+   "task_B": "ctc_d05b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "single_agent",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": false,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": true,
+   "classification": "INVARIANT_HELD",
+   "classification_detail": "both single, irrelevant caps ignored"
+  },
+  {
+   "pair_id": "ctc_d06",
+   "pair_type": "D",
+   "task_A": "ctc_d06a",
+   "task_B": "ctc_d06b",
+   "pv2_choice_A": "single_agent",
+   "pv2_choice_B": "single_agent",
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": false,
+   "pv2_final_A": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "pv2_final_B": {
+    "hierarchical_agents": 0.475,
+    "single_agent": 0.525
+   },
+   "verified_A": true,
+   "verified_B": true,
+   "classification": "INVARIANT_HELD",
+   "classification_detail": "both single, irrelevant caps ignored"
+  }
+ ],
+ "ab_summary": {
+  "E1_consistent": 12,
+  "E2_consistent": 0,
+  "anomalous_or_control_failure": 0,
+  "non_discriminating": 0,
+  "denominator": 12
+ },
+ "artifact_sha256": "d60a1bec3a197cd66a2d5edd99d310dbb5d74fe34a3a9c41e4e42f750a416b49"
+}

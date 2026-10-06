@@ -1,0 +1,582 @@
+{
+ "artifact": "ctc-1-prediction",
+ "version": 1,
+ "task_pool_sha256": "4b19e569240b3361d6952d2c33a89b14fb8349dd2913b9a11a7209f19ef5ad6a",
+ "task_pool_path": "src/air/experiments/tasks/v2/ctc_1.json",
+ "pv2_version": "v2",
+ "pv2_n_rules": 12,
+ "generated_before_execution": true,
+ "predictions": [
+  {
+   "pair_id": "ctc_ab01",
+   "task_hash_A": "d878eafb8100a3176a994f418caf528f956097926ff59d19a6eb3d32266a8fab",
+   "task_hash_B": "e40e63e503d473ef3701dd792dd6b9b14a4b8b61bf057fbc27588b4e13b8219d",
+   "task_text_hash": "e0a4e7aa40881feb",
+   "topology_hash_A": "16ef8d0599eae1cd",
+   "topology_hash_B": "c87c5ba285e76d73",
+   "v1_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "v1_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "pv2_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475
+   },
+   "pv2_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65
+   },
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "single_agent_feasible_A": true,
+   "single_agent_feasible_B": true,
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "PREDICTION_STATUS": "DISCRIMINATING",
+   "E1_prediction": {
+    "A": "single_agent",
+    "B": "parallel_agents"
+   },
+   "E2_prediction": {
+    "A": "single_agent",
+    "B": "single_agent"
+   },
+   "_audit_detail": {
+    "A_single_gt_parallel": true,
+    "A_parallel_infeasible": true,
+    "B_parallel_gt_single": true
+   }
+  },
+  {
+   "pair_id": "ctc_ab02",
+   "task_hash_A": "b9ff2cfe0a54e12d613e6dd15ca2fed1d51d4b416c0c676f23ec246d6f99b069",
+   "task_hash_B": "bee02d3bbd4f2b68ca1155ee7532909ceee92457e5382348a032d3ccc7f16c81",
+   "task_text_hash": "a178b0fdee23bd76",
+   "topology_hash_A": "16ef8d0599eae1cd",
+   "topology_hash_B": "c87c5ba285e76d73",
+   "v1_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "v1_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "pv2_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475
+   },
+   "pv2_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65
+   },
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "single_agent_feasible_A": true,
+   "single_agent_feasible_B": true,
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "PREDICTION_STATUS": "DISCRIMINATING",
+   "E1_prediction": {
+    "A": "single_agent",
+    "B": "parallel_agents"
+   },
+   "E2_prediction": {
+    "A": "single_agent",
+    "B": "single_agent"
+   },
+   "_audit_detail": {
+    "A_single_gt_parallel": true,
+    "A_parallel_infeasible": true,
+    "B_parallel_gt_single": true
+   }
+  },
+  {
+   "pair_id": "ctc_ab03",
+   "task_hash_A": "0e6fe29fc0d76ff818895330a0b95808156e5a6de9edf93bf02b32b0fef0b0c9",
+   "task_hash_B": "bce4fe1bd4327367c4f36a5a12feada9a79886a60a83b7b21deb8b5226157b58",
+   "task_text_hash": "601929d01b9f4e3d",
+   "topology_hash_A": "16ef8d0599eae1cd",
+   "topology_hash_B": "c87c5ba285e76d73",
+   "v1_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "v1_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "pv2_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475
+   },
+   "pv2_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65
+   },
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "single_agent_feasible_A": true,
+   "single_agent_feasible_B": true,
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "PREDICTION_STATUS": "DISCRIMINATING",
+   "E1_prediction": {
+    "A": "single_agent",
+    "B": "parallel_agents"
+   },
+   "E2_prediction": {
+    "A": "single_agent",
+    "B": "single_agent"
+   },
+   "_audit_detail": {
+    "A_single_gt_parallel": true,
+    "A_parallel_infeasible": true,
+    "B_parallel_gt_single": true
+   }
+  },
+  {
+   "pair_id": "ctc_ab04",
+   "task_hash_A": "e85ba99fac3703daa0c3f05fbd41b0f495e9610dd49cb794eaaca63518dfd971",
+   "task_hash_B": "dc1555d753cf59292369d9e1e76c0de4eb6a5fa3cb7cf5c79b596bd4cf21408c",
+   "task_text_hash": "ff69ebc11077af3e",
+   "topology_hash_A": "16ef8d0599eae1cd",
+   "topology_hash_B": "c87c5ba285e76d73",
+   "v1_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "v1_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "pv2_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475
+   },
+   "pv2_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65
+   },
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "single_agent_feasible_A": true,
+   "single_agent_feasible_B": true,
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "PREDICTION_STATUS": "DISCRIMINATING",
+   "E1_prediction": {
+    "A": "single_agent",
+    "B": "parallel_agents"
+   },
+   "E2_prediction": {
+    "A": "single_agent",
+    "B": "single_agent"
+   },
+   "_audit_detail": {
+    "A_single_gt_parallel": true,
+    "A_parallel_infeasible": true,
+    "B_parallel_gt_single": true
+   }
+  },
+  {
+   "pair_id": "ctc_ab05",
+   "task_hash_A": "78404213673e8d723bd29bdd856dac2720aebf6de71a839a7d8d7bfd764f5301",
+   "task_hash_B": "8a51c2b7e78133d5d49bb3a17b1296b3d2a0791e689df4f76477883d96e42c68",
+   "task_text_hash": "030e004ceecb614f",
+   "topology_hash_A": "16ef8d0599eae1cd",
+   "topology_hash_B": "c87c5ba285e76d73",
+   "v1_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "v1_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "pv2_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475
+   },
+   "pv2_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65
+   },
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "single_agent_feasible_A": true,
+   "single_agent_feasible_B": true,
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "PREDICTION_STATUS": "DISCRIMINATING",
+   "E1_prediction": {
+    "A": "single_agent",
+    "B": "parallel_agents"
+   },
+   "E2_prediction": {
+    "A": "single_agent",
+    "B": "single_agent"
+   },
+   "_audit_detail": {
+    "A_single_gt_parallel": true,
+    "A_parallel_infeasible": true,
+    "B_parallel_gt_single": true
+   }
+  },
+  {
+   "pair_id": "ctc_ab06",
+   "task_hash_A": "6c41edd03c2c1978a147d711b519e6cfc96adaa13f9d8b1f61e122d190533a16",
+   "task_hash_B": "83c6e4bd61ae2c05c9920f4a42a11467fcc80e4aeab9b3391e6c6a8f2ac8d25b",
+   "task_text_hash": "ee0547b716a95b64",
+   "topology_hash_A": "16ef8d0599eae1cd",
+   "topology_hash_B": "c87c5ba285e76d73",
+   "v1_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "v1_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "pv2_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475
+   },
+   "pv2_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65
+   },
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "single_agent_feasible_A": true,
+   "single_agent_feasible_B": true,
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "PREDICTION_STATUS": "DISCRIMINATING",
+   "E1_prediction": {
+    "A": "single_agent",
+    "B": "parallel_agents"
+   },
+   "E2_prediction": {
+    "A": "single_agent",
+    "B": "single_agent"
+   },
+   "_audit_detail": {
+    "A_single_gt_parallel": true,
+    "A_parallel_infeasible": true,
+    "B_parallel_gt_single": true
+   }
+  },
+  {
+   "pair_id": "ctc_ab07",
+   "task_hash_A": "dda89b528c3399949dd06dca963b78223b7e9a9f16bb646d13bee32ace6211c0",
+   "task_hash_B": "b26a472a16e4fdf9d37661b3a991e52782a1d18999245aa07ed290000f39f8c1",
+   "task_text_hash": "8b93a960fedae2cc",
+   "topology_hash_A": "16ef8d0599eae1cd",
+   "topology_hash_B": "c87c5ba285e76d73",
+   "v1_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "v1_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "pv2_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475
+   },
+   "pv2_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65
+   },
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "single_agent_feasible_A": true,
+   "single_agent_feasible_B": true,
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "PREDICTION_STATUS": "DISCRIMINATING",
+   "E1_prediction": {
+    "A": "single_agent",
+    "B": "parallel_agents"
+   },
+   "E2_prediction": {
+    "A": "single_agent",
+    "B": "single_agent"
+   },
+   "_audit_detail": {
+    "A_single_gt_parallel": true,
+    "A_parallel_infeasible": true,
+    "B_parallel_gt_single": true
+   }
+  },
+  {
+   "pair_id": "ctc_ab08",
+   "task_hash_A": "185ef3ab0ac8d18d9bcbb09625d47541175acf35b78db659c61807026d1e47e7",
+   "task_hash_B": "7e10745618bfc2c1e4d269bff9a8beb4526ea1a52beaec894bbc878b193fb9c4",
+   "task_text_hash": "1adfd4b8a2441c17",
+   "topology_hash_A": "16ef8d0599eae1cd",
+   "topology_hash_B": "c87c5ba285e76d73",
+   "v1_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "v1_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "pv2_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475
+   },
+   "pv2_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65
+   },
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "single_agent_feasible_A": true,
+   "single_agent_feasible_B": true,
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "PREDICTION_STATUS": "DISCRIMINATING",
+   "E1_prediction": {
+    "A": "single_agent",
+    "B": "parallel_agents"
+   },
+   "E2_prediction": {
+    "A": "single_agent",
+    "B": "single_agent"
+   },
+   "_audit_detail": {
+    "A_single_gt_parallel": true,
+    "A_parallel_infeasible": true,
+    "B_parallel_gt_single": true
+   }
+  },
+  {
+   "pair_id": "ctc_ab09",
+   "task_hash_A": "f9c786bd2fca9243dad554ac28114a0bed363141e7449a79225217691dc1fbf3",
+   "task_hash_B": "65b1ce2e080008c561fbb944d29d165379e8d03d282d15a7f5bc6ede4378f3bd",
+   "task_text_hash": "c4a0dc9292a650d4",
+   "topology_hash_A": "16ef8d0599eae1cd",
+   "topology_hash_B": "c87c5ba285e76d73",
+   "v1_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "v1_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "pv2_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475
+   },
+   "pv2_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65
+   },
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "single_agent_feasible_A": true,
+   "single_agent_feasible_B": true,
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "PREDICTION_STATUS": "DISCRIMINATING",
+   "E1_prediction": {
+    "A": "single_agent",
+    "B": "parallel_agents"
+   },
+   "E2_prediction": {
+    "A": "single_agent",
+    "B": "single_agent"
+   },
+   "_audit_detail": {
+    "A_single_gt_parallel": true,
+    "A_parallel_infeasible": true,
+    "B_parallel_gt_single": true
+   }
+  },
+  {
+   "pair_id": "ctc_ab10",
+   "task_hash_A": "e0d93046c0f737f61b14e1f5be340dca28d21153eadae95b8b653096c16d9da8",
+   "task_hash_B": "68c395f1a1e352f6343f90188c0380f9989d606ea6d37ad9dcad44c0ad884d72",
+   "task_text_hash": "df2172ad03430ed1",
+   "topology_hash_A": "16ef8d0599eae1cd",
+   "topology_hash_B": "c87c5ba285e76d73",
+   "v1_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "v1_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "pv2_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475
+   },
+   "pv2_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65
+   },
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "single_agent_feasible_A": true,
+   "single_agent_feasible_B": true,
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "PREDICTION_STATUS": "DISCRIMINATING",
+   "E1_prediction": {
+    "A": "single_agent",
+    "B": "parallel_agents"
+   },
+   "E2_prediction": {
+    "A": "single_agent",
+    "B": "single_agent"
+   },
+   "_audit_detail": {
+    "A_single_gt_parallel": true,
+    "A_parallel_infeasible": true,
+    "B_parallel_gt_single": true
+   }
+  },
+  {
+   "pair_id": "ctc_ab11",
+   "task_hash_A": "7b2e816a96ad38d95d5576671c1600647f91a0cb7f3fdf57aa1bc2d36ae5b828",
+   "task_hash_B": "5bf66edfe896c04c076b885e4aeeb99f89f913a9690405b9725ef20ce5796021",
+   "task_text_hash": "3a12d225071713fa",
+   "topology_hash_A": "16ef8d0599eae1cd",
+   "topology_hash_B": "c87c5ba285e76d73",
+   "v1_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "v1_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "pv2_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475
+   },
+   "pv2_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65
+   },
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "single_agent_feasible_A": true,
+   "single_agent_feasible_B": true,
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "PREDICTION_STATUS": "DISCRIMINATING",
+   "E1_prediction": {
+    "A": "single_agent",
+    "B": "parallel_agents"
+   },
+   "E2_prediction": {
+    "A": "single_agent",
+    "B": "single_agent"
+   },
+   "_audit_detail": {
+    "A_single_gt_parallel": true,
+    "A_parallel_infeasible": true,
+    "B_parallel_gt_single": true
+   }
+  },
+  {
+   "pair_id": "ctc_ab12",
+   "task_hash_A": "5fa0a1997d334d217fadf8c0ae3ebf33b0657debc6edf7e1586e3817b8bfb44d",
+   "task_hash_B": "ebad23fecf1c48d1415629790895c9dbbf6111cbd902972146664cbf17bcdb09",
+   "task_text_hash": "56704ebf054d7f92",
+   "topology_hash_A": "16ef8d0599eae1cd",
+   "topology_hash_B": "c87c5ba285e76d73",
+   "v1_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "v1_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.95
+   },
+   "pv2_scores_A": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475
+   },
+   "pv2_scores_B": {
+    "single_agent": 0.525,
+    "hierarchical_agents": 0.475,
+    "parallel_agents": 0.65
+   },
+   "parallel_feasible_A": false,
+   "parallel_feasible_B": true,
+   "single_agent_feasible_A": true,
+   "single_agent_feasible_B": true,
+   "v1_choice_A": "parallel_agents",
+   "v1_choice_B": "parallel_agents",
+   "PREDICTION_STATUS": "DISCRIMINATING",
+   "E1_prediction": {
+    "A": "single_agent",
+    "B": "parallel_agents"
+   },
+   "E2_prediction": {
+    "A": "single_agent",
+    "B": "single_agent"
+   },
+   "_audit_detail": {
+    "A_single_gt_parallel": true,
+    "A_parallel_infeasible": true,
+    "B_parallel_gt_single": true
+   }
+  }
+ ],
+ "summary": {
+  "n_pairs": 12,
+  "n_discriminating": 12,
+  "n_non_discriminating": 0
+ },
+ "artifact_sha256": "2bc036de1c0347dd6d81484cd5d71b54bcb54a485ee3e6642b30ab7e9266f2d2",
+ "hash_linked_to_pool": "4b19e569240b3361d6952d2c33a89b14fb8349dd2913b9a11a7209f19ef5ad6a"
+}
