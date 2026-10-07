@@ -135,7 +135,11 @@ def cmd_run(args: argparse.Namespace) -> int:
               file=sys.stderr)
         return 1
 
-    run_id = run.get("id", "?")
+    run_id = run.get("run_id") or run.get("id")
+    if not run_id:
+        print(f"error: unexpected response from backend: {run}",
+              file=sys.stderr)
+        return 1
     print(f"Run {run_id} submitted. Watching...")
     print()
 
@@ -146,8 +150,13 @@ def cmd_run(args: argparse.Namespace) -> int:
             with urllib.request.urlopen(f"{_api_base()}/runs/{run_id}",
                                         timeout=30) as resp:
                 status_data = json.loads(resp.read())
-        except Exception:
+        except Exception as e:  # noqa: BLE001
+            print(f"  (poll error: {e})")
             break
+        if not isinstance(status_data, dict):
+            print(f"error: unexpected poll response: {status_data}",
+                  file=sys.stderr)
+            return 1
         status = status_data.get("status", "unknown")
         if status != last_status:
             print(f"  [{status}]")
@@ -155,9 +164,14 @@ def cmd_run(args: argparse.Namespace) -> int:
         if status in ("completed", "failed", "cancelled"):
             print()
             print(f"Run {run_id}: {status}")
-            result = status_data.get("result") or status_data.get("output")
+            result = (status_data.get("final_result")
+                      or status_data.get("result")
+                      or status_data.get("output"))
             if result:
                 print(f"Result: {result}")
+            err = status_data.get("error")
+            if err:
+                print(f"Error: {err}", file=sys.stderr)
             return 0 if status == "completed" else 1
         time.sleep(5)
 
@@ -229,23 +243,39 @@ def cmd_init(args: argparse.Namespace) -> int:
     # 2. Provider selection
     print()
     print("Choose a model provider (for agent execution):")
-    print("  1) ollama   - local models, no API key needed")
-    print("  2) nebius   - cloud, NVIDIA open models (needs API key)")
-    print("  3) skip     - allocation only, no execution")
+    print("  1) ollama    - local models, no API key needed")
+    print("  2) openai    - OpenAI API (needs OPENAI_API_KEY)")
+    print("  3) anthropic - Claude API (needs ANTHROPIC_API_KEY)")
+    print("  4) gemini    - Google AI API (needs GEMINI_API_KEY)")
+    print("  5) nebius    - cloud, NVIDIA open models (needs NEBIUS_API_KEY)")
+    print("  6) skip      - allocation only, no execution")
     choice = (input("Choice [1]: ").strip() or "1") if not args.yes else "1"
 
     env_file = data_dir / "provider.env"
+
+    def _save_key(var_name: str, label: str, provider: str) -> None:
+        key = input(f"{label} API key: ").strip() if not args.yes else ""
+        if key:
+            env_file.write_text(f"AIR_PROVIDER={provider}\n{var_name}={key}\n")
+            print(f"[ok] {label} configured")
+            print(f"     (key saved to {env_file}; or export {var_name} yourself)")
+        else:
+            env_file.write_text(f"AIR_PROVIDER={provider}\n")
+            print(f"[skip] no key provided; set {var_name} later")
+
     if choice == "1":
         env_file.write_text("AIR_PROVIDER=ollama\n")
         print("[ok] provider=ollama (make sure `ollama serve` is running)")
     elif choice == "2":
-        key = input("Nebius API key: ").strip() if not args.yes else ""
-        if key:
-            env_file.write_text(f"AIR_PROVIDER=nebius\nNEBIUS_API_KEY={key}\n")
-            print("[ok] provider=nebius configured")
-        else:
-            print("[skip] no key provided; set NEBIUS_API_KEY later")
+        _save_key("OPENAI_API_KEY", "OpenAI", "openai")
+    elif choice == "3":
+        _save_key("ANTHROPIC_API_KEY", "Anthropic", "anthropic")
+    elif choice == "4":
+        _save_key("GEMINI_API_KEY", "Gemini", "gemini")
+    elif choice == "5":
+        _save_key("NEBIUS_API_KEY", "Nebius", "nebius")
     else:
+        env_file.write_text("AIR_PROVIDER=\n")
         print("[skip] execution disabled; allocation still works")
 
     # 3. Sanity check: allocation works without any provider

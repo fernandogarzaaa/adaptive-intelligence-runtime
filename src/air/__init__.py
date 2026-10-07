@@ -16,7 +16,7 @@ For full runs with execution, use the CLI (`air run`) or the API server.
 
 from __future__ import annotations
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __product__ = "Adaptive Intelligence Runtime"
 
 
