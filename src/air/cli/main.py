@@ -296,7 +296,12 @@ def cmd_init(args: argparse.Namespace) -> int:
 def cmd_allocate(args: argparse.Namespace) -> int:
     """Show the allocation decision for a goal (no execution)."""
     from air._lib import allocation_explanation
-    print(allocation_explanation(args.goal))
+    needs = [n.strip() for n in args.needs.split(",")] if args.needs else None
+    try:
+        print(allocation_explanation(args.goal, needs=needs))
+    except ValueError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -312,6 +317,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("allocate", help="show allocation plan for a goal (no execution)")
     sp.add_argument("goal")
+    sp.add_argument("--needs", default=None,
+                    help="comma-separated capabilities: read,write,execute")
     sp.set_defaults(fn=cmd_allocate)
 
     sp = sub.add_parser("doctor", help="check the runtime environment")
