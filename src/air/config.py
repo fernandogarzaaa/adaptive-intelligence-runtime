@@ -19,7 +19,7 @@ def default_data_dir() -> Path:
 
 class ProviderConfig(BaseModel):
     name: str
-    kind: str  # openai_compat | anthropic | gemini | ollama
+    kind: str  # openai | openai_compat | anthropic | gemini | ollama
     base_url: str | None = None
     model: str | None = None
     api_key_env: str | None = None
@@ -52,7 +52,7 @@ class AirConfig(BaseModel):
             providers.append(
                 ProviderConfig(
                     name="openai",
-                    kind="openai_compat",
+                    kind="openai",
                     base_url=os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
                     model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
                     api_key_env="OPENAI_API_KEY",

@@ -11,6 +11,9 @@ from air.providers.base import (
     route,
 )
 from air.providers.openai_compat import OpenAICompatProvider
+from air.providers.openai import OpenAIProvider
+from air.providers.anthropic import AnthropicProvider
+from air.providers.gemini import GeminiProvider
 
 # Default per-1k pricing used for routing when the operator has not set better
 # numbers. Documented as estimates, not quotes.
@@ -39,15 +42,41 @@ class ProviderRegistry:
 
     def _build(self, pc: ProviderConfig) -> Provider:
         price_in, price_out = _DEFAULT_PRICING.get(pc.name, (0.002, 0.008))
-        caps = ModelCapabilities(local=(pc.kind == "ollama"))
+        # Honest capability declarations per kind; routing filters on these.
+        if pc.kind == "ollama":
+            caps = ModelCapabilities(local=True)
+        elif pc.kind in ("openai", "openai_compat", "anthropic"):
+            caps = ModelCapabilities(tools=True, reasoning=True)
+        elif pc.kind == "gemini":
+            caps = ModelCapabilities(tools=True)
+        else:
+            caps = ModelCapabilities()
+        if pc.kind == "openai":
+            return OpenAIProvider.from_config(
+                name=pc.name, base_url=pc.base_url, model=pc.model or "gpt-4o-mini",
+                api_key_env=pc.api_key_env,
+                cost_per_1k_in=price_in, cost_per_1k_out=price_out, caps=caps,
+            )
         if pc.kind in ("openai_compat", "ollama"):
             return OpenAICompatProvider.from_config(
                 name=pc.name, base_url=pc.base_url or "http://127.0.0.1:11434/v1",
                 model=pc.model or "llama3.1", api_key_env=pc.api_key_env,
                 cost_per_1k_in=price_in, cost_per_1k_out=price_out, caps=caps,
             )
-        # Anthropic/Gemini providers land in the next build slice; the registry
-        # reports them as configured-but-unavailable rather than faking them.
+        if pc.kind == "anthropic":
+            return AnthropicProvider.from_config(
+                name=pc.name, base_url=pc.base_url, model=pc.model or "claude-haiku-4-5",
+                api_key_env=pc.api_key_env,
+                cost_per_1k_in=price_in, cost_per_1k_out=price_out, caps=caps,
+            )
+        if pc.kind == "gemini":
+            return GeminiProvider.from_config(
+                name=pc.name, base_url=pc.base_url, model=pc.model or "gemini-2.0-flash",
+                api_key_env=pc.api_key_env,
+                cost_per_1k_in=price_in, cost_per_1k_out=price_out, caps=caps,
+            )
+        # Honest boundary: configured but unknown provider kinds are
+        # reported as unavailable, never faked.
         raise ValueError(f"provider kind not yet implemented: {pc.kind} ({pc.name})")
 
     def get(self, name: str) -> Provider | None:
