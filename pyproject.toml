@@ -19,7 +19,7 @@ dependencies = [
   "websockets>=13.0",
   # MCP 2.x removed/renamed client APIs the connector relies on; pin the
   # 1.x line until 2.x compatibility is explicitly verified.
-  "mcp>=1.30,<2",
+  "mcp>=1.30,<3",
   "jsonschema>=4.0",
 ]
 
