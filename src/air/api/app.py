@@ -253,8 +253,31 @@ class MemoryRequest(BaseModel):
 
 # ------------------------------------------------------------------- app
 
-def create_app() -> FastAPI:
+LOOPBACK_HOSTS = ("localhost", "127.0.0.1", "::1")
+
+
+def loopback_allowed_hosts(bind_host: str, extra: str | None = None) -> list[str] | None:
+    """Host-header allowlist for `air start`.
+
+    When the API is bound to a loopback address it has no authentication, so
+    a malicious web page could still reach it through DNS rebinding (the
+    browser sends the attacker's hostname in the Host header). Accepting only
+    loopback Host values closes that hole. Returns None (no check) when bound
+    to a non-loopback address and no explicit list is configured.
+    AIR_ALLOWED_HOSTS (comma-separated) adds hosts, e.g. a reverse-proxy name.
+    """
+    extras = [h.strip() for h in (extra or "").split(",") if h.strip()]
+    if bind_host in LOOPBACK_HOSTS or bind_host.startswith("127."):
+        return sorted({*LOOPBACK_HOSTS, bind_host, *extras})
+    return extras or None
+
+
+def create_app(allowed_hosts: list[str] | None = None) -> FastAPI:
     app = FastAPI(title="Adaptive Intelligence Runtime", version=__version__)
+    if allowed_hosts:
+        from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
     _register_error_handlers(app)
 
     # ---------------------------------------------------------------- runs
