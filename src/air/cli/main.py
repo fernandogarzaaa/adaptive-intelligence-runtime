@@ -100,11 +100,15 @@ def _api_base() -> str:
 
 def cmd_start(args: argparse.Namespace) -> int:
     """Start the AIR backend (API + websocket)."""
+    import os
+
     import uvicorn
-    from air.api.app import create_app
+    from air.api.app import create_app, loopback_allowed_hosts
 
     config = AirConfig.from_env()
-    uvicorn.run(create_app(), host=args.host or config.host,
+    host = args.host or config.host
+    allowed = loopback_allowed_hosts(host, os.environ.get("AIR_ALLOWED_HOSTS"))
+    uvicorn.run(create_app(allowed_hosts=allowed), host=host,
                 port=args.port or config.port)
     return 0
 
