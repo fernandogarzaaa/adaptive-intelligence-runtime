@@ -9,6 +9,7 @@ from pathlib import Path
 
 import httpx
 
+from air import __version__
 from air.security.policy import (CapabilityClass, assert_safe_path,
                                  check_url, redact_secrets, safe_argv)
 from air.tools.registry import ToolContext, ToolDefinition, ToolRegistry
@@ -78,7 +79,7 @@ async def _http_fetch(args: dict, ctx: ToolContext) -> dict:
     async with httpx.AsyncClient(trust_env=False,
                                  timeout=timeout) as client:
         resp = await client.request(method, url,
-                                    headers={"User-Agent": "AIR/0.1.0"})
+                                    headers={"User-Agent": f"AIR/{__version__}"})
     body = resp.content[:MAX_FETCH_BYTES]
     try:
         text = body.decode("utf-8")
