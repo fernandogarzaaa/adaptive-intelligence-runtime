@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `air start` bound to a loopback address now rejects requests whose `Host` header is not loopback (`localhost`, `127.0.0.1`, `::1`), closing DNS-rebinding access to the unauthenticated local API from a malicious web page. `AIR_ALLOWED_HOSTS` (comma-separated) adds names such as a reverse proxy; non-loopback binds are unchanged unless `AIR_ALLOWED_HOSTS` is set.
 
+- SSRF guard (`http.fetch`, HTTP connectors, HTTP MCP servers) no longer accepts private/loopback targets written in non-canonical IPv4 forms (`http://2130706433/`, `127.1`, `0x7f.0.0.1`, `0177.0.0.1`, `0`), IPv4-mapped IPv6 literals (`[::ffff:127.0.0.1]`), or hostnames that resolve to private addresses (e.g. `127.0.0.1.nip.io`). Hostnames are resolved and every address must be public; DNS rebinding between check and connect remains a documented residual risk.
+
 ### Added
 
 - Dependabot configuration for pip, npm (`web/`) and GitHub Actions (weekly).

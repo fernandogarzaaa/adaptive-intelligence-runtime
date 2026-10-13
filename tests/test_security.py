@@ -53,3 +53,41 @@ def test_ssrf_allowlist_enforced():
 def test_non_http_scheme_blocked():
     with pytest.raises(PolicyDenied):
         check_url("file:///etc/passwd", allowlist=None)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://2130706433/",          # decimal 127.0.0.1
+        "http://127.1/",               # short form
+        "http://0x7f.0.0.1/",          # hex octet
+        "http://0177.0.0.1/",          # octal octet
+        "http://0/",                   # 0.0.0.0
+        "http://[::ffff:127.0.0.1]/",  # IPv4-mapped IPv6
+        "http://[::ffff:a9fe:a9fe]/",  # mapped 169.254.169.254
+    ],
+)
+def test_ssrf_blocks_noncanonical_ip_forms(url):
+    with pytest.raises(PolicyDenied):
+        check_url(url, allowlist=None)
+
+
+def test_ssrf_blocks_hostname_resolving_to_private(monkeypatch):
+    import socket
+
+    from air.security import policy
+
+    def fake_getaddrinfo(host, *a, **k):
+        table = {"evil.example": "10.1.2.3", "ok.example": "93.184.215.14"}
+        if host not in table:
+            raise socket.gaierror("nope")
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (table[host], 0))]
+
+    monkeypatch.setattr(policy.socket, "getaddrinfo", fake_getaddrinfo)
+    with pytest.raises(PolicyDenied):
+        check_url("https://evil.example/x", allowlist=None)
+    check_url("https://ok.example/x", allowlist=None)
+    # Unresolvable names are left to fail at connect time.
+    check_url("https://does-not-resolve.example/x", allowlist=None)
+    # An explicit allowlist is trusted as-is (operator decision).
+    check_url("http://evil.example/x", allowlist={"evil.example"})

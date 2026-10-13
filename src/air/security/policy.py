@@ -9,6 +9,7 @@ from __future__ import annotations
 import ipaddress
 import re
 import shlex
+import socket
 from enum import Enum
 from pathlib import Path
 from urllib.parse import urlparse
@@ -68,28 +69,61 @@ def assert_safe_path(path: str, root: Path) -> Path:
     return p
 
 
+def _is_public_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    # ::ffff:a.b.c.d reaches the IPv4 host; judge the embedded address.
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+        ip = ip.ipv4_mapped
+    return not (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_multicast or ip.is_unspecified or ip.is_reserved)
+
+
+def _resolve_host(host: str) -> list[str] | None:
+    """Addresses the OS resolver gives for host, or None if it cannot resolve.
+
+    This is the same resolver the HTTP client uses, so it also normalises the
+    non-canonical IPv4 spellings that ``ipaddress`` rejects but ``connect()``
+    accepts (``2130706433``, ``127.1``, ``0x7f.0.0.1``, ``0177.0.0.1``).
+    """
+    try:
+        infos = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
+    except (socket.gaierror, UnicodeError, OSError):
+        return None
+    return [str(info[4][0]).split("%", 1)[0] for info in infos]
+
+
 def is_host_allowed(host: str, allowlist: set[str] | None) -> bool:
     """SSRF protection: explicit allowlist entries are trusted; otherwise
-    block private/loopback/link-local/multicast IP literals (v4 and v6)
-    and localhost names. Note: DNS rebinding (a hostname that resolves to
-    a private IP only at connect time) is a documented residual risk;
-    see SECURITY.md."""
+    block private/loopback/link-local/multicast/reserved addresses (v4, v6
+    and IPv4-mapped v6) and localhost names. Hostnames and non-canonical
+    IPv4 spellings are resolved and every resolved address must be public.
+    Residual risk: DNS rebinding (a name that resolves publicly here and
+    privately at connect time); see SECURITY.md."""
     if allowlist is not None:
         # Explicit allowlist: membership is trust, absence is denial.
         return host.strip().lower().rstrip(".") in {
             h.strip().lower().rstrip(".") for h in allowlist}
     h = host.strip().lower().rstrip(".")
+    if not h:
+        return False
     if h in ("localhost", "localhost.localdomain") or h.endswith(".localhost"):
         return False
     # IPv6 literals may arrive bracketed.
     candidate = h[1:-1] if h.startswith("[") and h.endswith("]") else h
     try:
-        ip = ipaddress.ip_address(candidate)
-        if (ip.is_private or ip.is_loopback or ip.is_link_local
-                or ip.is_multicast or ip.is_unspecified or ip.is_reserved):
-            return False
+        return _is_public_ip(ipaddress.ip_address(candidate))
     except ValueError:
-        pass  # hostname; allowlist already checked
+        pass  # not a canonical IP literal: resolve it below
+    addrs = _resolve_host(candidate)
+    if addrs is None:
+        # Unresolvable names cannot be connected to either; let the request
+        # fail at connect time with the client's own error.
+        return True
+    for addr in addrs:
+        try:
+            if not _is_public_ip(ipaddress.ip_address(addr)):
+                return False
+        except ValueError:
+            return False
     return True
 
 
